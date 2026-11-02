@@ -1,0 +1,19 @@
+diff --git a/drivers/misc/mediatek/power/mt8173/pmic_mt6397.c b/drivers/misc/mediatek/power/mt8173/pmic_mt6397.c
+index f72b3b17..54d56890 100644
+--- a/drivers/misc/mediatek/power/mt8173/pmic_mt6397.c
++++ b/drivers/misc/mediatek/power/mt8173/pmic_mt6397.c
+@@ -660,7 +660,13 @@ static irqreturn_t pwrkey_int_handler(int irq, void *dev_id)
+ 	if (pwrkey_deb == 1) {
+ 		pr_warn("[Power/PMIC]" "[pwrkey_int_handler] Release pwrkey\n");
+ #if defined(CONFIG_MTK_KERNEL_POWER_OFF_CHARGING)
+-		if (get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT) {
++		/*
++		 * ON-FireLOS: only a release that follows a press. The first
++		 * interrupt in power-off charging is a release with no press
++		 * before it; with timer_pre still 0 it read as a long press and
++		 * rebooted out of the charger screen within five seconds.
++		 */
++		if (get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT && key_down == 1) {
+ 			timer_pos = sched_clock();
+ 			if (timer_pos - timer_pre >= LONG_PWRKEY_PRESS_TIME)
+ 				long_pwrkey_press = true;

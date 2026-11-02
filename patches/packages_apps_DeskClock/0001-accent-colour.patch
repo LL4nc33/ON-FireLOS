@@ -1,0 +1,142 @@
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index 19db824..ccd8747 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -32,7 +32,12 @@
+ 
+     <color name="clock_gray">#B3FFFFFF</color>
+ 
+-    <color name="default_background">#1A237E</color>
++    <!-- ON-FireLOS: the grey of the dark system theme instead of navy; the app is
++         dark-only (white text everywhere), so it stays dark in light mode too. -->
++    <color name="default_background">#303030</color>
++
++    <!-- ON-FireLOS: notifications follow the system accent. -->
++    <color name="notification_accent">@*android:color/system_notification_accent_color</color>
+ 
+     <!-- shadowColor for widget text -->
+     <color name="widget_shadow_color">#67000000</color>
+diff --git a/res/values/themes.xml b/res/values/themes.xml
+index 5847add..cf9bb39 100644
+--- a/res/values/themes.xml
++++ b/res/values/themes.xml
+@@ -28,7 +28,7 @@
+         <item name="android:windowContentOverlay">@null</item>
+ 
+         <!-- Attributes from android.support.v7.appcompat -->
+-        <item name="colorAccent">#DA4336</item>
++        <item name="colorAccent">@*android:color/accent_device_default_dark</item>
+         <item name="colorBackgroundFloating">#303030</item>
+         <item name="colorControlActivated">@android:color/white</item>
+         <item name="colorControlNormal">?android:attr/textColorPrimary</item>
+diff --git a/src/com/android/deskclock/alarms/AlarmNotifications.java b/src/com/android/deskclock/alarms/AlarmNotifications.java
+index 5312f43..cca9a8b 100644
+--- a/src/com/android/deskclock/alarms/AlarmNotifications.java
++++ b/src/com/android/deskclock/alarms/AlarmNotifications.java
+@@ -91,7 +91,7 @@ public final class AlarmNotifications {
+                 .setContentTitle(context.getString(
+                         R.string.alarm_alert_predismiss_title))
+                 .setContentText(AlarmUtils.getAlarmText(context, instance, true /* includeLabel */))
+-                .setColor(ContextCompat.getColor(context, R.color.default_background))
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent))
+                 .setSmallIcon(R.drawable.stat_notify_alarm)
+                 .setAutoCancel(false)
+                 .setSortKey(createSortKey(instance))
+@@ -139,7 +139,7 @@ public final class AlarmNotifications {
+                 .setShowWhen(false)
+                 .setContentTitle(context.getString(R.string.alarm_alert_predismiss_title))
+                 .setContentText(AlarmUtils.getAlarmText(context, instance, true /* includeLabel */))
+-                .setColor(ContextCompat.getColor(context, R.color.default_background))
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent))
+                 .setSmallIcon(R.drawable.stat_notify_alarm)
+                 .setAutoCancel(false)
+                 .setSortKey(createSortKey(instance))
+@@ -246,7 +246,7 @@ public final class AlarmNotifications {
+             summary = new NotificationCompat.Builder(context)
+                     .setShowWhen(false)
+                     .setContentIntent(firstUpcoming.contentIntent)
+-                    .setColor(ContextCompat.getColor(context, R.color.default_background))
++                    .setColor(ContextCompat.getColor(context, R.color.notification_accent))
+                     .setSmallIcon(R.drawable.stat_notify_alarm)
+                     .setGroup(UPCOMING_GROUP_KEY)
+                     .setGroupSummary(true)
+@@ -280,7 +280,7 @@ public final class AlarmNotifications {
+             summary = new NotificationCompat.Builder(context)
+                     .setShowWhen(false)
+                     .setContentIntent(firstMissed.contentIntent)
+-                    .setColor(ContextCompat.getColor(context, R.color.default_background))
++                    .setColor(ContextCompat.getColor(context, R.color.notification_accent))
+                     .setSmallIcon(R.drawable.stat_notify_alarm)
+                     .setGroup(MISSED_GROUP_KEY)
+                     .setGroupSummary(true)
+@@ -302,7 +302,7 @@ public final class AlarmNotifications {
+                 .setContentTitle(instance.getLabelOrDefault(context))
+                 .setContentText(context.getString(R.string.alarm_alert_snooze_until,
+                         AlarmUtils.getFormattedTime(context, instance.getAlarmTime())))
+-                .setColor(ContextCompat.getColor(context, R.color.default_background))
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent))
+                 .setSmallIcon(R.drawable.stat_notify_alarm)
+                 .setAutoCancel(false)
+                 .setSortKey(createSortKey(instance))
+@@ -346,7 +346,7 @@ public final class AlarmNotifications {
+                 .setContentTitle(context.getString(R.string.alarm_missed_title))
+                 .setContentText(instance.mLabel.isEmpty() ? alarmTime :
+                         context.getString(R.string.alarm_missed_text, alarmTime, label))
+-                .setColor(ContextCompat.getColor(context, R.color.default_background))
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent))
+                 .setSortKey(createSortKey(instance))
+                 .setSmallIcon(R.drawable.stat_notify_alarm)
+                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+@@ -387,7 +387,7 @@ public final class AlarmNotifications {
+         NotificationCompat.Builder notification = new NotificationCompat.Builder(service)
+                 .setContentTitle(instance.getLabelOrDefault(service))
+                 .setContentText(AlarmUtils.getFormattedTime(service, instance.getAlarmTime()))
+-                .setColor(ContextCompat.getColor(service, R.color.default_background))
++                .setColor(ContextCompat.getColor(service, R.color.notification_accent))
+                 .setSmallIcon(R.drawable.stat_notify_alarm)
+                 .setOngoing(true)
+                 .setAutoCancel(false)
+diff --git a/src/com/android/deskclock/data/StopwatchNotificationBuilder.java b/src/com/android/deskclock/data/StopwatchNotificationBuilder.java
+index 6e62f06..77a097f 100644
+--- a/src/com/android/deskclock/data/StopwatchNotificationBuilder.java
++++ b/src/com/android/deskclock/data/StopwatchNotificationBuilder.java
+@@ -136,7 +136,7 @@ class StopwatchNotificationBuilder {
+                 .setPriority(Notification.PRIORITY_MAX)
+                 .setSmallIcon(R.drawable.stat_notify_stopwatch)
+                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+-                .setColor(ContextCompat.getColor(context, R.color.default_background));
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent));
+ 
+         if (Utils.isNOrLater()) {
+             notification.setGroup(nm.getStopwatchNotificationGroupKey());
+diff --git a/src/com/android/deskclock/data/TimerNotificationBuilder.java b/src/com/android/deskclock/data/TimerNotificationBuilder.java
+index 2119869..22fbc63 100644
+--- a/src/com/android/deskclock/data/TimerNotificationBuilder.java
++++ b/src/com/android/deskclock/data/TimerNotificationBuilder.java
+@@ -160,7 +160,7 @@ class TimerNotificationBuilder {
+                 .setSortKey(nm.getTimerNotificationSortKey())
+                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+-                .setColor(ContextCompat.getColor(context, R.color.default_background));
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent));
+ 
+         for (Action action : actions) {
+             notification.addAction(action);
+@@ -272,7 +272,7 @@ class TimerNotificationBuilder {
+                 .setSmallIcon(R.drawable.stat_notify_timer)
+                 .setFullScreenIntent(pendingFullScreen, true)
+                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+-                .setColor(ContextCompat.getColor(context, R.color.default_background));
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent));
+ 
+         for (Action action : actions) {
+             notification.addAction(action);
+@@ -356,7 +356,7 @@ class TimerNotificationBuilder {
+                 .setSortKey(nm.getTimerNotificationMissedSortKey())
+                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                 .addAction(action)
+-                .setColor(ContextCompat.getColor(context, R.color.default_background));
++                .setColor(ContextCompat.getColor(context, R.color.notification_accent));
+ 
+         if (Utils.isNOrLater()) {
+             notification.setCustomContentView(buildChronometer(pname, base, true, stateText))

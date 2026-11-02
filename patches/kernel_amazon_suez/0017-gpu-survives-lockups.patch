@@ -1,0 +1,46 @@
+diff --git a/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/common/pvrsrv.c b/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/common/pvrsrv.c
+index 0890c6e6..f537c9de 100644
+--- a/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/common/pvrsrv.c
++++ b/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/common/pvrsrv.c
+@@ -489,10 +489,16 @@ static IMG_BOOL _CleanupThreadProcessWorkList(PVRSRV_DATA *psPVRSRVData)
+ 				}
+ 				else
+ 				{
++					/* ON-FireLOS: keep it for later cleanups instead of
++					 * leaking it until reboot. */
+ 					PVR_DPF((PVR_DBG_ERROR, "Failed to free resource "
+ 								"(callback " IMG_PFN_FMTSPEC "). "
+-								"Retry limit reached",
++								"Retry limit reached, kept for later",
+ 								pfnFree));
++					psData->ui32RetryCount = 0;
++					OSLockAcquire(psPVRSRVData->hCleanupThreadWorkListLock);
++					dllist_add_to_tail(&psPVRSRVData->sCleanupThreadWorkList, psNodeIter);
++					OSLockRelease(psPVRSRVData->hCleanupThreadWorkListLock);
+ 				}
+ 			}
+ 		}
+diff --git a/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/devices/rgx/rgxfwutils.c b/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/devices/rgx/rgxfwutils.c
+index 901b0a3b..b3e6a61c 100644
+--- a/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/devices/rgx/rgxfwutils.c
++++ b/drivers/misc/mediatek/gpu/mt8173/1.5_ED3830101/services/server/devices/rgx/rgxfwutils.c
+@@ -3957,8 +3957,17 @@ PVRSRV_ERROR CheckStalledClientCommonContext(RGX_SERVER_COMMON_CONTEXT *psCurren
+ IMG_VOID DumpStalledFWCommonContext(RGX_SERVER_COMMON_CONTEXT *psCurrentServerCommonContext,
+ 									DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf)
+ {
+-	RGX_CLIENT_CCB 	*psCurrentClientCCB = psCurrentServerCommonContext->psClientCCB;
+-	PRGXFWIF_FWCOMMONCONTEXT sFWCommonContext = psCurrentServerCommonContext->sFWCommonContextFWAddr;
++	RGX_CLIENT_CCB 	*psCurrentClientCCB;
++	PRGXFWIF_FWCOMMONCONTEXT sFWCommonContext;
++
++	/* ON-FireLOS: a transfer context may lack its 2D or 3D part. */
++	if (psCurrentServerCommonContext == IMG_NULL ||
++	    psCurrentServerCommonContext->psClientCCB == IMG_NULL)
++	{
++		return;
++	}
++	psCurrentClientCCB = psCurrentServerCommonContext->psClientCCB;
++	sFWCommonContext = psCurrentServerCommonContext->sFWCommonContextFWAddr;
+ 
+ #if defined(PVRSRV_ENABLE_FULL_SYNC_TRACKING) || defined(PVRSRV_ENABLE_FULL_CCB_DUMP)
+ 	DumpCCB(sFWCommonContext, psCurrentClientCCB, pfnDumpDebugPrintf);

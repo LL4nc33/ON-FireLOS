@@ -1,0 +1,1923 @@
+diff --git a/res/layout/settings_main_dashboard.xml b/res/layout/settings_main_dashboard.xml
+index c430d6d..d107eaa 100644
+--- a/res/layout/settings_main_dashboard.xml
++++ b/res/layout/settings_main_dashboard.xml
+@@ -32,7 +32,10 @@
+             android:id="@+id/search_bar"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+-            android:layout_margin="@dimen/search_bar_margin"
++            android:layout_marginTop="@dimen/search_bar_margin"
++            android:layout_marginBottom="@dimen/search_bar_margin"
++            android:layout_marginStart="@dimen/search_bar_side_margin"
++            android:layout_marginEnd="@dimen/search_bar_side_margin"
+             app:cardCornerRadius="@dimen/search_bar_corner_radius"
+             app:cardBackgroundColor="?android:attr/colorBackground"
+             app:cardElevation="2dp">
+diff --git a/res/values-af/onfirelos_strings.xml b/res/values-af/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a4ae647
+--- /dev/null
++++ b/res/values-af/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">\'n Lang swiep van links gaan na die vorige program, van regs weer terug</string>
++    <string name="edge_gestures_long_swipe_title">Wissel programme met \'n lang swiep</string>
++    <string name="edge_gestures_summary">Swiep van die linkerrand in om terug te gaan, van die regterrand om vorentoe te gaan</string>
++    <string name="edge_gestures_title">Randgebare</string>
++    <string name="edge_gestures_width_medium">Medium</string>
++    <string name="edge_gestures_width_narrow">Smal</string>
++    <string name="edge_gestures_width_title">Randarea</string>
++    <string name="edge_gestures_width_wide">Wyd</string>
++    <string name="battery_protection_title">Beskerm battery</string>
++    <string name="battery_protection_summary" formatted="false">Laai net tot 80% – vir ’n tablet wat ingeprop bly</string>
++</resources>
+diff --git a/res/values-am/onfirelos_strings.xml b/res/values-am/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a81539c
+--- /dev/null
++++ b/res/values-am/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ከግራ ረጅም ማንሸራተት ወደ ቀዳሚው መተግበሪያ ይወስዳል፣ ከቀኝ ደግሞ መልሶ ይመልሳል</string>
++    <string name="edge_gestures_long_swipe_title">በረጅም ማንሸራተት መተግበሪያዎችን ይቀያይሩ</string>
++    <string name="edge_gestures_summary">ወደ ኋላ ለመመለስ ከግራ ጠርዝ፣ ወደ ፊት ለመሄድ ከቀኝ ጠርዝ ወደ ውስጥ ያንሸራትቱ</string>
++    <string name="edge_gestures_title">የጠርዝ ምልክቶች</string>
++    <string name="edge_gestures_width_medium">መካከለኛ</string>
++    <string name="edge_gestures_width_narrow">ጠባብ</string>
++    <string name="edge_gestures_width_title">የጠርዝ አካባቢ</string>
++    <string name="edge_gestures_width_wide">ሰፊ</string>
++    <string name="battery_protection_title">ባትሪን ጠብቅ</string>
++    <string name="battery_protection_summary" formatted="false">እስከ 80% ብቻ ይሞላል – ሁልጊዜ ለተሰካ ታብሌት</string>
++</resources>
+diff --git a/res/values-ar/onfirelos_strings.xml b/res/values-ar/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d09903e
+--- /dev/null
++++ b/res/values-ar/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">التمرير السريع الطويل من اليسار ينتقل إلى التطبيق المستخدَم سابقًا، ومن اليمين يعود مجددًا</string>
++    <string name="edge_gestures_long_swipe_title">التبديل بين التطبيقات بالتمرير الطويل</string>
++    <string name="edge_gestures_summary">مرّر سريعًا من الحافة اليسرى للرجوع، ومن الحافة اليمنى للتقدّم</string>
++    <string name="edge_gestures_title">إيماءات الحواف</string>
++    <string name="edge_gestures_width_medium">متوسطة</string>
++    <string name="edge_gestures_width_narrow">ضيقة</string>
++    <string name="edge_gestures_width_title">منطقة الحافة</string>
++    <string name="edge_gestures_width_wide">عريضة</string>
++    <string name="battery_protection_title">حماية البطارية</string>
++    <string name="battery_protection_summary" formatted="false">الشحن حتى 80% فقط – للجهاز اللوحي الموصول بالشاحن دائمًا</string>
++</resources>
+diff --git a/res/values-as/onfirelos_strings.xml b/res/values-as/onfirelos_strings.xml
+new file mode 100644
+index 0000000..3f4d456
+--- /dev/null
++++ b/res/values-as/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">বাওঁফালৰ পৰা দীঘলীয়াকৈ ছোৱাইপ কৰিলে আগতে ব্যৱহাৰ কৰা এপলৈ যায়, সোঁফালৰ পৰা পুনৰ উভতি আহে</string>
++    <string name="edge_gestures_long_swipe_title">দীঘলীয়া ছোৱাইপেৰে এপ্ সলনি কৰক</string>
++    <string name="edge_gestures_summary">উভতি যাবলৈ বাওঁ কাষৰ পৰা, আগলৈ যাবলৈ সোঁ কাষৰ পৰা ভিতৰলৈ ছোৱাইপ কৰক</string>
++    <string name="edge_gestures_title">কাষৰ নিৰ্দেশ</string>
++    <string name="edge_gestures_width_medium">মধ্যমীয়া</string>
++    <string name="edge_gestures_width_narrow">ঠেক</string>
++    <string name="edge_gestures_width_title">কাষৰ অঞ্চল</string>
++    <string name="edge_gestures_width_wide">বহল</string>
++    <string name="battery_protection_title">বেটাৰী সুৰক্ষা</string>
++    <string name="battery_protection_summary" formatted="false">কেৱল 80% লৈকে চাৰ্জ কৰে – সদায় প্লাগ লগোৱা টেবলেটৰ বাবে</string>
++</resources>
+diff --git a/res/values-az/onfirelos_strings.xml b/res/values-az/onfirelos_strings.xml
+new file mode 100644
+index 0000000..484843d
+--- /dev/null
++++ b/res/values-az/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Soldan uzun sürüşdürmə əvvəl istifadə edilən tətbiqə keçir, sağdan isə geri qaytarır</string>
++    <string name="edge_gestures_long_swipe_title">Uzun sürüşdürmə ilə tətbiqləri dəyişin</string>
++    <string name="edge_gestures_summary">Geri qayıtmaq üçün sol kənardan, irəli getmək üçün sağ kənardan içəri sürüşdürün</string>
++    <string name="edge_gestures_title">Kənar jestləri</string>
++    <string name="edge_gestures_width_medium">Orta</string>
++    <string name="edge_gestures_width_narrow">Ensiz</string>
++    <string name="edge_gestures_width_title">Kənar sahəsi</string>
++    <string name="edge_gestures_width_wide">Geniş</string>
++    <string name="battery_protection_title">Batareyanı qoru</string>
++    <string name="battery_protection_summary" formatted="false">Yalnız 80%-ə qədər doldurur – daim şəbəkəyə qoşulu planşet üçün</string>
++</resources>
+diff --git a/res/values-be/onfirelos_strings.xml b/res/values-be/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0d1ca1d
+--- /dev/null
++++ b/res/values-be/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Доўгі свайп злева пераключае на папярэднюю праграму, справа вяртае назад</string>
++    <string name="edge_gestures_long_swipe_title">Пераключэнне праграм доўгім свайпам</string>
++    <string name="edge_gestures_summary">Правядзіце пальцам ад левага краю, каб вярнуцца назад, і ад правага, каб перайсці наперад</string>
++    <string name="edge_gestures_title">Жэсты ад краю</string>
++    <string name="edge_gestures_width_medium">Сярэдняя</string>
++    <string name="edge_gestures_width_narrow">Вузкая</string>
++    <string name="edge_gestures_width_title">Вобласць края</string>
++    <string name="edge_gestures_width_wide">Шырокая</string>
++    <string name="battery_protection_title">Ахова акумулятара</string>
++    <string name="battery_protection_summary" formatted="false">Зараджае толькі да 80% – для планшэта, які заўсёды падключаны</string>
++</resources>
+diff --git a/res/values-bg/onfirelos_strings.xml b/res/values-bg/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b780a76
+--- /dev/null
++++ b/res/values-bg/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Дълго прекарване на пръст отляво отваря предишното използвано приложение, а отдясно връща обратно</string>
++    <string name="edge_gestures_long_swipe_title">Превключване на приложения с дълго прекарване на пръст</string>
++    <string name="edge_gestures_summary">Прекарайте пръст навътре от левия край, за да се върнете назад, и от десния, за да отидете напред</string>
++    <string name="edge_gestures_title">Жестове от края</string>
++    <string name="edge_gestures_width_medium">Средна</string>
++    <string name="edge_gestures_width_narrow">Тясна</string>
++    <string name="edge_gestures_width_title">Зона на края</string>
++    <string name="edge_gestures_width_wide">Широка</string>
++    <string name="battery_protection_title">Защита на батерията</string>
++    <string name="battery_protection_summary" formatted="false">Зарежда само до 80% – за таблет, който винаги е включен</string>
++</resources>
+diff --git a/res/values-bn/onfirelos_strings.xml b/res/values-bn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..59e5931
+--- /dev/null
++++ b/res/values-bn/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">বাঁদিক থেকে লম্বা সোয়াইপ করলে আগে ব্যবহার করা অ্যাপে যাবে, ডানদিক থেকে করলে আবার ফিরে আসবে</string>
++    <string name="edge_gestures_long_swipe_title">লম্বা সোয়াইপ করে অ্যাপ পাল্টান</string>
++    <string name="edge_gestures_summary">ফিরে যেতে বাঁদিকের প্রান্ত থেকে এবং এগিয়ে যেতে ডানদিকের প্রান্ত থেকে ভিতরের দিকে সোয়াইপ করুন</string>
++    <string name="edge_gestures_title">প্রান্তের জেসচার</string>
++    <string name="edge_gestures_width_medium">মাঝারি</string>
++    <string name="edge_gestures_width_narrow">সরু</string>
++    <string name="edge_gestures_width_title">প্রান্তের এলাকা</string>
++    <string name="edge_gestures_width_wide">চওড়া</string>
++    <string name="battery_protection_title">ব্যাটারি সুরক্ষা</string>
++    <string name="battery_protection_summary" formatted="false">শুধু 80% পর্যন্ত চার্জ হয় – সবসময় প্লাগ লাগানো ট্যাবলেটের জন্য</string>
++</resources>
+diff --git a/res/values-bs/onfirelos_strings.xml b/res/values-bs/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8eac1d6
+--- /dev/null
++++ b/res/values-bs/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Dugo prevlačenje slijeva otvara prethodno korištenu aplikaciju, a zdesna vraća nazad</string>
++    <string name="edge_gestures_long_swipe_title">Prebacivanje aplikacija dugim prevlačenjem</string>
++    <string name="edge_gestures_summary">Prevucite od lijevog ruba da se vratite nazad, a od desnog ruba da idete naprijed</string>
++    <string name="edge_gestures_title">Pokreti od ruba</string>
++    <string name="edge_gestures_width_medium">Srednje</string>
++    <string name="edge_gestures_width_narrow">Usko</string>
++    <string name="edge_gestures_width_title">Područje ruba</string>
++    <string name="edge_gestures_width_wide">Široko</string>
++    <string name="battery_protection_title">Zaštita baterije</string>
++    <string name="battery_protection_summary" formatted="false">Puni samo do 80% – za tablet koji je stalno priključen</string>
++</resources>
+diff --git a/res/values-ca/onfirelos_strings.xml b/res/values-ca/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fc0d20a
+--- /dev/null
++++ b/res/values-ca/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Un lliscament llarg des de l\'esquerra va a l\'aplicació utilitzada abans i, des de la dreta, torna enrere</string>
++    <string name="edge_gestures_long_swipe_title">Canvia d\'aplicació amb un lliscament llarg</string>
++    <string name="edge_gestures_summary">Llisca des de la vora esquerra per tornar enrere i des de la vora dreta per anar endavant</string>
++    <string name="edge_gestures_title">Gestos de vora</string>
++    <string name="edge_gestures_width_medium">Mitjana</string>
++    <string name="edge_gestures_width_narrow">Estreta</string>
++    <string name="edge_gestures_width_title">Àrea de la vora</string>
++    <string name="edge_gestures_width_wide">Ampla</string>
++    <string name="battery_protection_title">Protegeix la bateria</string>
++    <string name="battery_protection_summary" formatted="false">Carrega només fins al 80% – per a una tauleta sempre endollada</string>
++</resources>
+diff --git a/res/values-cs/onfirelos_strings.xml b/res/values-cs/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f07b661
+--- /dev/null
++++ b/res/values-cs/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Dlouhé přejetí zleva přepne na dříve použitou aplikaci, zprava zpět</string>
++    <string name="edge_gestures_long_swipe_title">Přepínání aplikací dlouhým přejetím</string>
++    <string name="edge_gestures_summary">Přejetím od levého okraje se vrátíte zpět, od pravého okraje přejdete vpřed</string>
++    <string name="edge_gestures_title">Gesta od okraje</string>
++    <string name="edge_gestures_width_medium">Střední</string>
++    <string name="edge_gestures_width_narrow">Úzká</string>
++    <string name="edge_gestures_width_title">Oblast okraje</string>
++    <string name="edge_gestures_width_wide">Široká</string>
++    <string name="battery_protection_title">Chránit baterii</string>
++    <string name="battery_protection_summary" formatted="false">Nabíjí jen do 80 % – pro tablet trvale připojený k napájení</string>
++</resources>
+diff --git a/res/values-da/onfirelos_strings.xml b/res/values-da/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f2091ab
+--- /dev/null
++++ b/res/values-da/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">En lang strygebevægelse fra venstre skifter til den forrige app, fra højre tilbage igen</string>
++    <string name="edge_gestures_long_swipe_title">Skift app med en lang strygebevægelse</string>
++    <string name="edge_gestures_summary">Stryg ind fra venstre kant for at gå tilbage og fra højre kant for at gå frem</string>
++    <string name="edge_gestures_title">Kantbevægelser</string>
++    <string name="edge_gestures_width_medium">Mellem</string>
++    <string name="edge_gestures_width_narrow">Smal</string>
++    <string name="edge_gestures_width_title">Kantområde</string>
++    <string name="edge_gestures_width_wide">Bred</string>
++    <string name="battery_protection_title">Beskyt batteriet</string>
++    <string name="battery_protection_summary" formatted="false">Oplader kun til 80 % – til en tablet, der altid er tilsluttet</string>
++</resources>
+diff --git a/res/values-de/onfirelos_strings.xml b/res/values-de/onfirelos_strings.xml
+new file mode 100644
+index 0000000..77b3a07
+--- /dev/null
++++ b/res/values-de/onfirelos_strings.xml
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <string name="edge_gestures_title">Randgesten</string>
++    <string name="edge_gestures_summary">Vom linken Rand hineinwischen geht zurück, vom rechten Rand vor</string>
++    <string name="edge_gestures_long_swipe_title">Apps mit langem Wischen wechseln</string>
++    <string name="edge_gestures_long_swipe_summary">Langes Wischen von links öffnet die zuvor benutzte App, von rechts wieder zurück</string>
++    <string name="edge_gestures_width_title">Randbereich</string>
++    <string name="edge_gestures_width_narrow">Schmal</string>
++    <string name="edge_gestures_width_medium">Mittel</string>
++    <string name="edge_gestures_width_wide">Breit</string>
++    <string name="battery_protection_title">Akku schonen</string>
++    <string name="battery_protection_summary" formatted="false">Lädt nur bis 80 % – für ein Tablet, das dauerhaft am Strom hängt</string>
++</resources>
+diff --git a/res/values-el/onfirelos_strings.xml b/res/values-el/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a8a52a1
+--- /dev/null
++++ b/res/values-el/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ένα μεγάλο σύρσιμο από αριστερά μεταβαίνει στην εφαρμογή που χρησιμοποιήθηκε πριν, από δεξιά επιστρέφει ξανά</string>
++    <string name="edge_gestures_long_swipe_title">Εναλλαγή εφαρμογών με μεγάλο σύρσιμο</string>
++    <string name="edge_gestures_summary">Σύρετε προς τα μέσα από το αριστερό άκρο για επιστροφή και από το δεξί άκρο για μετάβαση εμπρός</string>
++    <string name="edge_gestures_title">Κινήσεις από τα άκρα</string>
++    <string name="edge_gestures_width_medium">Μεσαία</string>
++    <string name="edge_gestures_width_narrow">Στενή</string>
++    <string name="edge_gestures_width_title">Περιοχή άκρου</string>
++    <string name="edge_gestures_width_wide">Φαρδιά</string>
++    <string name="battery_protection_title">Προστασία μπαταρίας</string>
++    <string name="battery_protection_summary" formatted="false">Φορτίζει μόνο έως 80% – για tablet που μένει συνεχώς στην πρίζα</string>
++</resources>
+diff --git a/res/values-es-rUS/onfirelos_strings.xml b/res/values-es-rUS/onfirelos_strings.xml
+new file mode 100644
+index 0000000..cab5db7
+--- /dev/null
++++ b/res/values-es-rUS/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Un deslizamiento largo desde la izquierda abre la app que usaste antes y desde la derecha vuelve atrás</string>
++    <string name="edge_gestures_long_swipe_title">Cambiar de app con un deslizamiento largo</string>
++    <string name="edge_gestures_summary">Desliza desde el borde izquierdo para retroceder y desde el derecho para avanzar</string>
++    <string name="edge_gestures_title">Gestos de borde</string>
++    <string name="edge_gestures_width_medium">Media</string>
++    <string name="edge_gestures_width_narrow">Angosta</string>
++    <string name="edge_gestures_width_title">Zona del borde</string>
++    <string name="edge_gestures_width_wide">Ancha</string>
++    <string name="battery_protection_title">Proteger la batería</string>
++    <string name="battery_protection_summary" formatted="false">Solo carga hasta el 80% – para una tablet siempre conectada</string>
++</resources>
+diff --git a/res/values-es/onfirelos_strings.xml b/res/values-es/onfirelos_strings.xml
+new file mode 100644
+index 0000000..86905ce
+--- /dev/null
++++ b/res/values-es/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Un deslizamiento largo desde la izquierda abre la aplicación usada anteriormente y desde la derecha vuelve atrás</string>
++    <string name="edge_gestures_long_swipe_title">Cambiar de aplicación con un deslizamiento largo</string>
++    <string name="edge_gestures_summary">Desliza desde el borde izquierdo para volver atrás y desde el derecho para avanzar</string>
++    <string name="edge_gestures_title">Gestos de borde</string>
++    <string name="edge_gestures_width_medium">Media</string>
++    <string name="edge_gestures_width_narrow">Estrecha</string>
++    <string name="edge_gestures_width_title">Zona del borde</string>
++    <string name="edge_gestures_width_wide">Ancha</string>
++    <string name="battery_protection_title">Proteger la batería</string>
++    <string name="battery_protection_summary" formatted="false">Solo carga hasta el 80 % – para una tablet siempre enchufada</string>
++</resources>
+diff --git a/res/values-et/onfirelos_strings.xml b/res/values-et/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c2121fc
+--- /dev/null
++++ b/res/values-et/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Pikk pühkimine vasakult avab varem kasutatud rakenduse, paremalt viib tagasi</string>
++    <string name="edge_gestures_long_swipe_title">Rakenduste vahetamine pika pühkimisega</string>
++    <string name="edge_gestures_summary">Tagasi liikumiseks pühkige vasakust servast sisse, edasi liikumiseks paremast servast</string>
++    <string name="edge_gestures_title">Servažestid</string>
++    <string name="edge_gestures_width_medium">Keskmine</string>
++    <string name="edge_gestures_width_narrow">Kitsas</string>
++    <string name="edge_gestures_width_title">Serva ala</string>
++    <string name="edge_gestures_width_wide">Lai</string>
++    <string name="battery_protection_title">Kaitse akut</string>
++    <string name="battery_protection_summary" formatted="false">Laeb ainult 80%-ni – pidevalt vooluvõrgus olevale tahvlile</string>
++</resources>
+diff --git a/res/values-eu/onfirelos_strings.xml b/res/values-eu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..75e3160
+--- /dev/null
++++ b/res/values-eu/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ezkerretik hatza luze pasatuta aurrez erabilitako aplikaziora joango zara, eta eskuinetik, berriro atzera</string>
++    <string name="edge_gestures_long_swipe_title">Aldatu aplikazioz hatza luze pasatuta</string>
++    <string name="edge_gestures_summary">Atzera egiteko, pasatu hatza ezkerreko ertzetik barrura; aurrera egiteko, eskuineko ertzetik</string>
++    <string name="edge_gestures_title">Ertzeko keinuak</string>
++    <string name="edge_gestures_width_medium">Ertaina</string>
++    <string name="edge_gestures_width_narrow">Estua</string>
++    <string name="edge_gestures_width_title">Ertzeko eremua</string>
++    <string name="edge_gestures_width_wide">Zabala</string>
++    <string name="battery_protection_title">Babestu bateria</string>
++    <string name="battery_protection_summary" formatted="false">% 80ra arte soilik kargatzen du – beti konektatuta dagoen tabletarentzat</string>
++</resources>
+diff --git a/res/values-fa/onfirelos_strings.xml b/res/values-fa/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7123a1d
+--- /dev/null
++++ b/res/values-fa/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">تند کشیدن طولانی از چپ به برنامه قبلی می‌رود و از راست دوباره برمی‌گردد</string>
++    <string name="edge_gestures_long_swipe_title">جابه‌جایی بین برنامه‌ها با تند کشیدن طولانی</string>
++    <string name="edge_gestures_summary">برای برگشتن از لبه چپ و برای رفتن به جلو از لبه راست به داخل تند بکشید</string>
++    <string name="edge_gestures_title">اشاره‌های لبه</string>
++    <string name="edge_gestures_width_medium">متوسط</string>
++    <string name="edge_gestures_width_narrow">باریک</string>
++    <string name="edge_gestures_width_title">ناحیه لبه</string>
++    <string name="edge_gestures_width_wide">پهن</string>
++    <string name="battery_protection_title">محافظت از باتری</string>
++    <string name="battery_protection_summary" formatted="false">فقط تا ۸۰٪ شارژ می‌کند – برای رایانه لوحی که همیشه به برق وصل است</string>
++</resources>
+diff --git a/res/values-fi/onfirelos_strings.xml b/res/values-fi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d993a6f
+--- /dev/null
++++ b/res/values-fi/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Pitkä pyyhkäisy vasemmalta siirtyy edelliseen sovellukseen, oikealta takaisin</string>
++    <string name="edge_gestures_long_swipe_title">Vaihda sovellusta pitkällä pyyhkäisyllä</string>
++    <string name="edge_gestures_summary">Pyyhkäise vasemmasta reunasta palataksesi taaksepäin ja oikeasta reunasta siirtyäksesi eteenpäin</string>
++    <string name="edge_gestures_title">Reunaeleet</string>
++    <string name="edge_gestures_width_medium">Keskikokoinen</string>
++    <string name="edge_gestures_width_narrow">Kapea</string>
++    <string name="edge_gestures_width_title">Reuna-alue</string>
++    <string name="edge_gestures_width_wide">Leveä</string>
++    <string name="battery_protection_title">Suojaa akkua</string>
++    <string name="battery_protection_summary" formatted="false">Lataa vain 80 %:iin – jatkuvasti verkkovirrassa olevalle tabletille</string>
++</resources>
+diff --git a/res/values-fr-rCA/onfirelos_strings.xml b/res/values-fr-rCA/onfirelos_strings.xml
+new file mode 100644
+index 0000000..1f5ac69
+--- /dev/null
++++ b/res/values-fr-rCA/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Un long balayage à partir de la gauche ouvre l\'appli utilisée précédemment; à partir de la droite, vous revenez à l\'appli d\'origine</string>
++    <string name="edge_gestures_long_swipe_title">Changer d\'appli avec un long balayage</string>
++    <string name="edge_gestures_summary">Balayez à partir du bord gauche pour revenir en arrière, à partir du bord droit pour avancer</string>
++    <string name="edge_gestures_title">Gestes sur les bords</string>
++    <string name="edge_gestures_width_medium">Moyenne</string>
++    <string name="edge_gestures_width_narrow">Étroite</string>
++    <string name="edge_gestures_width_title">Zone de bord</string>
++    <string name="edge_gestures_width_wide">Large</string>
++    <string name="battery_protection_title">Protéger la pile</string>
++    <string name="battery_protection_summary" formatted="false">Charge seulement jusqu’à 80 % – pour une tablette toujours branchée</string>
++</resources>
+diff --git a/res/values-fr/onfirelos_strings.xml b/res/values-fr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..651cd83
+--- /dev/null
++++ b/res/values-fr/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Un long balayage depuis la gauche ouvre l\'application utilisée précédemment ; depuis la droite, vous revenez à l\'application d\'origine</string>
++    <string name="edge_gestures_long_swipe_title">Changer d\'application par un long balayage</string>
++    <string name="edge_gestures_summary">Balayez depuis le bord gauche pour revenir en arrière, depuis le bord droit pour avancer</string>
++    <string name="edge_gestures_title">Gestes sur les bords</string>
++    <string name="edge_gestures_width_medium">Moyenne</string>
++    <string name="edge_gestures_width_narrow">Étroite</string>
++    <string name="edge_gestures_width_title">Zone de bord</string>
++    <string name="edge_gestures_width_wide">Large</string>
++    <string name="battery_protection_title">Protéger la batterie</string>
++    <string name="battery_protection_summary" formatted="false">Charge uniquement jusqu’à 80 % – pour une tablette toujours branchée</string>
++</resources>
+diff --git a/res/values-gl/onfirelos_strings.xml b/res/values-gl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..3f285fb
+--- /dev/null
++++ b/res/values-gl/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Un pase longo desde a esquerda abre a aplicación usada anteriormente; desde a dereita volves á orixinal</string>
++    <string name="edge_gestures_long_swipe_title">Cambiar de aplicación cun pase longo</string>
++    <string name="edge_gestures_summary">Pasa o dedo desde o bordo esquerdo para retroceder e desde o dereito para avanzar</string>
++    <string name="edge_gestures_title">Xestos nos bordos</string>
++    <string name="edge_gestures_width_medium">Media</string>
++    <string name="edge_gestures_width_narrow">Estreita</string>
++    <string name="edge_gestures_width_title">Zona do bordo</string>
++    <string name="edge_gestures_width_wide">Ancha</string>
++    <string name="battery_protection_title">Protexer a batería</string>
++    <string name="battery_protection_summary" formatted="false">Só carga ata o 80 % – para unha tableta sempre enchufada</string>
++</resources>
+diff --git a/res/values-gu/onfirelos_strings.xml b/res/values-gu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6a5069f
+--- /dev/null
++++ b/res/values-gu/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ડાબેથી લાંબું સ્વાઇપ કરવાથી અગાઉ વાપરેલી ઍપ ખૂલે છે, જમણેથી કરવાથી તમે ફરી પાછા આવો છો</string>
++    <string name="edge_gestures_long_swipe_title">લાંબા સ્વાઇપ વડે ઍપ સ્વિચ કરો</string>
++    <string name="edge_gestures_summary">પાછળ જવા માટે ડાબી કિનારીથી અંદરની તરફ સ્વાઇપ કરો, આગળ જવા માટે જમણી કિનારીથી</string>
++    <string name="edge_gestures_title">કિનારીના સંકેતો</string>
++    <string name="edge_gestures_width_medium">મધ્યમ</string>
++    <string name="edge_gestures_width_narrow">સાંકડો</string>
++    <string name="edge_gestures_width_title">કિનારીનો વિસ્તાર</string>
++    <string name="edge_gestures_width_wide">પહોળો</string>
++    <string name="battery_protection_title">બૅટરીનું રક્ષણ કરો</string>
++    <string name="battery_protection_summary" formatted="false">ફક્ત 80% સુધી ચાર્જ કરે છે – હંમેશા પ્લગ ઇન રહેતા ટૅબ્લેટ માટે</string>
++</resources>
+diff --git a/res/values-hi/onfirelos_strings.xml b/res/values-hi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..19f904a
+--- /dev/null
++++ b/res/values-hi/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">बाईं ओर से लंबा स्वाइप करने पर पिछली बार इस्तेमाल किया गया ऐप्लिकेशन खुलता है, दाईं ओर से करने पर आप फिर से वापस आ जाते हैं</string>
++    <string name="edge_gestures_long_swipe_title">लंबा स्वाइप करके ऐप्लिकेशन स्विच करें</string>
++    <string name="edge_gestures_summary">पीछे जाने के लिए बाएं किनारे से अंदर की ओर स्वाइप करें, आगे जाने के लिए दाएं किनारे से</string>
++    <string name="edge_gestures_title">किनारे के जेस्चर</string>
++    <string name="edge_gestures_width_medium">मध्यम</string>
++    <string name="edge_gestures_width_narrow">संकरा</string>
++    <string name="edge_gestures_width_title">किनारे का हिस्सा</string>
++    <string name="edge_gestures_width_wide">चौड़ा</string>
++    <string name="battery_protection_title">बैटरी सुरक्षित रखें</string>
++    <string name="battery_protection_summary" formatted="false">सिर्फ़ 80% तक चार्ज करता है – हमेशा प्लग इन रहने वाले टैबलेट के लिए</string>
++</resources>
+diff --git a/res/values-hr/onfirelos_strings.xml b/res/values-hr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fe0cfdf
+--- /dev/null
++++ b/res/values-hr/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Dugi prelazak prstom slijeva otvara prethodno korištenu aplikaciju, a zdesna vraća natrag</string>
++    <string name="edge_gestures_long_swipe_title">Promjena aplikacije dugim prelaskom prsta</string>
++    <string name="edge_gestures_summary">Prijeđite prstom od lijevog ruba za povratak, od desnog ruba za kretanje naprijed</string>
++    <string name="edge_gestures_title">Pokreti s rubova</string>
++    <string name="edge_gestures_width_medium">Srednje</string>
++    <string name="edge_gestures_width_narrow">Usko</string>
++    <string name="edge_gestures_width_title">Rubno područje</string>
++    <string name="edge_gestures_width_wide">Široko</string>
++    <string name="battery_protection_title">Zaštita baterije</string>
++    <string name="battery_protection_summary" formatted="false">Puni samo do 80 % – za tablet koji je stalno priključen</string>
++</resources>
+diff --git a/res/values-hu/onfirelos_strings.xml b/res/values-hu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..dc4908d
+--- /dev/null
++++ b/res/values-hu/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">A balról induló hosszú csúsztatás a korábban használt alkalmazást nyitja meg, a jobbról induló pedig visszavisz</string>
++    <string name="edge_gestures_long_swipe_title">Alkalmazásváltás hosszú csúsztatással</string>
++    <string name="edge_gestures_summary">Csúsztasson befelé a bal szélről a visszalépéshez, a jobb szélről az előrelépéshez</string>
++    <string name="edge_gestures_title">Kézmozdulatok a széleken</string>
++    <string name="edge_gestures_width_medium">Közepes</string>
++    <string name="edge_gestures_width_narrow">Keskeny</string>
++    <string name="edge_gestures_width_title">Szélső terület</string>
++    <string name="edge_gestures_width_wide">Széles</string>
++    <string name="battery_protection_title">Akkumulátor kímélése</string>
++    <string name="battery_protection_summary" formatted="false">Csak 80%-ig tölt – folyamatosan töltőn lévő táblagéphez</string>
++</resources>
+diff --git a/res/values-hy/onfirelos_strings.xml b/res/values-hy/onfirelos_strings.xml
+new file mode 100644
+index 0000000..4edc2e3
+--- /dev/null
++++ b/res/values-hy/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ձախից երկար սահեցնելիս բացվում է նախորդ օգտագործված հավելվածը, իսկ աջից սահեցնելիս վերադառնում եք հետ</string>
++    <string name="edge_gestures_long_swipe_title">Հավելվածների փոխարկում երկար սահեցմամբ</string>
++    <string name="edge_gestures_summary">Մատը սահեցրեք ձախ եզրից՝ հետ գնալու համար, աջ եզրից՝ առաջ գնալու համար</string>
++    <string name="edge_gestures_title">Եզրային ժեստեր</string>
++    <string name="edge_gestures_width_medium">Միջին</string>
++    <string name="edge_gestures_width_narrow">Նեղ</string>
++    <string name="edge_gestures_width_title">Եզրային տարածք</string>
++    <string name="edge_gestures_width_wide">Լայն</string>
++    <string name="battery_protection_title">Պաշտպանել մարտկոցը</string>
++    <string name="battery_protection_summary" formatted="false">Լիցքավորում է միայն մինչև 80% – մշտապես միացված պլանշետի համար</string>
++</resources>
+diff --git a/res/values-in/onfirelos_strings.xml b/res/values-in/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ab3f789
+--- /dev/null
++++ b/res/values-in/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Geser panjang dari kiri membuka aplikasi yang digunakan sebelumnya, dari kanan kembali lagi</string>
++    <string name="edge_gestures_long_swipe_title">Beralih aplikasi dengan geser panjang</string>
++    <string name="edge_gestures_summary">Geser dari tepi kiri untuk kembali, dari tepi kanan untuk maju</string>
++    <string name="edge_gestures_title">Gestur tepi</string>
++    <string name="edge_gestures_width_medium">Sedang</string>
++    <string name="edge_gestures_width_narrow">Sempit</string>
++    <string name="edge_gestures_width_title">Area tepi</string>
++    <string name="edge_gestures_width_wide">Lebar</string>
++    <string name="battery_protection_title">Lindungi baterai</string>
++    <string name="battery_protection_summary" formatted="false">Hanya mengisi hingga 80% – untuk tablet yang selalu tersambung ke listrik</string>
++</resources>
+diff --git a/res/values-is/onfirelos_strings.xml b/res/values-is/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f117805
+--- /dev/null
++++ b/res/values-is/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Langt strik frá vinstri opnar forritið sem var notað á undan, frá hægri ferðu aftur til baka</string>
++    <string name="edge_gestures_long_swipe_title">Skipta um forrit með löngu striki</string>
++    <string name="edge_gestures_summary">Strjúktu inn frá vinstri jaðri til að fara til baka, frá hægri jaðri til að fara áfram</string>
++    <string name="edge_gestures_title">Bendingar á jöðrum</string>
++    <string name="edge_gestures_width_medium">Miðlungs</string>
++    <string name="edge_gestures_width_narrow">Mjótt</string>
++    <string name="edge_gestures_width_title">Jaðarsvæði</string>
++    <string name="edge_gestures_width_wide">Breitt</string>
++    <string name="battery_protection_title">Vernda rafhlöðuna</string>
++    <string name="battery_protection_summary" formatted="false">Hleður aðeins upp í 80% – fyrir spjaldtölvu sem er alltaf í sambandi</string>
++</resources>
+diff --git a/res/values-it/onfirelos_strings.xml b/res/values-it/onfirelos_strings.xml
+new file mode 100644
+index 0000000..964e695
+--- /dev/null
++++ b/res/values-it/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Uno scorrimento lungo da sinistra apre l\'app usata in precedenza, da destra torni indietro</string>
++    <string name="edge_gestures_long_swipe_title">Cambia app con uno scorrimento lungo</string>
++    <string name="edge_gestures_summary">Scorri dal bordo sinistro per tornare indietro, dal bordo destro per andare avanti</string>
++    <string name="edge_gestures_title">Gesti dai bordi</string>
++    <string name="edge_gestures_width_medium">Media</string>
++    <string name="edge_gestures_width_narrow">Stretta</string>
++    <string name="edge_gestures_width_title">Area del bordo</string>
++    <string name="edge_gestures_width_wide">Ampia</string>
++    <string name="battery_protection_title">Proteggi la batteria</string>
++    <string name="battery_protection_summary" formatted="false">Carica solo fino all’80% – per un tablet sempre collegato</string>
++</resources>
+diff --git a/res/values-iw/onfirelos_strings.xml b/res/values-iw/onfirelos_strings.xml
+new file mode 100644
+index 0000000..81b3007
+--- /dev/null
++++ b/res/values-iw/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">החלקה ארוכה משמאל פותחת את האפליקציה הקודמת, ומימין מחזירה לאפליקציה המקורית</string>
++    <string name="edge_gestures_long_swipe_title">מעבר בין אפליקציות בהחלקה ארוכה</string>
++    <string name="edge_gestures_summary">החלקה פנימה מהקצה השמאלי חוזרת אחורה, ומהקצה הימני מתקדמת קדימה</string>
++    <string name="edge_gestures_title">תנועות מהקצוות</string>
++    <string name="edge_gestures_width_medium">בינוני</string>
++    <string name="edge_gestures_width_narrow">צר</string>
++    <string name="edge_gestures_width_title">אזור הקצה</string>
++    <string name="edge_gestures_width_wide">רחב</string>
++    <string name="battery_protection_title">הגנה על הסוללה</string>
++    <string name="battery_protection_summary" formatted="false">טעינה עד 80% בלבד – לטאבלט שמחובר תמיד לחשמל</string>
++</resources>
+diff --git a/res/values-ja/onfirelos_strings.xml b/res/values-ja/onfirelos_strings.xml
+new file mode 100644
+index 0000000..726b28b
+--- /dev/null
++++ b/res/values-ja/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">左から長くスワイプすると直前に使用したアプリに切り替わり、右から長くスワイプすると元のアプリに戻ります</string>
++    <string name="edge_gestures_long_swipe_title">長いスワイプでアプリを切り替え</string>
++    <string name="edge_gestures_summary">左端から内側にスワイプすると戻り、右端からスワイプすると進みます</string>
++    <string name="edge_gestures_title">端のジェスチャー</string>
++    <string name="edge_gestures_width_medium">標準</string>
++    <string name="edge_gestures_width_narrow">狭い</string>
++    <string name="edge_gestures_width_title">端の領域</string>
++    <string name="edge_gestures_width_wide">広い</string>
++    <string name="battery_protection_title">バッテリーを保護</string>
++    <string name="battery_protection_summary" formatted="false">80% までしか充電しません – 常に電源につないだタブレット向け</string>
++</resources>
+diff --git a/res/values-ka/onfirelos_strings.xml b/res/values-ka/onfirelos_strings.xml
+new file mode 100644
+index 0000000..176041a
+--- /dev/null
++++ b/res/values-ka/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">მარცხნიდან გრძელი გადაფურცვლა ხსნის ადრე გამოყენებულ აპს, მარჯვნიდან კი ისევ უკან გაბრუნებთ</string>
++    <string name="edge_gestures_long_swipe_title">აპების გადართვა გრძელი გადაფურცვლით</string>
++    <string name="edge_gestures_summary">გადაფურცლეთ მარცხენა კიდიდან უკან დასაბრუნებლად, მარჯვენა კიდიდან წინ გადასასვლელად</string>
++    <string name="edge_gestures_title">კიდის ჟესტები</string>
++    <string name="edge_gestures_width_medium">საშუალო</string>
++    <string name="edge_gestures_width_narrow">ვიწრო</string>
++    <string name="edge_gestures_width_title">კიდის არე</string>
++    <string name="edge_gestures_width_wide">ფართო</string>
++    <string name="battery_protection_title">ბატარეის დაცვა</string>
++    <string name="battery_protection_summary" formatted="false">იტენება მხოლოდ 80%-მდე – მუდმივად დამტენზე მიერთებული პლანშეტისთვის</string>
++</resources>
+diff --git a/res/values-kk/onfirelos_strings.xml b/res/values-kk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7df2626
+--- /dev/null
++++ b/res/values-kk/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Сол жақтан ұзақ сырғыту алдыңғы қолданбаны ашады, ал оң жақтан сырғыту қайта кері оралтады</string>
++    <string name="edge_gestures_long_swipe_title">Ұзақ сырғыту арқылы қолданба ауыстыру</string>
++    <string name="edge_gestures_summary">Артқа өту үшін сол жақ жиектен, алға өту үшін оң жақ жиектен ішке қарай сырғытыңыз</string>
++    <string name="edge_gestures_title">Жиек қимылдары</string>
++    <string name="edge_gestures_width_medium">Орташа</string>
++    <string name="edge_gestures_width_narrow">Тар</string>
++    <string name="edge_gestures_width_title">Жиек аймағы</string>
++    <string name="edge_gestures_width_wide">Кең</string>
++    <string name="battery_protection_title">Батареяны қорғау</string>
++    <string name="battery_protection_summary" formatted="false">Тек 80%-ға дейін зарядтайды – әрдайым қосулы тұратын планшет үшін</string>
++</resources>
+diff --git a/res/values-km/onfirelos_strings.xml b/res/values-km/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fc2dbeb
+--- /dev/null
++++ b/res/values-km/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ការអូសវែងពីខាងឆ្វេងបើកកម្មវិធីដែលបានប្រើពីមុន ការអូសវែងពីខាងស្ដាំនាំអ្នកត្រឡប់មកវិញ</string>
++    <string name="edge_gestures_long_swipe_title">ប្ដូរកម្មវិធីដោយអូសវែង</string>
++    <string name="edge_gestures_summary">អូសចូលពីគែមខាងឆ្វេងដើម្បីថយក្រោយ ពីគែមខាងស្ដាំដើម្បីទៅមុខ</string>
++    <string name="edge_gestures_title">ចលនាគែម</string>
++    <string name="edge_gestures_width_medium">មធ្យម</string>
++    <string name="edge_gestures_width_narrow">តូចចង្អៀត</string>
++    <string name="edge_gestures_width_title">តំបន់គែម</string>
++    <string name="edge_gestures_width_wide">ធំទូលាយ</string>
++    <string name="battery_protection_title">ការពារថ្ម</string>
++    <string name="battery_protection_summary" formatted="false">សាកត្រឹមតែ 80% – សម្រាប់ថេប្លេតដែលដោតសាកជានិច្ច</string>
++</resources>
+diff --git a/res/values-kn/onfirelos_strings.xml b/res/values-kn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..95b47a5
+--- /dev/null
++++ b/res/values-kn/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ಎಡದಿಂದ ದೀರ್ಘವಾಗಿ ಸ್ವೈಪ್ ಮಾಡಿದರೆ ಹಿಂದೆ ಬಳಸಿದ ಆ್ಯಪ್ ತೆರೆಯುತ್ತದೆ, ಬಲದಿಂದ ಮಾಡಿದರೆ ಮತ್ತೆ ಹಿಂತಿರುಗುತ್ತೀರಿ</string>
++    <string name="edge_gestures_long_swipe_title">ದೀರ್ಘ ಸ್ವೈಪ್ ಮೂಲಕ ಆ್ಯಪ್‌ಗಳನ್ನು ಬದಲಿಸಿ</string>
++    <string name="edge_gestures_summary">ಹಿಂದಕ್ಕೆ ಹೋಗಲು ಎಡ ಅಂಚಿನಿಂದ ಒಳಕ್ಕೆ ಸ್ವೈಪ್ ಮಾಡಿ, ಮುಂದಕ್ಕೆ ಹೋಗಲು ಬಲ ಅಂಚಿನಿಂದ</string>
++    <string name="edge_gestures_title">ಅಂಚಿನ ಗೆಸ್ಚರ್‌ಗಳು</string>
++    <string name="edge_gestures_width_medium">ಮಧ್ಯಮ</string>
++    <string name="edge_gestures_width_narrow">ಕಿರಿದು</string>
++    <string name="edge_gestures_width_title">ಅಂಚಿನ ಪ್ರದೇಶ</string>
++    <string name="edge_gestures_width_wide">ಅಗಲ</string>
++    <string name="battery_protection_title">ಬ್ಯಾಟರಿ ರಕ್ಷಿಸಿ</string>
++    <string name="battery_protection_summary" formatted="false">80% ವರೆಗೆ ಮಾತ್ರ ಚಾರ್ಜ್ ಮಾಡುತ್ತದೆ – ಯಾವಾಗಲೂ ಪ್ಲಗ್ ಇನ್ ಆಗಿರುವ ಟ್ಯಾಬ್ಲೆಟ್‌ಗಾಗಿ</string>
++</resources>
+diff --git a/res/values-ko/onfirelos_strings.xml b/res/values-ko/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f47ac8c
+--- /dev/null
++++ b/res/values-ko/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">왼쪽에서 길게 스와이프하면 이전에 사용한 앱으로 이동하고, 오른쪽에서 길게 스와이프하면 다시 돌아옵니다</string>
++    <string name="edge_gestures_long_swipe_title">길게 스와이프하여 앱 전환</string>
++    <string name="edge_gestures_summary">왼쪽 가장자리에서 안쪽으로 스와이프하면 뒤로, 오른쪽 가장자리에서 스와이프하면 앞으로 이동합니다</string>
++    <string name="edge_gestures_title">가장자리 동작</string>
++    <string name="edge_gestures_width_medium">보통</string>
++    <string name="edge_gestures_width_narrow">좁게</string>
++    <string name="edge_gestures_width_title">가장자리 영역</string>
++    <string name="edge_gestures_width_wide">넓게</string>
++    <string name="battery_protection_title">배터리 보호</string>
++    <string name="battery_protection_summary" formatted="false">80%까지만 충전합니다 – 항상 전원에 연결된 태블릿용</string>
++</resources>
+diff --git a/res/values-ky/onfirelos_strings.xml b/res/values-ky/onfirelos_strings.xml
+new file mode 100644
+index 0000000..009f493
+--- /dev/null
++++ b/res/values-ky/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Солдон узун сүрүү мурун колдонулган колдонмону ачат, ал эми оңдон сүрүү кайра артка кайтарат</string>
++    <string name="edge_gestures_long_swipe_title">Узун сүрүү менен колдонмолорду которуштуруу</string>
++    <string name="edge_gestures_summary">Артка кайтуу үчүн сол четинен, алдыга өтүү үчүн оң четинен ичин карай сүрүңүз</string>
++    <string name="edge_gestures_title">Четтеги жаңсоолор</string>
++    <string name="edge_gestures_width_medium">Орточо</string>
++    <string name="edge_gestures_width_narrow">Тар</string>
++    <string name="edge_gestures_width_title">Чет аймагы</string>
++    <string name="edge_gestures_width_wide">Кенен</string>
++    <string name="battery_protection_title">Батареяны коргоо</string>
++    <string name="battery_protection_summary" formatted="false">80%га чейин гана кубаттайт – дайыма сайылып турган планшет үчүн</string>
++</resources>
+diff --git a/res/values-lo/onfirelos_strings.xml b/res/values-lo/onfirelos_strings.xml
+new file mode 100644
+index 0000000..89fe6e6
+--- /dev/null
++++ b/res/values-lo/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ການປັດຍາວຈາກຊ້າຍຈະໄປຫາແອັບທີ່ໃຊ້ກ່ອນໜ້ານີ້, ຈາກຂວາຈະກັບຄືນມາ</string>
++    <string name="edge_gestures_long_swipe_title">ສະຫຼັບແອັບດ້ວຍການປັດຍາວ</string>
++    <string name="edge_gestures_summary">ປັດເຂົ້າຈາກຂອບຊ້າຍເພື່ອກັບຄືນ, ຈາກຂອບຂວາເພື່ອໄປໜ້າ</string>
++    <string name="edge_gestures_title">ທ່າທາງຂອບຈໍ</string>
++    <string name="edge_gestures_width_medium">ປານກາງ</string>
++    <string name="edge_gestures_width_narrow">ແຄບ</string>
++    <string name="edge_gestures_width_title">ພື້ນທີ່ຂອບຈໍ</string>
++    <string name="edge_gestures_width_wide">ກວ້າງ</string>
++    <string name="battery_protection_title">ປົກປ້ອງແບັດເຕີຣີ</string>
++    <string name="battery_protection_summary" formatted="false">ສາກພຽງ 80% – ສຳລັບແທັບເລັດທີ່ສຽບສາກຢູ່ສະເໝີ</string>
++</resources>
+diff --git a/res/values-lt/onfirelos_strings.xml b/res/values-lt/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c0dc2ff
+--- /dev/null
++++ b/res/values-lt/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ilgas perbraukimas iš kairės atidaro anksčiau naudotą programą, iš dešinės – grąžina atgal</string>
++    <string name="edge_gestures_long_swipe_title">Perjungti programas ilgu perbraukimu</string>
++    <string name="edge_gestures_summary">Perbraukite nuo kairiojo krašto, kad grįžtumėte atgal, nuo dešiniojo – kad eitumėte pirmyn</string>
++    <string name="edge_gestures_title">Krašto gestai</string>
++    <string name="edge_gestures_width_medium">Vidutinė</string>
++    <string name="edge_gestures_width_narrow">Siaura</string>
++    <string name="edge_gestures_width_title">Krašto sritis</string>
++    <string name="edge_gestures_width_wide">Plati</string>
++    <string name="battery_protection_title">Apsaugoti akumuliatorių</string>
++    <string name="battery_protection_summary" formatted="false">Įkrauna tik iki 80 % – planšetiniam kompiuteriui, kuris visada prijungtas</string>
++</resources>
+diff --git a/res/values-lv/onfirelos_strings.xml b/res/values-lv/onfirelos_strings.xml
+new file mode 100644
+index 0000000..de8d629
+--- /dev/null
++++ b/res/values-lv/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ilga vilkšana no kreisās puses atver iepriekš izmantoto lietotni, no labās — atgriež atpakaļ</string>
++    <string name="edge_gestures_long_swipe_title">Pārslēgt lietotnes ar ilgu vilkšanu</string>
++    <string name="edge_gestures_summary">Velciet no kreisās malas, lai atgrieztos, no labās malas, lai pārietu uz priekšu</string>
++    <string name="edge_gestures_title">Malu žesti</string>
++    <string name="edge_gestures_width_medium">Vidējs</string>
++    <string name="edge_gestures_width_narrow">Šaurs</string>
++    <string name="edge_gestures_width_title">Malas apgabals</string>
++    <string name="edge_gestures_width_wide">Plašs</string>
++    <string name="battery_protection_title">Aizsargāt akumulatoru</string>
++    <string name="battery_protection_summary" formatted="false">Uzlādē tikai līdz 80% – planšetdatoram, kas vienmēr ir pievienots</string>
++</resources>
+diff --git a/res/values-mk/onfirelos_strings.xml b/res/values-mk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..3f2b4bc
+--- /dev/null
++++ b/res/values-mk/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Долго повлекување од лево ја отвора претходно користената апликација, од десно враќа назад</string>
++    <string name="edge_gestures_long_swipe_title">Менување апликации со долго повлекување</string>
++    <string name="edge_gestures_summary">Повлечете од левиот раб за назад, од десниот раб за напред</string>
++    <string name="edge_gestures_title">Движења од работ</string>
++    <string name="edge_gestures_width_medium">Средна</string>
++    <string name="edge_gestures_width_narrow">Тесна</string>
++    <string name="edge_gestures_width_title">Област на работ</string>
++    <string name="edge_gestures_width_wide">Широка</string>
++    <string name="battery_protection_title">Заштита на батеријата</string>
++    <string name="battery_protection_summary" formatted="false">Полни само до 80% – за таблет што е постојано приклучен</string>
++</resources>
+diff --git a/res/values-ml/onfirelos_strings.xml b/res/values-ml/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a904d01
+--- /dev/null
++++ b/res/values-ml/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ഇടതുവശത്തുനിന്നുള്ള ദീർഘ സ്വൈപ്പ് മുമ്പ് ഉപയോഗിച്ച ആപ്പിലേക്ക് പോകുന്നു, വലതുവശത്തുനിന്നുള്ളത് തിരികെ കൊണ്ടുവരുന്നു</string>
++    <string name="edge_gestures_long_swipe_title">ദീർഘ സ്വൈപ്പിലൂടെ ആപ്പുകൾ മാറുക</string>
++    <string name="edge_gestures_summary">തിരികെ പോകാൻ ഇടത് അരികിൽ നിന്നും മുന്നോട്ട് പോകാൻ വലത് അരികിൽ നിന്നും ഉള്ളിലേക്ക് സ്വൈപ്പ് ചെയ്യുക</string>
++    <string name="edge_gestures_title">അരികിലെ ജെസ്ചറുകൾ</string>
++    <string name="edge_gestures_width_medium">ഇടത്തരം</string>
++    <string name="edge_gestures_width_narrow">ഇടുങ്ങിയത്</string>
++    <string name="edge_gestures_width_title">അരികിലെ ഭാഗം</string>
++    <string name="edge_gestures_width_wide">വീതിയുള്ളത്</string>
++    <string name="battery_protection_title">ബാറ്ററി സംരക്ഷിക്കുക</string>
++    <string name="battery_protection_summary" formatted="false">80% വരെ മാത്രം ചാർജ് ചെയ്യുന്നു – എപ്പോഴും പ്ലഗ് ഇൻ ചെയ്‌തിരിക്കുന്ന ടാബ്‌ലെറ്റിന്</string>
++</resources>
+diff --git a/res/values-mn/onfirelos_strings.xml b/res/values-mn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..db0fdfb
+--- /dev/null
++++ b/res/values-mn/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Зүүн талаас урт шудрахад өмнө ашигласан апп руу шилжиж, баруун талаас шудрахад буцаж ирнэ</string>
++    <string name="edge_gestures_long_swipe_title">Урт шудралтаар апп сэлгэх</string>
++    <string name="edge_gestures_summary">Буцахын тулд зүүн ирмэгээс, урагшлахын тулд баруун ирмэгээс дотогш шударна уу</string>
++    <string name="edge_gestures_title">Ирмэгийн зангаа</string>
++    <string name="edge_gestures_width_medium">Дунд</string>
++    <string name="edge_gestures_width_narrow">Нарийн</string>
++    <string name="edge_gestures_width_title">Ирмэгийн хэсэг</string>
++    <string name="edge_gestures_width_wide">Өргөн</string>
++    <string name="battery_protection_title">Батарейг хамгаалах</string>
++    <string name="battery_protection_summary" formatted="false">Зөвхөн 80% хүртэл цэнэглэнэ – байнга цахилгаанд залгаатай таблетад</string>
++</resources>
+diff --git a/res/values-mr/onfirelos_strings.xml b/res/values-mr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d79fc6e
+--- /dev/null
++++ b/res/values-mr/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">डावीकडून लांब स्वाइप केल्यास आधी वापरलेल्या ॲपवर जाता, उजवीकडून पुन्हा परत येता</string>
++    <string name="edge_gestures_long_swipe_title">लांब स्वाइपने ॲप्स स्विच करा</string>
++    <string name="edge_gestures_summary">मागे जाण्यासाठी डाव्या कडेपासून, पुढे जाण्यासाठी उजव्या कडेपासून आत स्वाइप करा</string>
++    <string name="edge_gestures_title">कडेचे जेश्चर</string>
++    <string name="edge_gestures_width_medium">मध्यम</string>
++    <string name="edge_gestures_width_narrow">अरुंद</string>
++    <string name="edge_gestures_width_title">कडेचे क्षेत्र</string>
++    <string name="edge_gestures_width_wide">रुंद</string>
++    <string name="battery_protection_title">बॅटरी संरक्षण</string>
++    <string name="battery_protection_summary" formatted="false">फक्त 80% पर्यंत चार्ज करते – नेहमी प्लग इन असलेल्या टॅबलेटसाठी</string>
++</resources>
+diff --git a/res/values-ms/onfirelos_strings.xml b/res/values-ms/onfirelos_strings.xml
+new file mode 100644
+index 0000000..24167b1
+--- /dev/null
++++ b/res/values-ms/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Leretan panjang dari kiri beralih ke apl yang digunakan sebelumnya, dari kanan kembali semula</string>
++    <string name="edge_gestures_long_swipe_title">Tukar apl dengan leretan panjang</string>
++    <string name="edge_gestures_summary">Leret masuk dari tepi kiri untuk kembali, dari tepi kanan untuk ke hadapan</string>
++    <string name="edge_gestures_title">Gerak isyarat tepi</string>
++    <string name="edge_gestures_width_medium">Sederhana</string>
++    <string name="edge_gestures_width_narrow">Sempit</string>
++    <string name="edge_gestures_width_title">Kawasan tepi</string>
++    <string name="edge_gestures_width_wide">Lebar</string>
++    <string name="battery_protection_title">Lindungi bateri</string>
++    <string name="battery_protection_summary" formatted="false">Mengecas hingga 80% sahaja – untuk tablet yang sentiasa dipalamkan</string>
++</resources>
+diff --git a/res/values-my/onfirelos_strings.xml b/res/values-my/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a3eb525
+--- /dev/null
++++ b/res/values-my/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ဘယ်ဘက်မှ အရှည် ပွတ်ဆွဲလျှင် ယခင်သုံးခဲ့သော အက်ပ်သို့ သွားပြီး ညာဘက်မှ ပွတ်ဆွဲလျှင် ပြန်လာသည်</string>
++    <string name="edge_gestures_long_swipe_title">အရှည် ပွတ်ဆွဲ၍ အက်ပ်များ ပြောင်းရန်</string>
++    <string name="edge_gestures_summary">နောက်သို့ပြန်ရန် ဘယ်အစွန်းမှ၊ ရှေ့သို့သွားရန် ညာအစွန်းမှ အတွင်းသို့ ပွတ်ဆွဲပါ</string>
++    <string name="edge_gestures_title">အစွန်း လက်ဟန်များ</string>
++    <string name="edge_gestures_width_medium">အလယ်အလတ်</string>
++    <string name="edge_gestures_width_narrow">ကျဉ်း</string>
++    <string name="edge_gestures_width_title">အစွန်း ဧရိယာ</string>
++    <string name="edge_gestures_width_wide">ကျယ်</string>
++    <string name="battery_protection_title">ဘက်ထရီကို ကာကွယ်ရန်</string>
++    <string name="battery_protection_summary" formatted="false">80% အထိသာ အားသွင်းသည် – အမြဲပလပ်ထိုးထားသော တက်ဘလက်အတွက်</string>
++</resources>
+diff --git a/res/values-nb/onfirelos_strings.xml b/res/values-nb/onfirelos_strings.xml
+new file mode 100644
+index 0000000..9824ec8
+--- /dev/null
++++ b/res/values-nb/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Et langt sveip fra venstre går til appen du brukte sist, fra høyre tilbake igjen</string>
++    <string name="edge_gestures_long_swipe_title">Bytt app med langt sveip</string>
++    <string name="edge_gestures_summary">Sveip inn fra venstre kant for å gå tilbake, fra høyre kant for å gå fremover</string>
++    <string name="edge_gestures_title">Kantbevegelser</string>
++    <string name="edge_gestures_width_medium">Middels</string>
++    <string name="edge_gestures_width_narrow">Smalt</string>
++    <string name="edge_gestures_width_title">Kantområde</string>
++    <string name="edge_gestures_width_wide">Bredt</string>
++    <string name="battery_protection_title">Beskytt batteriet</string>
++    <string name="battery_protection_summary" formatted="false">Lader bare til 80 % – for et nettbrett som alltid står i strøm</string>
++</resources>
+diff --git a/res/values-ne/onfirelos_strings.xml b/res/values-ne/onfirelos_strings.xml
+new file mode 100644
+index 0000000..4038457
+--- /dev/null
++++ b/res/values-ne/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">बायाँबाट लामो स्वाइप गर्दा पहिले प्रयोग गरिएको एपमा पुगिन्छ, दायाँबाट गर्दा फेरि फर्किइन्छ</string>
++    <string name="edge_gestures_long_swipe_title">लामो स्वाइपमार्फत एपहरू बदल्नुहोस्</string>
++    <string name="edge_gestures_summary">पछाडि जान बायाँ किनाराबाट, अगाडि जान दायाँ किनाराबाट भित्रतिर स्वाइप गर्नुहोस्</string>
++    <string name="edge_gestures_title">किनाराका इसाराहरू</string>
++    <string name="edge_gestures_width_medium">मध्यम</string>
++    <string name="edge_gestures_width_narrow">साँघुरो</string>
++    <string name="edge_gestures_width_title">किनाराको क्षेत्र</string>
++    <string name="edge_gestures_width_wide">चौडा</string>
++    <string name="battery_protection_title">ब्याट्री सुरक्षित राख्नुहोस्</string>
++    <string name="battery_protection_summary" formatted="false">80% सम्म मात्र चार्ज गर्छ – सधैँ प्लग इन रहने ट्याब्लेटका लागि</string>
++</resources>
+diff --git a/res/values-nl/onfirelos_strings.xml b/res/values-nl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..75ccfe2
+--- /dev/null
++++ b/res/values-nl/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Lang vegen vanaf links gaat naar de vorige app, vanaf rechts weer terug</string>
++    <string name="edge_gestures_long_swipe_title">Van app wisselen door lang te vegen</string>
++    <string name="edge_gestures_summary">Veeg vanaf de linkerrand naar binnen om terug te gaan, vanaf de rechterrand om vooruit te gaan</string>
++    <string name="edge_gestures_title">Randgebaren</string>
++    <string name="edge_gestures_width_medium">Gemiddeld</string>
++    <string name="edge_gestures_width_narrow">Smal</string>
++    <string name="edge_gestures_width_title">Randgebied</string>
++    <string name="edge_gestures_width_wide">Breed</string>
++    <string name="battery_protection_title">Batterij sparen</string>
++    <string name="battery_protection_summary" formatted="false">Laadt alleen tot 80% – voor een tablet die altijd aan de stroom hangt</string>
++</resources>
+diff --git a/res/values-or/onfirelos_strings.xml b/res/values-or/onfirelos_strings.xml
+new file mode 100644
+index 0000000..da5f01e
+--- /dev/null
++++ b/res/values-or/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ବାମରୁ ଲମ୍ବା ସ୍ୱାଇପ୍ କଲେ ପୂର୍ବରୁ ବ୍ୟବହୃତ ଆପକୁ ଯାଏ, ଡାହାଣରୁ କଲେ ପୁଣି ଫେରିଆସେ</string>
++    <string name="edge_gestures_long_swipe_title">ଲମ୍ବା ସ୍ୱାଇପ୍ ଦ୍ୱାରା ଆପ୍ସ ସ୍ୱିଚ୍ କରନ୍ତୁ</string>
++    <string name="edge_gestures_summary">ପଛକୁ ଯିବା ପାଇଁ ବାମ ଧାରରୁ, ଆଗକୁ ଯିବା ପାଇଁ ଡାହାଣ ଧାରରୁ ଭିତରକୁ ସ୍ୱାଇପ୍ କରନ୍ତୁ</string>
++    <string name="edge_gestures_title">ଧାର ଜେଶ୍ଚର୍</string>
++    <string name="edge_gestures_width_medium">ମଧ୍ୟମ</string>
++    <string name="edge_gestures_width_narrow">ସଂକୀର୍ଣ୍ଣ</string>
++    <string name="edge_gestures_width_title">ଧାର କ୍ଷେତ୍ର</string>
++    <string name="edge_gestures_width_wide">ଚଉଡ଼ା</string>
++    <string name="battery_protection_title">ବ୍ୟାଟେରୀ ସୁରକ୍ଷା</string>
++    <string name="battery_protection_summary" formatted="false">କେବଳ 80% ପର୍ଯ୍ୟନ୍ତ ଚାର୍ଜ କରେ – ସର୍ବଦା ପ୍ଲଗ ଇନ ଥିବା ଟାବଲେଟ ପାଇଁ</string>
++</resources>
+diff --git a/res/values-pa/onfirelos_strings.xml b/res/values-pa/onfirelos_strings.xml
+new file mode 100644
+index 0000000..4acf024
+--- /dev/null
++++ b/res/values-pa/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ਖੱਬੇ ਪਾਸਿਓਂ ਲੰਮਾ ਸਵਾਈਪ ਪਹਿਲਾਂ ਵਰਤੀ ਗਈ ਐਪ \'ਤੇ ਲੈ ਜਾਂਦਾ ਹੈ, ਸੱਜੇ ਪਾਸਿਓਂ ਮੁੜ ਵਾਪਸ ਲਿਆਉਂਦਾ ਹੈ</string>
++    <string name="edge_gestures_long_swipe_title">ਲੰਮੇ ਸਵਾਈਪ ਨਾਲ ਐਪਾਂ ਬਦਲੋ</string>
++    <string name="edge_gestures_summary">ਪਿੱਛੇ ਜਾਣ ਲਈ ਖੱਬੇ ਕਿਨਾਰੇ ਤੋਂ, ਅੱਗੇ ਜਾਣ ਲਈ ਸੱਜੇ ਕਿਨਾਰੇ ਤੋਂ ਅੰਦਰ ਵੱਲ ਸਵਾਈਪ ਕਰੋ</string>
++    <string name="edge_gestures_title">ਕਿਨਾਰੇ ਦੇ ਇਸ਼ਾਰੇ</string>
++    <string name="edge_gestures_width_medium">ਦਰਮਿਆਨਾ</string>
++    <string name="edge_gestures_width_narrow">ਭੀੜਾ</string>
++    <string name="edge_gestures_width_title">ਕਿਨਾਰੇ ਦਾ ਖੇਤਰ</string>
++    <string name="edge_gestures_width_wide">ਚੌੜਾ</string>
++    <string name="battery_protection_title">ਬੈਟਰੀ ਦੀ ਸੁਰੱਖਿਆ</string>
++    <string name="battery_protection_summary" formatted="false">ਸਿਰਫ਼ 80% ਤੱਕ ਚਾਰਜ ਕਰਦਾ ਹੈ – ਹਮੇਸ਼ਾ ਪਲੱਗ ਇਨ ਰਹਿਣ ਵਾਲੇ ਟੈਬਲੈੱਟ ਲਈ</string>
++</resources>
+diff --git a/res/values-pl/onfirelos_strings.xml b/res/values-pl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f8391fc
+--- /dev/null
++++ b/res/values-pl/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Długie przesunięcie od lewej przełącza na poprzednio używaną aplikację, od prawej z powrotem</string>
++    <string name="edge_gestures_long_swipe_title">Przełączaj aplikacje długim przesunięciem</string>
++    <string name="edge_gestures_summary">Przesuń palcem od lewej krawędzi, aby wrócić, a od prawej, aby przejść dalej</string>
++    <string name="edge_gestures_title">Gesty krawędziowe</string>
++    <string name="edge_gestures_width_medium">Średni</string>
++    <string name="edge_gestures_width_narrow">Wąski</string>
++    <string name="edge_gestures_width_title">Obszar krawędzi</string>
++    <string name="edge_gestures_width_wide">Szeroki</string>
++    <string name="battery_protection_title">Chroń baterię</string>
++    <string name="battery_protection_summary" formatted="false">Ładuje tylko do 80% – dla tabletu stale podłączonego do zasilania</string>
++</resources>
+diff --git a/res/values-pt-rBR/onfirelos_strings.xml b/res/values-pt-rBR/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2d9a6d3
+--- /dev/null
++++ b/res/values-pt-rBR/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Deslizar longamente a partir da esquerda leva ao app usado anteriormente, e a partir da direita volta de novo</string>
++    <string name="edge_gestures_long_swipe_title">Alternar apps deslizando longamente</string>
++    <string name="edge_gestures_summary">Deslize a partir da borda esquerda para voltar e a partir da borda direita para avançar</string>
++    <string name="edge_gestures_title">Gestos nas bordas</string>
++    <string name="edge_gestures_width_medium">Média</string>
++    <string name="edge_gestures_width_narrow">Estreita</string>
++    <string name="edge_gestures_width_title">Área da borda</string>
++    <string name="edge_gestures_width_wide">Larga</string>
++    <string name="battery_protection_title">Proteger a bateria</string>
++    <string name="battery_protection_summary" formatted="false">Carrega só até 80% – para um tablet sempre conectado na tomada</string>
++</resources>
+diff --git a/res/values-pt-rPT/onfirelos_strings.xml b/res/values-pt-rPT/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b9bc286
+--- /dev/null
++++ b/res/values-pt-rPT/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Um deslize longo a partir da esquerda muda para a app utilizada anteriormente e a partir da direita volta outra vez</string>
++    <string name="edge_gestures_long_swipe_title">Alternar apps com um deslize longo</string>
++    <string name="edge_gestures_summary">Deslize a partir da extremidade esquerda para retroceder e a partir da extremidade direita para avançar</string>
++    <string name="edge_gestures_title">Gestos nas extremidades</string>
++    <string name="edge_gestures_width_medium">Média</string>
++    <string name="edge_gestures_width_narrow">Estreita</string>
++    <string name="edge_gestures_width_title">Área da extremidade</string>
++    <string name="edge_gestures_width_wide">Larga</string>
++    <string name="battery_protection_title">Proteger a bateria</string>
++    <string name="battery_protection_summary" formatted="false">Carrega apenas até 80% – para um tablet sempre ligado à corrente</string>
++</resources>
+diff --git a/res/values-pt/onfirelos_strings.xml b/res/values-pt/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2d9a6d3
+--- /dev/null
++++ b/res/values-pt/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Deslizar longamente a partir da esquerda leva ao app usado anteriormente, e a partir da direita volta de novo</string>
++    <string name="edge_gestures_long_swipe_title">Alternar apps deslizando longamente</string>
++    <string name="edge_gestures_summary">Deslize a partir da borda esquerda para voltar e a partir da borda direita para avançar</string>
++    <string name="edge_gestures_title">Gestos nas bordas</string>
++    <string name="edge_gestures_width_medium">Média</string>
++    <string name="edge_gestures_width_narrow">Estreita</string>
++    <string name="edge_gestures_width_title">Área da borda</string>
++    <string name="edge_gestures_width_wide">Larga</string>
++    <string name="battery_protection_title">Proteger a bateria</string>
++    <string name="battery_protection_summary" formatted="false">Carrega só até 80% – para um tablet sempre conectado na tomada</string>
++</resources>
+diff --git a/res/values-ro/onfirelos_strings.xml b/res/values-ro/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e9c0e96
+--- /dev/null
++++ b/res/values-ro/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">O glisare lungă din stânga trece la aplicația folosită anterior, iar una din dreapta revine</string>
++    <string name="edge_gestures_long_swipe_title">Comutați între aplicații cu o glisare lungă</string>
++    <string name="edge_gestures_summary">Glisați dinspre marginea din stânga pentru a reveni și dinspre marginea din dreapta pentru a merge înainte</string>
++    <string name="edge_gestures_title">Gesturi de margine</string>
++    <string name="edge_gestures_width_medium">Medie</string>
++    <string name="edge_gestures_width_narrow">Îngustă</string>
++    <string name="edge_gestures_width_title">Zona marginii</string>
++    <string name="edge_gestures_width_wide">Largă</string>
++    <string name="battery_protection_title">Protejează bateria</string>
++    <string name="battery_protection_summary" formatted="false">Încarcă doar până la 80% – pentru o tabletă conectată permanent</string>
++</resources>
+diff --git a/res/values-ru/onfirelos_strings.xml b/res/values-ru/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ec93f3d
+--- /dev/null
++++ b/res/values-ru/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Длинный жест от левого края открывает предыдущее приложение, от правого – возвращает обратно</string>
++    <string name="edge_gestures_long_swipe_title">Переключение приложений длинным жестом</string>
++    <string name="edge_gestures_summary">Проведите от левого края, чтобы вернуться назад, или от правого, чтобы перейти вперед</string>
++    <string name="edge_gestures_title">Жесты от края экрана</string>
++    <string name="edge_gestures_width_medium">Средняя</string>
++    <string name="edge_gestures_width_narrow">Узкая</string>
++    <string name="edge_gestures_width_title">Область у края</string>
++    <string name="edge_gestures_width_wide">Широкая</string>
++    <string name="battery_protection_title">Защита аккумулятора</string>
++    <string name="battery_protection_summary" formatted="false">Заряжает только до 80% – для планшета, который всегда подключён к сети</string>
++</resources>
+diff --git a/res/values-si/onfirelos_strings.xml b/res/values-si/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b2a7d08
+--- /dev/null
++++ b/res/values-si/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">වමේ සිට දිගු ස්වයිප් එකක් කලින් භාවිත කළ යෙදුමට යයි, දකුණේ සිට නැවත ආපසු යයි</string>
++    <string name="edge_gestures_long_swipe_title">දිගු ස්වයිප් එකකින් යෙදුම් මාරු කරන්න</string>
++    <string name="edge_gestures_summary">ආපසු යාමට වම් දාරයේ සිට ද, ඉදිරියට යාමට දකුණු දාරයේ සිට ද ඇතුළට ස්වයිප් කරන්න</string>
++    <string name="edge_gestures_title">දාර ඉංගිත</string>
++    <string name="edge_gestures_width_medium">මධ්‍යම</string>
++    <string name="edge_gestures_width_narrow">පටු</string>
++    <string name="edge_gestures_width_title">දාර ප්‍රදේශය</string>
++    <string name="edge_gestures_width_wide">පුළුල්</string>
++    <string name="battery_protection_title">බැටරිය ආරක්ෂා කරන්න</string>
++    <string name="battery_protection_summary" formatted="false">80% දක්වා පමණක් ආරෝපණය කරයි – සැමවිට ප්ලග් කර ඇති ටැබ්ලටයක් සඳහා</string>
++</resources>
+diff --git a/res/values-sk/onfirelos_strings.xml b/res/values-sk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b2965e6
+--- /dev/null
++++ b/res/values-sk/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Dlhé potiahnutie zľava otvorí predtým použitú aplikáciu, sprava sa vrátite späť</string>
++    <string name="edge_gestures_long_swipe_title">Prepínanie aplikácií dlhým potiahnutím</string>
++    <string name="edge_gestures_summary">Potiahnutím od ľavého okraja prejdete späť, od pravého okraja dopredu</string>
++    <string name="edge_gestures_title">Gestá od okraja</string>
++    <string name="edge_gestures_width_medium">Stredná</string>
++    <string name="edge_gestures_width_narrow">Úzka</string>
++    <string name="edge_gestures_width_title">Oblasť okraja</string>
++    <string name="edge_gestures_width_wide">Široká</string>
++    <string name="battery_protection_title">Chrániť batériu</string>
++    <string name="battery_protection_summary" formatted="false">Nabíja len do 80 % – pre tablet trvalo pripojený k napájaniu</string>
++</resources>
+diff --git a/res/values-sl/onfirelos_strings.xml b/res/values-sl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..038c51d
+--- /dev/null
++++ b/res/values-sl/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Dolgo vlečenje z leve odpre prej uporabljeno aplikacijo, z desne pa vas vrne nazaj</string>
++    <string name="edge_gestures_long_swipe_title">Preklop med aplikacijami z dolgim vlečenjem</string>
++    <string name="edge_gestures_summary">Povlecite z levega roba za pomik nazaj in z desnega roba za pomik naprej</string>
++    <string name="edge_gestures_title">Poteze z roba</string>
++    <string name="edge_gestures_width_medium">Srednje</string>
++    <string name="edge_gestures_width_narrow">Ozko</string>
++    <string name="edge_gestures_width_title">Območje roba</string>
++    <string name="edge_gestures_width_wide">Široko</string>
++    <string name="battery_protection_title">Zaščita baterije</string>
++    <string name="battery_protection_summary" formatted="false">Polni le do 80 % – za tablični računalnik, ki je stalno priključen</string>
++</resources>
+diff --git a/res/values-sq/onfirelos_strings.xml b/res/values-sq/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8cc822a
+--- /dev/null
++++ b/res/values-sq/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Një rrëshqitje e gjatë nga e majta hap aplikacionin e përdorur më parë, nga e djathta të kthen përsëri</string>
++    <string name="edge_gestures_long_swipe_title">Ndërro aplikacionet me rrëshqitje të gjatë</string>
++    <string name="edge_gestures_summary">Rrëshqit nga skaji i majtë për t\'u kthyer prapa dhe nga skaji i djathtë për të shkuar përpara</string>
++    <string name="edge_gestures_title">Gjestet e skajeve</string>
++    <string name="edge_gestures_width_medium">Mesatare</string>
++    <string name="edge_gestures_width_narrow">E ngushtë</string>
++    <string name="edge_gestures_width_title">Zona e skajit</string>
++    <string name="edge_gestures_width_wide">E gjerë</string>
++    <string name="battery_protection_title">Mbro baterinë</string>
++    <string name="battery_protection_summary" formatted="false">Karikon vetëm deri në 80% – për një tablet që është gjithmonë në prizë</string>
++</resources>
+diff --git a/res/values-sr/onfirelos_strings.xml b/res/values-sr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..233fdf2
+--- /dev/null
++++ b/res/values-sr/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Дуго превлачење слева отвара претходно коришћену апликацију, а здесна враћа назад</string>
++    <string name="edge_gestures_long_swipe_title">Промена апликација дугим превлачењем</string>
++    <string name="edge_gestures_summary">Превуците од леве ивице да бисте се вратили, а од десне ивице да бисте ишли напред</string>
++    <string name="edge_gestures_title">Покрети од ивице</string>
++    <string name="edge_gestures_width_medium">Средња</string>
++    <string name="edge_gestures_width_narrow">Уска</string>
++    <string name="edge_gestures_width_title">Област уз ивицу</string>
++    <string name="edge_gestures_width_wide">Широка</string>
++    <string name="battery_protection_title">Заштита батерије</string>
++    <string name="battery_protection_summary" formatted="false">Пуни само до 80% – за таблет који је стално прикључен</string>
++</resources>
+diff --git a/res/values-sv/onfirelos_strings.xml b/res/values-sv/onfirelos_strings.xml
+new file mode 100644
+index 0000000..9072424
+--- /dev/null
++++ b/res/values-sv/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ett långt svep från vänster öppnar den senast använda appen, från höger kommer du tillbaka igen</string>
++    <string name="edge_gestures_long_swipe_title">Byt app med ett långt svep</string>
++    <string name="edge_gestures_summary">Svep in från vänsterkanten för att gå tillbaka och från högerkanten för att gå framåt</string>
++    <string name="edge_gestures_title">Kantrörelser</string>
++    <string name="edge_gestures_width_medium">Medel</string>
++    <string name="edge_gestures_width_narrow">Smalt</string>
++    <string name="edge_gestures_width_title">Kantområde</string>
++    <string name="edge_gestures_width_wide">Brett</string>
++    <string name="battery_protection_title">Skydda batteriet</string>
++    <string name="battery_protection_summary" formatted="false">Laddar bara till 80 % – för en surfplatta som alltid sitter i laddaren</string>
++</resources>
+diff --git a/res/values-sw/onfirelos_strings.xml b/res/values-sw/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a3b5153
+--- /dev/null
++++ b/res/values-sw/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ukitelezesha kidole mbali kutoka kushoto, unaenda kwenye programu uliyotumia awali; kutoka kulia, unarudi tena</string>
++    <string name="edge_gestures_long_swipe_title">Badilisha programu kwa kutelezesha kidole mbali</string>
++    <string name="edge_gestures_summary">Telezesha kidole kutoka ukingo wa kushoto ili kurudi nyuma na kutoka ukingo wa kulia ili kwenda mbele</string>
++    <string name="edge_gestures_title">Ishara za ukingoni</string>
++    <string name="edge_gestures_width_medium">Wastani</string>
++    <string name="edge_gestures_width_narrow">Jembamba</string>
++    <string name="edge_gestures_width_title">Eneo la ukingo</string>
++    <string name="edge_gestures_width_wide">Pana</string>
++    <string name="battery_protection_title">Linda betri</string>
++    <string name="battery_protection_summary" formatted="false">Huchaji hadi asilimia 80 pekee – kwa kompyuta kibao iliyochomekwa kila wakati</string>
++</resources>
+diff --git a/res/values-sw720dp-land/dimens.xml b/res/values-sw720dp-land/dimens.xml
+index b1ec4c7..7ab94e7 100644
+--- a/res/values-sw720dp-land/dimens.xml
++++ b/res/values-sw720dp-land/dimens.xml
+@@ -15,11 +15,13 @@
+ -->
+ 
+ <resources>
+-    <dimen name="settings_side_margin">112dp</dimen>
++    <!-- ON-FireLOS: 0, siehe values-sw720dp. -->
++    <dimen name="settings_side_margin">0dp</dimen>
+ 
+     <!-- Dashboard padding in its container -->
+     <dimen name="dashboard_padding_start">160dp</dimen>
+     <dimen name="dashboard_padding_end">160dp</dimen>
++    <dimen name="search_bar_side_margin">160dp</dimen>
+ 
+     <!-- ActionBar contentInsetStart -->
+     <dimen name="actionbar_contentInsetStart">128dp</dimen>
+diff --git a/res/values-sw720dp/dimens.xml b/res/values-sw720dp/dimens.xml
+index 981c936..6db0433 100644
+--- a/res/values-sw720dp/dimens.xml
++++ b/res/values-sw720dp/dimens.xml
+@@ -20,7 +20,9 @@
+     <integer name="keyguard_appwidget_picker_cols">2</integer>
+     <dimen name="keyguard_appwidget_picker_width">720dip</dimen>
+ 
+-    <dimen name="settings_side_margin">64dp</dimen>
++    <!-- ON-FireLOS: 0 as on sw600dp. With 64dp the content of the sub
++         pages (app info header, lists) was narrower than the bar above. -->
++    <dimen name="settings_side_margin">0dp</dimen>
+ 
+     <!-- Weight of the left pane in a multi-pane preference layout. -->
+     <integer name="preferences_left_pane_weight">1</integer>
+@@ -41,6 +43,7 @@
+     <!-- Dashboard padding in its container -->
+     <dimen name="dashboard_padding_start">80dp</dimen>
+     <dimen name="dashboard_padding_end">80dp</dimen>
++    <dimen name="search_bar_side_margin">80dp</dimen>
+ 
+     <!-- Dashboard category padding start / end -->
+     <dimen name="dashboard_category_padding_start">24dp</dimen>
+diff --git a/res/values-ta/onfirelos_strings.xml b/res/values-ta/onfirelos_strings.xml
+new file mode 100644
+index 0000000..74a71ba
+--- /dev/null
++++ b/res/values-ta/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">இடதுபுறத்திலிருந்து நீளமாக ஸ்வைப் செய்தால் முன்பு பயன்படுத்திய ஆப்ஸ் திறக்கும், வலதுபுறத்திலிருந்து செய்தால் மீண்டும் திரும்பும்</string>
++    <string name="edge_gestures_long_swipe_title">நீண்ட ஸ்வைப் மூலம் ஆப்ஸை மாற்று</string>
++    <string name="edge_gestures_summary">பின்செல்ல இடது விளிம்பிலிருந்தும், முன்செல்ல வலது விளிம்பிலிருந்தும் உள்நோக்கி ஸ்வைப் செய்யவும்</string>
++    <string name="edge_gestures_title">விளிம்புச் சைகைகள்</string>
++    <string name="edge_gestures_width_medium">நடுத்தரம்</string>
++    <string name="edge_gestures_width_narrow">குறுகியது</string>
++    <string name="edge_gestures_width_title">விளிம்புப் பகுதி</string>
++    <string name="edge_gestures_width_wide">அகலமானது</string>
++    <string name="battery_protection_title">பேட்டரியைப் பாதுகாக்கவும்</string>
++    <string name="battery_protection_summary" formatted="false">80% வரை மட்டுமே சார்ஜ் செய்யும் – எப்போதும் பிளக் செய்யப்பட்ட டேப்லெட்டிற்கு</string>
++</resources>
+diff --git a/res/values-te/onfirelos_strings.xml b/res/values-te/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6df7027
+--- /dev/null
++++ b/res/values-te/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ఎడమ నుండి పొడవుగా స్వైప్ చేస్తే ఇంతకు ముందు ఉపయోగించిన యాప్ తెరుచుకుంటుంది, కుడి నుండి చేస్తే మళ్లీ వెనుకకు వస్తుంది</string>
++    <string name="edge_gestures_long_swipe_title">పొడవైన స్వైప్‌తో యాప్‌లను మార్చండి</string>
++    <string name="edge_gestures_summary">వెనుకకు వెళ్లడానికి ఎడమ అంచు నుండి, ముందుకు వెళ్లడానికి కుడి అంచు నుండి లోపలికి స్వైప్ చేయండి</string>
++    <string name="edge_gestures_title">అంచు సంజ్ఞలు</string>
++    <string name="edge_gestures_width_medium">మధ్యస్థం</string>
++    <string name="edge_gestures_width_narrow">ఇరుకైనది</string>
++    <string name="edge_gestures_width_title">అంచు ప్రాంతం</string>
++    <string name="edge_gestures_width_wide">వెడల్పైనది</string>
++    <string name="battery_protection_title">బ్యాటరీని రక్షించండి</string>
++    <string name="battery_protection_summary" formatted="false">80% వరకు మాత్రమే ఛార్జ్ చేస్తుంది – ఎల్లప్పుడూ ప్లగ్ ఇన్ చేసి ఉండే టాబ్లెట్ కోసం</string>
++</resources>
+diff --git a/res/values-th/onfirelos_strings.xml b/res/values-th/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a4c9a4d
+--- /dev/null
++++ b/res/values-th/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">ปัดยาวจากด้านซ้ายเพื่อไปยังแอปที่ใช้ก่อนหน้า และปัดยาวจากด้านขวาเพื่อกลับมาอีกครั้ง</string>
++    <string name="edge_gestures_long_swipe_title">สลับแอปด้วยการปัดยาว</string>
++    <string name="edge_gestures_summary">ปัดเข้ามาจากขอบซ้ายเพื่อย้อนกลับ และจากขอบขวาเพื่อไปข้างหน้า</string>
++    <string name="edge_gestures_title">ท่าทางสัมผัสที่ขอบ</string>
++    <string name="edge_gestures_width_medium">ปานกลาง</string>
++    <string name="edge_gestures_width_narrow">แคบ</string>
++    <string name="edge_gestures_width_title">พื้นที่ขอบ</string>
++    <string name="edge_gestures_width_wide">กว้าง</string>
++    <string name="battery_protection_title">ปกป้องแบตเตอรี่</string>
++    <string name="battery_protection_summary" formatted="false">ชาร์จถึง 80% เท่านั้น – สำหรับแท็บเล็ตที่เสียบชาร์จไว้ตลอด</string>
++</resources>
+diff --git a/res/values-tl/onfirelos_strings.xml b/res/values-tl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f41634d
+--- /dev/null
++++ b/res/values-tl/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ang mahabang pag-swipe mula sa kaliwa ay pupunta sa dating ginamit na app, at mula sa kanan ay babalik ulit</string>
++    <string name="edge_gestures_long_swipe_title">Magpalipat-lipat ng app gamit ang mahabang pag-swipe</string>
++    <string name="edge_gestures_summary">Mag-swipe papasok mula sa kaliwang gilid para bumalik, at mula sa kanang gilid para umabante</string>
++    <string name="edge_gestures_title">Mga galaw sa gilid</string>
++    <string name="edge_gestures_width_medium">Katamtaman</string>
++    <string name="edge_gestures_width_narrow">Makitid</string>
++    <string name="edge_gestures_width_title">Lugar sa gilid</string>
++    <string name="edge_gestures_width_wide">Malapad</string>
++    <string name="battery_protection_title">Protektahan ang baterya</string>
++    <string name="battery_protection_summary" formatted="false">Hanggang 80% lang ang pag-charge – para sa tablet na laging nakasaksak</string>
++</resources>
+diff --git a/res/values-tr/onfirelos_strings.xml b/res/values-tr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..19cb8b0
+--- /dev/null
++++ b/res/values-tr/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Soldan uzun kaydırma önceki uygulamayı açar, sağdan uzun kaydırma ise tekrar geri döndürür</string>
++    <string name="edge_gestures_long_swipe_title">Uzun kaydırmayla uygulama değiştir</string>
++    <string name="edge_gestures_summary">Geri gitmek için sol kenardan, ileri gitmek için sağ kenardan içeri doğru kaydırın</string>
++    <string name="edge_gestures_title">Kenar hareketleri</string>
++    <string name="edge_gestures_width_medium">Orta</string>
++    <string name="edge_gestures_width_narrow">Dar</string>
++    <string name="edge_gestures_width_title">Kenar alanı</string>
++    <string name="edge_gestures_width_wide">Geniş</string>
++    <string name="battery_protection_title">Pili koru</string>
++    <string name="battery_protection_summary" formatted="false">Yalnızca %80’e kadar şarj eder – sürekli prize takılı tabletler için</string>
++</resources>
+diff --git a/res/values-uk/onfirelos_strings.xml b/res/values-uk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d013625
+--- /dev/null
++++ b/res/values-uk/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Довгий жест від лівого краю відкриває попередній додаток, від правого – повертає назад</string>
++    <string name="edge_gestures_long_swipe_title">Перемикання додатків довгим жестом</string>
++    <string name="edge_gestures_summary">Проведіть від лівого краю, щоб повернутися назад, або від правого, щоб перейти вперед</string>
++    <string name="edge_gestures_title">Жести від краю екрана</string>
++    <string name="edge_gestures_width_medium">Середня</string>
++    <string name="edge_gestures_width_narrow">Вузька</string>
++    <string name="edge_gestures_width_title">Область біля краю</string>
++    <string name="edge_gestures_width_wide">Широка</string>
++    <string name="battery_protection_title">Захист акумулятора</string>
++    <string name="battery_protection_summary" formatted="false">Заряджає лише до 80% – для планшета, який завжди підключений до мережі</string>
++</resources>
+diff --git a/res/values-ur/onfirelos_strings.xml b/res/values-ur/onfirelos_strings.xml
+new file mode 100644
+index 0000000..163478d
+--- /dev/null
++++ b/res/values-ur/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">بائیں جانب سے لمبی سوائپ پچھلی استعمال کردہ ایپ کھولتی ہے، دائیں جانب سے دوبارہ واپس لے آتی ہے</string>
++    <string name="edge_gestures_long_swipe_title">لمبی سوائپ سے ایپس سوئچ کریں</string>
++    <string name="edge_gestures_summary">پیچھے جانے کے لیے بائیں کنارے سے اور آگے جانے کے لیے دائیں کنارے سے اندر کی طرف سوائپ کریں</string>
++    <string name="edge_gestures_title">کنارے کے اشارے</string>
++    <string name="edge_gestures_width_medium">درمیانہ</string>
++    <string name="edge_gestures_width_narrow">تنگ</string>
++    <string name="edge_gestures_width_title">کنارے کا حصہ</string>
++    <string name="edge_gestures_width_wide">چوڑا</string>
++    <string name="battery_protection_title">بیٹری کی حفاظت</string>
++    <string name="battery_protection_summary" formatted="false">صرف 80% تک چارج کرتا ہے – ہمیشہ پلگ ان رہنے والے ٹیبلیٹ کیلئے</string>
++</resources>
+diff --git a/res/values-uz/onfirelos_strings.xml b/res/values-uz/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d1ba57c
+--- /dev/null
++++ b/res/values-uz/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Chapdan uzun surish oldin ishlatilgan ilovani ochadi, o‘ngdan esa yana ortga qaytaradi</string>
++    <string name="edge_gestures_long_swipe_title">Uzun surish bilan ilovalarni almashtirish</string>
++    <string name="edge_gestures_summary">Orqaga qaytish uchun chap chetdan, oldinga o‘tish uchun o‘ng chetdan ichkariga suring</string>
++    <string name="edge_gestures_title">Chekka ishoralari</string>
++    <string name="edge_gestures_width_medium">O‘rtacha</string>
++    <string name="edge_gestures_width_narrow">Tor</string>
++    <string name="edge_gestures_width_title">Chekka sohasi</string>
++    <string name="edge_gestures_width_wide">Keng</string>
++    <string name="battery_protection_title">Batareyani himoyalash</string>
++    <string name="battery_protection_summary" formatted="false">Faqat 80% gacha quvvatlaydi – doim tokka ulangan planshet uchun</string>
++</resources>
+diff --git a/res/values-vi/onfirelos_strings.xml b/res/values-vi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ee66ddc
+--- /dev/null
++++ b/res/values-vi/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Vuốt dài từ bên trái để chuyển đến ứng dụng đã dùng trước đó, từ bên phải để quay lại</string>
++    <string name="edge_gestures_long_swipe_title">Chuyển ứng dụng bằng thao tác vuốt dài</string>
++    <string name="edge_gestures_summary">Vuốt vào từ cạnh trái để quay lại, từ cạnh phải để tiến tới</string>
++    <string name="edge_gestures_title">Cử chỉ ở cạnh</string>
++    <string name="edge_gestures_width_medium">Trung bình</string>
++    <string name="edge_gestures_width_narrow">Hẹp</string>
++    <string name="edge_gestures_width_title">Vùng cạnh</string>
++    <string name="edge_gestures_width_wide">Rộng</string>
++    <string name="battery_protection_title">Bảo vệ pin</string>
++    <string name="battery_protection_summary" formatted="false">Chỉ sạc đến 80% – cho máy tính bảng luôn cắm sạc</string>
++</resources>
+diff --git a/res/values-zh-rCN/onfirelos_strings.xml b/res/values-zh-rCN/onfirelos_strings.xml
+new file mode 100644
+index 0000000..55a2e17
+--- /dev/null
++++ b/res/values-zh-rCN/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">从左侧长距离滑动可切换到上一个使用的应用，从右侧长距离滑动可再切换回来</string>
++    <string name="edge_gestures_long_swipe_title">长距离滑动切换应用</string>
++    <string name="edge_gestures_summary">从左侧边缘向内滑动可返回，从右侧边缘向内滑动可前进</string>
++    <string name="edge_gestures_title">边缘手势</string>
++    <string name="edge_gestures_width_medium">中</string>
++    <string name="edge_gestures_width_narrow">窄</string>
++    <string name="edge_gestures_width_title">边缘区域</string>
++    <string name="edge_gestures_width_wide">宽</string>
++    <string name="battery_protection_title">保护电池</string>
++    <string name="battery_protection_summary" formatted="false">仅充电至 80% – 适用于一直插着电源的平板电脑</string>
++</resources>
+diff --git a/res/values-zh-rHK/onfirelos_strings.xml b/res/values-zh-rHK/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b1f0614
+--- /dev/null
++++ b/res/values-zh-rHK/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">從左邊長距離滑動可切換至之前使用的應用程式，從右邊長距離滑動可再切換回來</string>
++    <string name="edge_gestures_long_swipe_title">長距離滑動切換應用程式</string>
++    <string name="edge_gestures_summary">從左邊邊緣向內滑動可返回，從右邊邊緣向內滑動可前進</string>
++    <string name="edge_gestures_title">邊緣手勢</string>
++    <string name="edge_gestures_width_medium">中</string>
++    <string name="edge_gestures_width_narrow">窄</string>
++    <string name="edge_gestures_width_title">邊緣範圍</string>
++    <string name="edge_gestures_width_wide">寬</string>
++    <string name="battery_protection_title">保護電池</string>
++    <string name="battery_protection_summary" formatted="false">只充電至 80% – 適用於長期接駁電源的平板電腦</string>
++</resources>
+diff --git a/res/values-zh-rTW/onfirelos_strings.xml b/res/values-zh-rTW/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a000686
+--- /dev/null
++++ b/res/values-zh-rTW/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">從左側長距離滑動可切換至先前使用的應用程式，從右側長距離滑動則可再切換回來</string>
++    <string name="edge_gestures_long_swipe_title">長距離滑動切換應用程式</string>
++    <string name="edge_gestures_summary">從左側邊緣向內滑動可返回，從右側邊緣向內滑動可前進</string>
++    <string name="edge_gestures_title">邊緣手勢</string>
++    <string name="edge_gestures_width_medium">中</string>
++    <string name="edge_gestures_width_narrow">窄</string>
++    <string name="edge_gestures_width_title">邊緣區域</string>
++    <string name="edge_gestures_width_wide">寬</string>
++    <string name="battery_protection_title">保護電池</string>
++    <string name="battery_protection_summary" formatted="false">只充電到 80% – 適用於一直插著電源的平板電腦</string>
++</resources>
+diff --git a/res/values-zu/onfirelos_strings.xml b/res/values-zu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..59ec773
+--- /dev/null
++++ b/res/values-zu/onfirelos_strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="edge_gestures_long_swipe_summary">Ukuswayipha okude kusuka kwesobunxele kuya kuhlelo lokusebenza obulusebenzisa ngaphambilini, kusuka kwesokudla kubuyela futhi</string>
++    <string name="edge_gestures_long_swipe_title">Shintsha izinhlelo zokusebenza ngokuswayipha okude</string>
++    <string name="edge_gestures_summary">Swayipha ungene usuka onqenqemeni lwesobunxele ukuze ubuyele emuva, nonqenqemeni lwesokudla ukuze uye phambili</string>
++    <string name="edge_gestures_title">Ukuthinta konqenqema</string>
++    <string name="edge_gestures_width_medium">Phakathi</string>
++    <string name="edge_gestures_width_narrow">Kuncane</string>
++    <string name="edge_gestures_width_title">Indawo yonqenqema</string>
++    <string name="edge_gestures_width_wide">Kubanzi</string>
++    <string name="battery_protection_title">Vikela ibhethri</string>
++    <string name="battery_protection_summary" formatted="false">Ishaja kuze kube ngu-80% kuphela – yethebhulethi exhunywe njalo</string>
++</resources>
+diff --git a/res/values/dimens.xml b/res/values/dimens.xml
+index e0b8c48..7e133cd 100755
+--- a/res/values/dimens.xml
++++ b/res/values/dimens.xml
+@@ -124,6 +124,10 @@
+          the second should be negative. The second one ensures that the icons and text
+          align despite the additional padding caused by the search bar's card background. -->
+     <dimen name="search_bar_margin">16dp</dimen>
++    <!-- ON-FireLOS: indented left and right as far as the list
++         below it (dashboard_padding_start/end), otherwise the search bar
++         sticks out beyond the list on wide screens. -->
++    <dimen name="search_bar_side_margin">16dp</dimen>
+     <dimen name="search_bar_negative_margin">-16dp</dimen>
+ 
+     <dimen name="search_bar_height">48dp</dimen>
+diff --git a/res/values/onfirelos_strings.xml b/res/values/onfirelos_strings.xml
+new file mode 100644
+index 0000000..77028d2
+--- /dev/null
++++ b/res/values/onfirelos_strings.xml
+@@ -0,0 +1,37 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <string name="edge_gestures_title">Edge gestures</string>
++    <string name="edge_gestures_summary">Swipe in from the left edge to go back, from the right edge to go forward</string>
++    <string name="edge_gestures_long_swipe_title">Switch apps with a long swipe</string>
++    <string name="edge_gestures_long_swipe_summary">A long swipe from the left goes to the app used before, from the right back again</string>
++    <string name="edge_gestures_width_title">Edge area</string>
++    <string name="edge_gestures_width_narrow">Narrow</string>
++    <string name="edge_gestures_width_medium">Medium</string>
++    <string name="edge_gestures_width_wide">Wide</string>
++    <string-array name="edge_gestures_width_entries" translatable="false">
++        <item>@string/edge_gestures_width_narrow</item>
++        <item>@string/edge_gestures_width_medium</item>
++        <item>@string/edge_gestures_width_wide</item>
++    </string-array>
++    <string-array name="edge_gestures_width_values" translatable="false">
++        <item>10</item>
++        <item>14</item>
++        <item>20</item>
++    </string-array>
++    <string name="battery_protection_title">Protect battery</string>
++    <string name="battery_protection_summary" formatted="false">Charges only to 80% – for a tablet that stays plugged in</string>
++</resources>
+diff --git a/res/xml/gestures.xml b/res/xml/gestures.xml
+index e86a63a..958128a 100644
+--- a/res/xml/gestures.xml
++++ b/res/xml/gestures.xml
+@@ -22,6 +22,31 @@
+     android:key="gesture_settings_screen"
+     android:title="@string/gesture_preference_title">
+ 
++    <SwitchPreference
++        android:key="edge_gestures"
++        android:persistent="false"
++        android:title="@string/edge_gestures_title"
++        android:summary="@string/edge_gestures_summary"
++        settings:controller="com.android.settings.gestures.EdgeGesturePreferenceController" />
++
++    <SwitchPreference
++        android:key="edge_gestures_long_swipe"
++        android:persistent="false"
++        android:dependency="edge_gestures"
++        android:title="@string/edge_gestures_long_swipe_title"
++        android:summary="@string/edge_gestures_long_swipe_summary"
++        settings:controller="com.android.settings.gestures.EdgeGestureLongSwipePreferenceController" />
++
++    <ListPreference
++        android:key="edge_gestures_width"
++        android:persistent="false"
++        android:dependency="edge_gestures"
++        android:title="@string/edge_gestures_width_title"
++        android:summary="%s"
++        android:entries="@array/edge_gestures_width_entries"
++        android:entryValues="@array/edge_gestures_width_values"
++        settings:controller="com.android.settings.gestures.EdgeGestureWidthPreferenceController" />
++
+     <org.lineageos.internal.lineageparts.LineagePartsPreference
+         android:key="touchscreen_gesture_settings"
+         lineage:requiresFeature="lineagehardware:FEATURE_TOUCHSCREEN_GESTURES" />
+diff --git a/res/xml/power_usage_summary.xml b/res/xml/power_usage_summary.xml
+index 210effd..839f01d 100644
+--- a/res/xml/power_usage_summary.xml
++++ b/res/xml/power_usage_summary.xml
+@@ -55,6 +55,12 @@
+         android:title="@string/battery_percentage"
+         android:summary="@string/battery_percentage_description" />
+ 
++    <SwitchPreference
++        android:key="battery_protection"
++        android:title="@string/battery_protection_title"
++        android:summary="@string/battery_protection_summary"
++        settings:controller="com.android.settings.fuelgauge.BatteryProtectionPreferenceController" />
++
+ 
+     <com.android.settings.fuelgauge.PowerGaugePreference
+         android:key="last_full_charge"
+diff --git a/src/com/android/settings/fuelgauge/BatteryProtectionPreferenceController.java b/src/com/android/settings/fuelgauge/BatteryProtectionPreferenceController.java
+new file mode 100644
+index 0000000..38b574b
+--- /dev/null
++++ b/src/com/android/settings/fuelgauge/BatteryProtectionPreferenceController.java
+@@ -0,0 +1,52 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.settings.fuelgauge;
++
++import android.content.Context;
++import android.os.SystemProperties;
++
++import com.android.settings.core.TogglePreferenceController;
++
++/**
++ * Battery protection: charge only to 80 %. For a tablet that stays plugged in
++ * (a wall dashboard, a media player), where a battery kept full wears out and
++ * can swell. Init hands the property to the charger driver.
++ */
++public class BatteryProtectionPreferenceController extends TogglePreferenceController {
++    private static final String PROPERTY = "persist.sys.charge_limit";
++    private static final String LIMIT = "80";
++
++    public BatteryProtectionPreferenceController(Context context, String key) {
++        super(context, key);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        return AVAILABLE;
++    }
++
++    @Override
++    public boolean isChecked() {
++        String limit = SystemProperties.get(PROPERTY, "0");
++        return !limit.isEmpty() && !"0".equals(limit);
++    }
++
++    @Override
++    public boolean setChecked(boolean isChecked) {
++        SystemProperties.set(PROPERTY, isChecked ? LIMIT : "0");
++        return true;
++    }
++}
+diff --git a/src/com/android/settings/gestures/EdgeGestureLongSwipePreferenceController.java b/src/com/android/settings/gestures/EdgeGestureLongSwipePreferenceController.java
+new file mode 100644
+index 0000000..20c87eb
+--- /dev/null
++++ b/src/com/android/settings/gestures/EdgeGestureLongSwipePreferenceController.java
+@@ -0,0 +1,45 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.settings.gestures;
++
++import android.content.Context;
++import android.provider.Settings;
++
++import com.android.settings.core.TogglePreferenceController;
++
++/** A long edge swipe switches to the app beside the current one. */
++public class EdgeGestureLongSwipePreferenceController extends TogglePreferenceController {
++    private static final String SETTING = "onfirelos_edge_long_swipe";
++
++    public EdgeGestureLongSwipePreferenceController(Context context, String key) {
++        super(context, key);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        return AVAILABLE;
++    }
++
++    @Override
++    public boolean isChecked() {
++        return Settings.Secure.getInt(mContext.getContentResolver(), SETTING, 1) != 0;
++    }
++
++    @Override
++    public boolean setChecked(boolean isChecked) {
++        return Settings.Secure.putInt(mContext.getContentResolver(), SETTING, isChecked ? 1 : 0);
++    }
++}
+diff --git a/src/com/android/settings/gestures/EdgeGesturePreferenceController.java b/src/com/android/settings/gestures/EdgeGesturePreferenceController.java
+new file mode 100644
+index 0000000..653ae21
+--- /dev/null
++++ b/src/com/android/settings/gestures/EdgeGesturePreferenceController.java
+@@ -0,0 +1,49 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.settings.gestures;
++
++import android.content.Context;
++import android.provider.Settings;
++
++import com.android.settings.core.TogglePreferenceController;
++
++/**
++ * Edge gestures (SystemUI EdgeGestures): back, forward and app switching by
++ * swiping in from the screen edges. Always available - which also makes the
++ * Gestures page show up on a device without any of Android's own gestures.
++ */
++public class EdgeGesturePreferenceController extends TogglePreferenceController {
++    static final String SETTING = "onfirelos_edge_gestures";
++
++    public EdgeGesturePreferenceController(Context context, String key) {
++        super(context, key);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        return AVAILABLE;
++    }
++
++    @Override
++    public boolean isChecked() {
++        return Settings.Secure.getInt(mContext.getContentResolver(), SETTING, 1) != 0;
++    }
++
++    @Override
++    public boolean setChecked(boolean isChecked) {
++        return Settings.Secure.putInt(mContext.getContentResolver(), SETTING, isChecked ? 1 : 0);
++    }
++}
+diff --git a/src/com/android/settings/gestures/EdgeGestureWidthPreferenceController.java b/src/com/android/settings/gestures/EdgeGestureWidthPreferenceController.java
+new file mode 100644
+index 0000000..d9ff725
+--- /dev/null
++++ b/src/com/android/settings/gestures/EdgeGestureWidthPreferenceController.java
+@@ -0,0 +1,56 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.settings.gestures;
++
++import android.content.Context;
++import android.provider.Settings;
++import android.support.v7.preference.ListPreference;
++import android.support.v7.preference.Preference;
++
++import com.android.settings.core.BasePreferenceController;
++
++/** How far from the edge a swipe has to start, in dp. */
++public class EdgeGestureWidthPreferenceController extends BasePreferenceController
++        implements Preference.OnPreferenceChangeListener {
++    private static final String SETTING = "onfirelos_edge_width";
++    private static final int DEFAULT_DP = 14;
++
++    public EdgeGestureWidthPreferenceController(Context context, String key) {
++        super(context, key);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        return AVAILABLE;
++    }
++
++    private int current() {
++        return Settings.Secure.getInt(mContext.getContentResolver(), SETTING, DEFAULT_DP);
++    }
++
++    @Override
++    public void updateState(Preference preference) {
++        super.updateState(preference);
++        ((ListPreference) preference).setValue(String.valueOf(current()));
++    }
++
++    @Override
++    public boolean onPreferenceChange(Preference preference, Object newValue) {
++        Settings.Secure.putInt(mContext.getContentResolver(), SETTING,
++                Integer.parseInt((String) newValue));
++        return true;
++    }
++}
+diff --git a/src/com/android/settings/gestures/GesturesSettingPreferenceController.java b/src/com/android/settings/gestures/GesturesSettingPreferenceController.java
+index 0e00abb..b960591 100644
+--- a/src/com/android/settings/gestures/GesturesSettingPreferenceController.java
++++ b/src/com/android/settings/gestures/GesturesSettingPreferenceController.java
+@@ -76,6 +76,8 @@ public class GesturesSettingPreferenceController extends BasePreferenceControlle
+         controllers.add(new DoubleTapScreenPreferenceController(context, FAKE_PREF_KEY)
+                 .setConfig(ambientDisplayConfiguration));
+         controllers.add(new PreventRingingPreferenceController(context, FAKE_PREF_KEY));
++        // Edge gestures are always there: the page shows on every device.
++        controllers.add(new EdgeGesturePreferenceController(context, FAKE_PREF_KEY));
+         return controllers;
+     }
+ 

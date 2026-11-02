@@ -1,0 +1,23 @@
+diff --git a/config/common.mk b/config/common.mk
+index f6ac880..107c923 100644
+--- a/config/common.mk
++++ b/config/common.mk
+@@ -134,10 +134,16 @@ PRODUCT_PACKAGES += \
+     Terminal
+ 
+ # Custom Lineage packages
++#
++# ON-FireLOS: no Updater. It queries the official LineageOS servers,
++# there is nothing there for this device, and no update address of our own
++# is configured - so the app can never find anything. Incremental
++# updates do not work on amonet devices anyway. The "System updates"
++# entry in Settings disappears by itself when no app
++# serves it.
+ PRODUCT_PACKAGES += \
+     LineageSettingsProvider \
+-    LineageSetupWizard \
+-    Updater
++    LineageSetupWizard
+ 
+ # Extra tools in Lineage
+ PRODUCT_PACKAGES += \

@@ -1,0 +1,31 @@
+diff --git a/java/src/com/android/inputmethod/keyboard/KeyboardTheme.java b/java/src/com/android/inputmethod/keyboard/KeyboardTheme.java
+index 006d086..c0ce89d 100644
+--- a/java/src/com/android/inputmethod/keyboard/KeyboardTheme.java
++++ b/java/src/com/android/inputmethod/keyboard/KeyboardTheme.java
+@@ -18,6 +18,7 @@ package com.android.inputmethod.keyboard;
+ 
+ import android.content.Context;
+ import android.content.SharedPreferences;
++import android.content.res.Configuration;
+ import android.os.Build;
+ import android.os.Build.VERSION_CODES;
+ import android.preference.PreferenceManager;
+@@ -169,6 +170,18 @@ public final class KeyboardTheme implements Comparable<KeyboardTheme> {
+     public static KeyboardTheme getKeyboardTheme(final Context context) {
+         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+         final KeyboardTheme[] availableThemeArray = getAvailableThemeArray(context);
++        // ON-FireLOS: as long as no theme was picked in the keyboard's settings,
++        // follow the system's light/dark mode instead of always the light theme.
++        if (prefs.getString(LXX_KEYBOARD_THEME_KEY, null) == null
++                && BuildCompatUtils.EFFECTIVE_SDK_INT > VERSION_CODES.KITKAT) {
++            final boolean night = (context.getResources().getConfiguration().uiMode
++                    & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
++            final KeyboardTheme theme = searchKeyboardThemeById(
++                    night ? THEME_ID_LXX_DARK : THEME_ID_LXX_LIGHT, availableThemeArray);
++            if (theme != null) {
++                return theme;
++            }
++        }
+         return getKeyboardTheme(prefs, BuildCompatUtils.EFFECTIVE_SDK_INT, availableThemeArray);
+     }
+ 

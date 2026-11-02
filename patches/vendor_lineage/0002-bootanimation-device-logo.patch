@@ -1,0 +1,202 @@
+diff --git a/bootanimation/Android.mk b/bootanimation/Android.mk
+index 7eaf96c..0511563 100644
+--- a/bootanimation/Android.mk
++++ b/bootanimation/Android.mk
+@@ -33,7 +33,10 @@ define build-bootanimation
+ endef
+ 
+ TARGET_GENERATED_BOOTANIMATION := $(TARGET_OUT_INTERMEDIATES)/BOOTANIMATION/bootanimation.zip
+-$(TARGET_GENERATED_BOOTANIMATION):
++# ON-FireLOS: rebuild when the generator, the source frames or the device's
++# logo or words change - without inputs the zip was made once and never again.
++BOOTANIMATION_INPUTS :=     vendor/lineage/bootanimation/generate-bootanimation.sh     vendor/lineage/bootanimation/bootanimation.tar     vendor/lineage/bootanimation/desc.txt     $(wildcard device/*/$(TARGET_DEVICE)/bootanimation/*.png)     $(wildcard device/*/$(TARGET_DEVICE)/bootanimation/text/*)
++$(TARGET_GENERATED_BOOTANIMATION): $(BOOTANIMATION_INPUTS)
+ 	@echo "Building bootanimation"
+ 	$(build-bootanimation)
+ 
+diff --git a/bootanimation/generate-bootanimation.sh b/bootanimation/generate-bootanimation.sh
+index 41d8c02..1175672 100755
+--- a/bootanimation/generate-bootanimation.sh
++++ b/bootanimation/generate-bootanimation.sh
+@@ -6,6 +6,8 @@ HEIGHT="$3"
+ HALF_RES="$4"
+ 
+ OUT="$PRODUCT_OUT/obj/BOOTANIMATION"
++# ON-FireLOS: start clean - zip only adds to an existing archive.
++rm -rf "$OUT/bootanimation" "$OUT/bootanimation.zip"
+ 
+ if [ "$HEIGHT" -lt "$WIDTH" ]; then
+     IMAGEWIDTH="$HEIGHT"
+@@ -29,8 +31,172 @@ do
+     mkdir -p "$OUT/bootanimation/part$part_cnt"
+ done
+ tar xfp "vendor/lineage/bootanimation/bootanimation.tar" -C "$OUT/bootanimation/"
++
++# ON-FireLOS: optional extra words around the LineageOS wordmark.
++#
++# The device ships grey masks (white = letter) plus a table of where each
++# mask stands in which frame and how bright it is; motion and fade-out were
++# taken from LINEAGE's own frames. A "clear" row blacks out a rectangle
++# first, so that LINEAGE itself can be redrawn elsewhere from its mask.
++# Coordinates are for the 1620x540 source frames, so this runs before the
++# frames are scaled. Without the files nothing changes.
++#   frame clear x y w h
++#   frame <mask> x y brightness(per mille)
++#   device/<vendor>/<device>/bootanimation/text/frames.txt
++#   device/<vendor>/<device>/bootanimation/text/<word>.png
++WORDS="$(ls -d device/*/"$(basename "$PRODUCT_OUT")"/bootanimation/text 2>/dev/null | head -1)"
++if [ -n "$WORDS" ] && [ -f "$WORDS/frames.txt" ]; then
++    WORDCOLOR="rgb(22,124,128)"   # LINEAGE's own colour
++    PLACED=0
++    for FRAME in $(grep -v '^#' "$WORDS/frames.txt" | awk '{print $1}' | sort -u); do
++        IMAGE="$(ls "$OUT/bootanimation/"*"/$FRAME.png" 2>/dev/null | head -1)"
++        [ -n "$IMAGE" ] || continue
++        ARGS=()
++        while read N WORD X Y A B; do
++            [ "$N" = "$FRAME" ] || continue
++            if [ "$WORD" = clear ]; then
++                ARGS+=( -fill black -draw "rectangle $X,$Y $(( X + A )),$(( Y + B ))" )
++                continue
++            fi
++            ARGS+=( \( "$WORDS/$WORD.png" -background "$WORDCOLOR" -alpha shape
++                       -channel A -evaluate multiply "$(printf '%d.%03d' $(( A / 1000 )) $(( A % 1000 )))"
++                       +channel \) -geometry "+$X+$Y" -composite )
++        done < <(grep -v '^#' "$WORDS/frames.txt")
++        convert "$IMAGE" "${ARGS[@]}" "$IMAGE"
++        PLACED=$(( PLACED + 1 ))
++    done
++    echo "  Words around LINEAGE: $PLACED frames"
++fi
+ mogrify -resize $RESOLUTION -colors 250 "$OUT/bootanimation/"*"/"*".png"
+ 
++# ON-FireLOS: optional device logo in the big circle of the LineageOS logo.
++#
++# Towards the end of the animation a filled dot appears in the middle of
++# the big ring. It grows to full size, moves up a bit together with the
++# whole logo and at the end fades out with everything else.
++# The device logo takes its place: in every frame the dot is located,
++# painted over in black and the logo is placed exactly on its centre.
++# While the dot grows, the logo grows with it in steps; when it fades
++# out, the logo gets darker by the same amount. Otherwise the animation
++# stays unchanged.
++# The logo is looked up by the product name, so that this file stays
++# device-independent:
++#   device/<vendor>/<device>/bootanimation/overlay.png
++# The logo is pixel art in its original grid (one pixel per block). It is
++# only scaled up by whole factors and without filtering, otherwise the
++# edges blur. If the file is missing, nothing happens.
++DEVICE="$(basename "$PRODUCT_OUT")"
++LOGO="$(ls -d device/*/"$DEVICE"/bootanimation/overlay.png 2>/dev/null | head -1)"
++if [ -n "$LOGO" ] && [ -f "$LOGO" ]; then
++    LOGOWIDTH=$(identify -format %w "$LOGO")
++    RAWHEIGHT=$(identify -format %h "$LOGO")
++    # Visual centroid of the pixel art, in thousandths of a pixel: the figure
++    # should be centred, not its frame. In the device logo only the brim of
++    # the cap sticks out on the right - centred by frame, the face sat
++    # visibly to the left.
++    read SPX SPY <<< "$(convert "$LOGO" -alpha extract txt:- | awk -F"[,: ]+" '
++        NR > 1 && $0 !~ /gray\(0\)/ { n++; sx += $1; sy += $2 }
++        END { printf "%d %d", (sx / n + 0.5) * 1000, (sy / n + 0.5) * 1000 }')"
++    POINTS="$OUT/points.txt"
++    : > "$POINTS"
++    VOLL=0
++    BRIGHTMAX=0
++    LETZT=""
++
++    # Brightness (per mille) in the middle of a rectangle X Y W H.
++    centre_bright() {
++        local S=$(( $4 / 3 ))
++        [ "$S" -lt 2 ] && S=2
++        convert "$1" -crop ${S}x${S}+$(( $2 + ($4 - S) / 2 ))+$(( $3 + ($5 - S) / 2 )) +repage \
++            -colorspace gray -format "%[fx:round(mean*1000)]" info:
++    }
++
++    # Pass 1: find the dot in every frame. It is a bright, roughly square
++    # blob that fills a good three quarters of its bounding box (circle
++    # area = 0.785 of the square), and it sits in a dark hole that is not
++    # the background - i.e. inside the ring.
++    # Rings, line and lettering drop out, as does the small blinking dot
++    # at the very beginning, which sits freely on the background.
++    for IMAGE in "$OUT/bootanimation/"*"/"*".png"; do
++        TREFFER=$(convert "$IMAGE" -colorspace gray -threshold 8% \
++            -define connected-components:verbose=true \
++            -connected-components 8 null: | awk '
++            NR > 1 {
++                split($2, g, /[x+]/)
++                n++; w[n] = g[1]; h[n] = g[2]; x[n] = g[3]; y[n] = g[4]
++                a[n] = $4; bright[n] = ($NF ~ /255/)
++            }
++            END {
++                for (i = 1; i <= n; i++) {
++                    if (!bright[i] || w[i] < 4 || h[i] < 4) continue
++                    if (w[i] - h[i] > 2 || h[i] - w[i] > 2) continue
++                    f = a[i] / (w[i] * h[i])
++                    if (f < 0.7 || f > 0.86 || w[i] <= best) continue
++                    for (j = 1; j <= n; j++) {
++                        if (bright[j] || (x[j] == 0 && y[j] == 0)) continue
++                        if (x[j] < x[i] && y[j] < y[i] && x[j] + w[j] > x[i] + w[i] && y[j] + h[j] > y[i] + h[i]) {
++                            best = w[i]; z = x[i] " " y[i] " " w[i] " " h[i]
++                        }
++                    }
++                }
++                if (best) print z
++            }')
++        # While fading out, the dot at some point drops below the threshold
++        # but is still visible. Then the last known position applies.
++        [ -z "$TREFFER" ] && TREFFER="$LETZT"
++        if [ -z "$TREFFER" ]; then
++            continue
++        fi
++        set -- $TREFFER
++        BRIGHT=$(centre_bright "$IMAGE" $1 $2 $3 $4)
++        if [ "$BRIGHT" -eq 0 ]; then
++            LETZT=""
++            continue
++        fi
++        LETZT="$TREFFER"
++        echo "$IMAGE $TREFFER $BRIGHT" >> "$POINTS"
++        [ "$3" -gt "$VOLL" ] && VOLL=$3
++        [ "$4" -gt "$VOLL" ] && VOLL=$4
++        [ "$BRIGHT" -gt "$BRIGHTMAX" ] && BRIGHTMAX=$BRIGHT
++    done
++
++    if [ "$VOLL" -gt 0 ]; then
++        # At full dot size the logo is about a fifth larger than the dot,
++        # rounded down to whole multiples. That still leaves plenty of
++        # space between the logo and the ring all around.
++        LARGER=$LOGOWIDTH
++        [ "$RAWHEIGHT" -gt "$LARGER" ] && LARGER=$RAWHEIGHT
++        FACTOR=$(( VOLL * 6 / 5 / LARGER ))
++        [ "$FACTOR" -lt 1 ] && FACTOR=1
++
++        # Pass 2: paint the dot over in black (the inside of the ring is
++        # black), place the logo centred on its position.
++        while read IMAGE X Y B H BRIGHT; do
++            D=$B
++            [ "$H" -gt "$D" ] && D=$H
++            F=$(( (2 * FACTOR * D + VOLL) / (2 * VOLL) ))
++            [ "$F" -lt 1 ] && F=1
++            LB=$(( LOGOWIDTH * F ))
++            LH=$(( RAWHEIGHT * F ))
++            MX=$(( X + B / 2 ))
++            MY=$(( Y + H / 2 ))
++            R=$(( D / 2 + 3 ))
++            STUFE=$(( BRIGHT * 1000 / BRIGHTMAX ))
++            [ "$STUFE" -gt 1000 ] && STUFE=1000
++            # convert discards the palette that mogrify set above - otherwise
++            # the package grows to several times its size. So quantise again,
++            # without dithering, so the pixel art stays clean.
++            convert "$IMAGE" -fill black -draw "circle $MX,$MY $(( MX + R )),$MY" \
++                \( "$LOGO" -sample ${LB}x${LH}! -channel RGB \
++                   -evaluate multiply $(printf '%d.%03d' $(( STUFE / 1000 )) $(( STUFE % 1000 ))) +channel \) \
++                -geometry +$(( X + (B - LB) / 2 + (LOGOWIDTH * 500 - SPX) * F / 1000 ))+$(( Y + (H - LH) / 2 + (RAWHEIGHT * 500 - SPY) * F / 1000 )) -composite \
++                +dither -colors 250 "$IMAGE"
++        done < "$POINTS"
++        echo "  Logo in circle: $LOGO (factor $FACTOR, $(wc -l < "$POINTS") frames)"
++    fi
++    rm -f "$POINTS"
++fi
++
+ # Create desc.txt
+ echo "$IMAGESCALEWIDTH $IMAGESCALEHEIGHT" 60 > "$OUT/bootanimation/desc.txt"
+ cat "vendor/lineage/bootanimation/desc.txt" >> "$OUT/bootanimation/desc.txt"

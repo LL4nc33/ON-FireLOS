@@ -1,0 +1,152 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 6595990..58731fa 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -152,11 +152,20 @@
+             android:configChanges="keyboardHidden|orientation|screenSize">
+         </activity>
+ 
+-        <receiver android:name="com.android.camera.DisableCameraReceiver">
+-            <intent-filter>
+-                <action android:name="android.intent.action.BOOT_COMPLETED" />
+-            </intent-filter>
+-        </receiver>
++        <!-- DisableCameraReceiver removed.
++
++             It ran once at boot, counted the cameras with
++             Camera.getNumberOfCameras() and, if there were none, permanently
++             disabled the launcher icon com.android.camera.CameraLauncher -
++             then itself, so it never ran again. The source has no way to
++             switch it back on.
++
++             On suez the camera reported zero before the HAL fix. Consequence:
++             the app was installed and fully working, but no longer had an icon
++             in the app list, and no reboot could cure that. The state lives
++             in /data and survives even a flash without a wipe.
++
++             suez has two cameras. The receiver can only do harm here. -->
+     </application>
+ 
+ </manifest>
+diff --git a/src/com/android/camera/CameraActivity.java b/src/com/android/camera/CameraActivity.java
+index 3ff843b..4123737 100644
+--- a/src/com/android/camera/CameraActivity.java
++++ b/src/com/android/camera/CameraActivity.java
+@@ -232,6 +232,27 @@ public class CameraActivity extends QuickActivity
+     private FrameLayout mAboveFilmstripControlLayout;
+     private FilmstripController mFilmstripController;
+     private boolean mFilmstripVisible;
++
++    // ON-FireLOS: the navigation bar's button for the camera. Only the system
++    // may send these (STATUS_BAR); the mode list goes the way of a menu key.
++    private static final String ACTION_MODE_LIST = "org.lineageos.camera.action.MODE_LIST";
++    private static final String ACTION_MODE_OPTIONS =
++            "org.lineageos.camera.action.MODE_OPTIONS";
++    private boolean mNavBarReceiverRegistered;
++    private final BroadcastReceiver mNavBarReceiver = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            if (mPaused || mFilmstripVisible || mCameraAppUI == null) {
++                return;
++            }
++            if (ACTION_MODE_LIST.equals(intent.getAction())) {
++                onKeyUp(KeyEvent.KEYCODE_MENU,
++                        new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MENU));
++            } else if (ACTION_MODE_OPTIONS.equals(intent.getAction())) {
++                mCameraAppUI.toggleModeOptions();
++            }
++        }
++    };
+     /** Whether the filmstrip fully covers the preview. */
+     private boolean mFilmstripCoversPreview = false;
+     private int mResultCodeForTesting;
+@@ -1817,6 +1838,10 @@ public class CameraActivity extends QuickActivity
+     @Override
+     public void onPauseTasks() {
+         CameraPerformanceTracker.onEvent(CameraPerformanceTracker.ACTIVITY_PAUSE);
++        if (mNavBarReceiverRegistered) {
++            unregisterReceiver(mNavBarReceiver);
++            mNavBarReceiverRegistered = false;
++        }
+         Profile profile = mProfiler.create("CameraActivity.onPause").start();
+ 
+         /*
+@@ -1878,6 +1903,13 @@ public class CameraActivity extends QuickActivity
+     @Override
+     public void onResumeTasks() {
+         mPaused = false;
++        if (!mNavBarReceiverRegistered) {
++            IntentFilter filter = new IntentFilter(ACTION_MODE_LIST);
++            filter.addAction(ACTION_MODE_OPTIONS);
++            registerReceiver(mNavBarReceiver, filter,
++                    android.Manifest.permission.STATUS_BAR, null);
++            mNavBarReceiverRegistered = true;
++        }
+         checkPermissions();
+         if (!mHasCriticalPermissions) {
+             Log.v(TAG, "onResume: Missing critical permissions.");
+diff --git a/src/com/android/camera/app/CameraAppUI.java b/src/com/android/camera/app/CameraAppUI.java
+index 44b4d3b..c0a49dc 100644
+--- a/src/com/android/camera/app/CameraAppUI.java
++++ b/src/com/android/camera/app/CameraAppUI.java
+@@ -1029,6 +1029,13 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
+         mModeListView.onMenuPressed();
+     }
+ 
++    /**
++     * ON-FireLOS: shows or hides the mode options (from the navigation bar).
++     */
++    public void toggleModeOptions() {
++        mModeOptionsOverlay.toggleModeOptions();
++    }
++
+     public void showAccessibilityZoomUI(float maxZoom) {
+         mAccessibilityUtil.showZoomUI(maxZoom);
+     }
+diff --git a/src/com/android/camera/one/config/OneCameraFeatureConfigCreator.java b/src/com/android/camera/one/config/OneCameraFeatureConfigCreator.java
+index dc7f900..4744940 100644
+--- a/src/com/android/camera/one/config/OneCameraFeatureConfigCreator.java
++++ b/src/com/android/camera/one/config/OneCameraFeatureConfigCreator.java
+@@ -41,7 +41,7 @@ public class OneCameraFeatureConfigCreator {
+     public static OneCameraFeatureConfig createDefault(ContentResolver contentResolver,
+             MemoryManager memoryManager) {
+         // Enable CaptureModule on all M devices.
+-        boolean useCaptureModule = true;
++        boolean useCaptureModule = false;
+         Log.i(TAG, "CaptureModule? " + useCaptureModule);
+ 
+         // HDR+ has multiple levels of support.
+diff --git a/src/com/android/camera/widget/ModeOptionsOverlay.java b/src/com/android/camera/widget/ModeOptionsOverlay.java
+index 21ef493..d35ab8e 100644
+--- a/src/com/android/camera/widget/ModeOptionsOverlay.java
++++ b/src/com/android/camera/widget/ModeOptionsOverlay.java
+@@ -117,7 +117,10 @@ public class ModeOptionsOverlay extends FrameLayout
+                 mModeOptions.animateVisible();
+             }
+         });
+-        mModeOptions.setViewToShowHide(mModeOptionsToggle);
++        // ON-FireLOS: the options open from the navigation bar; the round
++        // button stays out of the picture.
++        mModeOptionsToggle.setVisibility(View.INVISIBLE);
++        mModeOptionsToggle.setClickable(false);
+ 
+         mThreeDots = (ImageView) findViewById(R.id.three_dots);
+     }
+@@ -152,6 +155,17 @@ public class ModeOptionsOverlay extends FrameLayout
+      * of milliseconds.  If the options menu is already closed, nothing is
+      * scheduled.
+      */
++    /**
++     * ON-FireLOS: shows the mode options, or hides them if they are shown.
++     */
++    public void toggleModeOptions() {
++        if (mModeOptions.isHiddenOrHiding()) {
++            mModeOptions.animateVisible();
++        } else {
++            mModeOptions.animateHidden();
++        }
++    }
++
+     public void closeModeOptions() {
+         mModeOptions.animateHidden();
+     }

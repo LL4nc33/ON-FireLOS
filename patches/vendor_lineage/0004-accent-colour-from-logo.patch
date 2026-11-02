@@ -1,0 +1,31 @@
+diff --git a/overlay/common/frameworks/base/core/res/res/values/colors.xml b/overlay/common/frameworks/base/core/res/res/values/colors.xml
+index 27fd690..31e31b6 100644
+--- a/overlay/common/frameworks/base/core/res/res/values/colors.xml
++++ b/overlay/common/frameworks/base/core/res/res/values/colors.xml
+@@ -15,9 +15,21 @@
+     limitations under the License.
+ -->
+ <resources>
+-    <color name="accent_device_default_700">#167C80</color>
+-    <color name="accent_device_default_dark">#167C80</color>
+-    <color name="accent_device_default_light">#167C80</color>
+-    <color name="material_deep_teal_200">#167C80</color>
+-    <color name="material_deep_teal_500">#167C80</color>
++    <!-- ON-FireLOS: the green of the cap in the owner's logo (#2E521D),
++         used as is on light backgrounds. The dark theme takes a lighter,
++         muted olive in its place (#8AA366): the cap's own green reaches a
++         contrast of 1.5:1 on #303030 and would vanish on switches and
++         sliders, a bright green of the same hue looked too fresh next to the
++         logo. 4.7:1, readable. -->
++    <!-- ON-FireLOS: accent_device_default_700 is not read by the phone or
++         tablet framework itself (only the watch build defines it); the
++         device overlays use it as the darker shade of the accent for status
++         bars and the search field in a toolbar, so it is the dark green one
++         step darker (#213B15). The Lineage accent overlays set it to the
++         chosen accent. -->
++    <color name="accent_device_default_700">#213B15</color>
++    <color name="accent_device_default_dark">#8AA366</color>
++    <color name="accent_device_default_light">#2E521D</color>
++    <color name="material_deep_teal_200">#8AA366</color>
++    <color name="material_deep_teal_500">#2E521D</color>
+ </resources>

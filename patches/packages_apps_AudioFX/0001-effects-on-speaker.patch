@@ -1,0 +1,21 @@
+diff --git a/src/org/lineageos/audiofx/knobs/KnobContainer.java b/src/org/lineageos/audiofx/knobs/KnobContainer.java
+index 669949f..6c964ef 100644
+--- a/src/org/lineageos/audiofx/knobs/KnobContainer.java
++++ b/src/org/lineageos/audiofx/knobs/KnobContainer.java
+@@ -335,11 +335,11 @@ public class KnobContainer extends LinearLayout
+         final boolean speaker = device.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+         final boolean maxxAudio = MasterConfigControl.getInstance(mContext).hasMaxxAudio();
+         final boolean dts = MasterConfigControl.getInstance(mContext).hasDts();
+-        final boolean effectsEnabled = !speaker || maxxAudio || dts;
+-
+-        mKnobCommander.updateTrebleKnob(mTrebleKnob, effectsEnabled);
+-        mKnobCommander.updateBassKnob(mBassKnob, effectsEnabled);
+-        mKnobCommander.updateVirtualizerKnob(mVirtualizerKnob, effectsEnabled);
++        // ON-FireLOS: the effect library keeps bass boost and virtualizer on the
++        // built-in speaker too, so the knobs stay usable everywhere.
++        mKnobCommander.updateTrebleKnob(mTrebleKnob, true);
++        mKnobCommander.updateBassKnob(mBassKnob, true);
++        mKnobCommander.updateVirtualizerKnob(mVirtualizerKnob, true);
+         if (maxxAudio) {
+             // speaker? hide virtualizer
+             setKnobVisible(KnobCommander.KNOB_VIRTUALIZER, !speaker);
