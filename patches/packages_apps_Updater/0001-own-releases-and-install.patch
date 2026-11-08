@@ -686,10 +686,10 @@ index 0000000..83ad3f6
 +        android:visibility="gone" />
 +</LinearLayout>
 diff --git a/res/layout/update_item_view.xml b/res/layout/update_item_view.xml
-index ddcf326..1faef37 100644
+index ddcf326..50f7fa1 100644
 --- a/res/layout/update_item_view.xml
 +++ b/res/layout/update_item_view.xml
-@@ -5,15 +5,19 @@
+@@ -5,15 +5,24 @@
      xmlns:tools="http://schemas.android.com/tools"
      android:layout_width="match_parent"
      android:layout_height="wrap_content"
@@ -706,12 +706,18 @@ index ddcf326..1faef37 100644
  
      <LinearLayout
          android:layout_width="match_parent"
-         android:layout_height="match_parent"
+-        android:layout_height="match_parent"
++        android:layout_height="wrap_content"
++        android:orientation="vertical">
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
 +        android:gravity="center_vertical"
          android:orientation="horizontal"
          android:weightSum="1">
  
-@@ -40,6 +44,7 @@
+@@ -40,6 +49,7 @@
                  android:layout_width="wrap_content"
                  android:layout_height="wrap_content"
                  android:maxLines="1"
@@ -719,22 +725,7 @@ index ddcf326..1faef37 100644
                  android:textSize="14sp"
                  tools:text="29 February 2018" />
  
-@@ -77,14 +82,25 @@
-                     tools:text="300 MB"
-                     tools:visibility="invisible" />
-             </RelativeLayout>
-+
-+            <!-- ON-FireLOS: what the update brings (updater-history.py). -->
-+            <TextView
-+                android:id="@+id/onfirelos_changelog"
-+                android:layout_width="match_parent"
-+                android:layout_height="wrap_content"
-+                android:layout_marginTop="8dp"
-+                android:lineSpacingExtra="4dp"
-+                android:textColor="?android:attr/textColorPrimary"
-+                android:textSize="14sp"
-+                android:visibility="gone" />
-         </LinearLayout>
+@@ -81,10 +91,22 @@
  
          <Button
              android:id="@id/update_action"
@@ -746,6 +737,18 @@ index ddcf326..1faef37 100644
 +            android:layout_marginStart="16dp"
              tools:text="Pause" />
      </LinearLayout>
++
++        <!-- ON-FireLOS: what the update brings (updater-history.py). -->
++        <TextView
++            android:id="@+id/onfirelos_changelog"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="12dp"
++            android:lineSpacingExtra="4dp"
++            android:textColor="?android:attr/textColorPrimary"
++            android:textSize="14sp"
++            android:visibility="gone" />
++    </LinearLayout>
  </android.support.v7.widget.CardView>
 diff --git a/res/menu/menu_toolbar.xml b/res/menu/menu_toolbar.xml
 index 8b9117c..e73624f 100644

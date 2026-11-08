@@ -5907,10 +5907,10 @@ index 7f322ad..2bcb308 100644
          }
 diff --git a/src/com/android/alarmclock/GlanceAppWidgetProvider.java b/src/com/android/alarmclock/GlanceAppWidgetProvider.java
 new file mode 100644
-index 0000000..a577405
+index 0000000..481dde3
 --- /dev/null
 +++ b/src/com/android/alarmclock/GlanceAppWidgetProvider.java
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,274 @@
 +/*
 + * Copyright (C) 2026 The ON-FireLOS Project
 + *
@@ -6156,7 +6156,7 @@ index 0000000..a577405
 +        }
 +
 +        // The card and the date open the calendar, the weather tile the weather card, the
-+        // alarm the alarm list.
++        // alarm the alarm list, the time the clock.
 +        final Intent calendar = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN,
 +                Intent.CATEGORY_APP_CALENDAR).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 +        if (calendar.resolveActivity(context.getPackageManager()) != null) {
@@ -6176,6 +6176,12 @@ index 0000000..a577405
 +                        .setPackage(context.getPackageName())
 +                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
 +                PendingIntent.FLAG_UPDATE_CURRENT));
++        // The time opens the clock's own page.
++        final Intent clockPage = new Intent(context, DeskClock.class)
++                .setAction(DeskClock.ACTION_ONFIRELOS_SHOW + DeskClock.ONFIRELOS_SHOW_CLOCK)
++                .putExtra(DeskClock.EXTRA_ONFIRELOS_SHOW, DeskClock.ONFIRELOS_SHOW_CLOCK);
++        rv.setOnClickPendingIntent(R.id.onfirelos_glance_clock, PendingIntent.getActivity(
++                context, 14, clockPage, PendingIntent.FLAG_UPDATE_CURRENT));
 +        return rv;
 +    }
 +}

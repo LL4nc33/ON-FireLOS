@@ -793,6 +793,17 @@ index 00000000..ea23bc43
 +<resources>
 +    <string name="battery_info_status_protected" formatted="false">Batteri beskyttet – opladning sat på pause ved 80 %</string>
 +</resources>
+diff --git a/packages/SettingsLib/res/values-de/onfirelos_ime_strings.xml b/packages/SettingsLib/res/values-de/onfirelos_ime_strings.xml
+new file mode 100644
+index 00000000..1e9cd8c3
+--- /dev/null
++++ b/packages/SettingsLib/res/values-de/onfirelos_ime_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (settingslib-ime-always-on.py). -->
++<resources>
++    <string name="onfirelos_ime_always_on">Die einzige Tastatur bleibt immer an</string>
++</resources>
 diff --git a/packages/SettingsLib/res/values-de/onfirelos_strings.xml b/packages/SettingsLib/res/values-de/onfirelos_strings.xml
 new file mode 100644
 index 00000000..59469ba5
@@ -2414,6 +2425,17 @@ index 00000000..b8010620
 +<resources>
 +    <string name="battery_info_status_protected" formatted="false">Ibhethri ivikelekile – ukushaja kumisiwe ku-80%</string>
 +</resources>
+diff --git a/packages/SettingsLib/res/values/onfirelos_ime_strings.xml b/packages/SettingsLib/res/values/onfirelos_ime_strings.xml
+new file mode 100644
+index 00000000..a85701b2
+--- /dev/null
++++ b/packages/SettingsLib/res/values/onfirelos_ime_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (settingslib-ime-always-on.py). -->
++<resources>
++    <string name="onfirelos_ime_always_on">The only keyboard always stays on</string>
++</resources>
 diff --git a/packages/SettingsLib/res/values/onfirelos_strings.xml b/packages/SettingsLib/res/values/onfirelos_strings.xml
 new file mode 100644
 index 00000000..acb2cdb7
@@ -2454,6 +2476,34 @@ index 2d321f9a..8506c4f7 100644
          } else if (status == BatteryManager.BATTERY_STATUS_FULL) {
              statusString = res.getString(R.string.battery_info_status_full);
          } else {
+diff --git a/packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java b/packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java
+index 5e25f519..b8865ca3 100644
+--- a/packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java
++++ b/packages/SettingsLib/src/com/android/settingslib/inputmethod/InputMethodPreference.java
+@@ -148,6 +148,12 @@ public class InputMethodPreference extends RestrictedSwitchPreference implements
+             // Prevent disabling an IME because this preference is for invoking a settings activity.
+             return false;
+         }
++        if (isChecked() && mInputMethodSettingValues.isAlwaysCheckedIme(mImi, getContext())) {
++            // ON-FireLOS: the only keyboard stays on.
++            Toast.makeText(getContext(), R.string.onfirelos_ime_always_on,
++                    Toast.LENGTH_SHORT).show();
++            return false;
++        }
+         if (isChecked()) {
+             // Disable this IME.
+             setCheckedInternal(false);
+@@ -205,8 +211,9 @@ public class InputMethodPreference extends RestrictedSwitchPreference implements
+         // This preference should also be disabled in case the admin does not allow this input
+         // method.
+         if (isAlwaysChecked && isImeEnabler()) {
++            // ON-FireLOS: on, not greyed out; trying to turn it off says why it stays.
+             setDisabledByAdmin(null);
+-            setEnabled(false);
++            setEnabled(true);
+         } else if (!mIsAllowedByOrganization) {
+             EnforcedAdmin admin =
+                     RestrictedLockUtils.checkIfInputMethodDisallowed(getContext(),
 diff --git a/packages/Shell/AndroidManifest.xml b/packages/Shell/AndroidManifest.xml
 index b4f331d8..9cd49500 100644
 --- a/packages/Shell/AndroidManifest.xml

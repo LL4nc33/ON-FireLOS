@@ -186,6 +186,32 @@ index 0000000..d961a4c
 +        android:fromAlpha="1.0"
 +        android:toAlpha="0.6" />
 +</set>
+diff --git a/res/color/onfirelos_action_primary_text.xml b/res/color/onfirelos_action_primary_text.xml
+new file mode 100644
+index 0000000..a141550
+--- /dev/null
++++ b/res/color/onfirelos_action_primary_text.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (settings-action-buttons.py). -->
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:alpha="0.38" android:color="@color/onfirelos_on_background"
++        android:state_enabled="false" />
++    <item android:color="@color/onfirelos_on_accent" />
++</selector>
+diff --git a/res/color/onfirelos_action_secondary_text.xml b/res/color/onfirelos_action_secondary_text.xml
+new file mode 100644
+index 0000000..e68cdaa
+--- /dev/null
++++ b/res/color/onfirelos_action_secondary_text.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (settings-action-buttons.py). -->
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:alpha="0.38" android:color="@color/onfirelos_on_background"
++        android:state_enabled="false" />
++    <item android:color="@color/onfirelos_on_background" />
++</selector>
 diff --git a/res/color/switchbar_switch_thumb_tint.xml b/res/color/switchbar_switch_thumb_tint.xml
 index 4c75a7e..5c34f85 100644
 --- a/res/color/switchbar_switch_thumb_tint.xml
@@ -248,6 +274,60 @@ index 141f977..b7b92f2 100644
 +    <item android:state_checked="true" android:alpha="0.6" android:color="@color/onfirelos_on_accent" />
 +    <item android:alpha="0.38" android:color="@color/onfirelos_on_background" />
 +</selector>
+diff --git a/res/drawable/onfirelos_action_primary.xml b/res/drawable/onfirelos_action_primary.xml
+new file mode 100644
+index 0000000..f404544
+--- /dev/null
++++ b/res/drawable/onfirelos_action_primary.xml
+@@ -0,0 +1,21 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (settings-action-buttons.py). -->
++<ripple xmlns:android="http://schemas.android.com/apk/res/android"
++    android:color="?android:attr/colorControlHighlight">
++    <item>
++        <selector>
++            <item android:state_enabled="false">
++                <shape android:shape="rectangle">
++                    <corners android:radius="100dp" />
++                    <solid android:color="@color/onfirelos_surface_variant" />
++                </shape>
++            </item>
++            <item>
++                <shape android:shape="rectangle">
++                    <corners android:radius="100dp" />
++                    <solid android:color="?android:attr/colorAccent" />
++                </shape>
++            </item>
++        </selector>
++    </item>
++</ripple>
+diff --git a/res/drawable/onfirelos_action_secondary.xml b/res/drawable/onfirelos_action_secondary.xml
+new file mode 100644
+index 0000000..d9f6fa3
+--- /dev/null
++++ b/res/drawable/onfirelos_action_secondary.xml
+@@ -0,0 +1,21 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (settings-action-buttons.py). -->
++<ripple xmlns:android="http://schemas.android.com/apk/res/android"
++    android:color="?android:attr/colorControlHighlight">
++    <item>
++        <selector>
++            <item android:state_enabled="false">
++                <shape android:shape="rectangle">
++                    <corners android:radius="100dp" />
++                    <solid android:color="@color/onfirelos_surface_variant" />
++                </shape>
++            </item>
++            <item>
++                <shape android:shape="rectangle">
++                    <corners android:radius="100dp" />
++                    <solid android:color="@color/onfirelos_surface_variant" />
++                </shape>
++            </item>
++        </selector>
++    </item>
++</ripple>
 diff --git a/res/drawable/onfirelos_ic_brightness.xml b/res/drawable/onfirelos_ic_brightness.xml
 new file mode 100644
 index 0000000..a21ef95
@@ -802,6 +882,24 @@ index b183b2e..8117427 100644
      android:gravity="center_vertical"
      android:orientation="horizontal" >
  
+diff --git a/res/layout/two_action_buttons.xml b/res/layout/two_action_buttons.xml
+index 23bb886..6731b9c 100644
+--- a/res/layout/two_action_buttons.xml
++++ b/res/layout/two_action_buttons.xml
+@@ -20,9 +20,10 @@
+     android:layout_width="match_parent"
+     android:layout_height="wrap_content"
+     android:gravity="center"
+-    android:paddingTop="24dp"
+-    android:paddingStart="68dp"
+-    android:paddingEnd="24dp"
++    android:paddingTop="16dp"
++    android:paddingBottom="8dp"
++    android:paddingStart="@dimen/onfirelos_card_margin"
++    android:paddingEnd="@dimen/onfirelos_card_margin"
+     android:orientation="horizontal">
+ 
+     <FrameLayout
 diff --git a/res/values-af/onfirelos_display_strings.xml b/res/values-af/onfirelos_display_strings.xml
 new file mode 100644
 index 0000000..6acdee1
@@ -3852,6 +3950,39 @@ index 0000000..e8a2641
 +    <string name="onfirelos_tts_google">Speech services by Google</string>
 +    <string name="onfirelos_tts_google_summary">The most natural voice, from the Play catalogue via Aurora Store</string>
 +</resources>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index b13bc4f..2a74c10 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -446,9 +446,26 @@
+         <item name="android:padding">8dp</item>
+     </style>
+ 
+-    <style name="ActionPrimaryButton" parent="android:Widget.DeviceDefault.Button.Colored"/>
++    <!-- ON-FireLOS: flat pills (settings-action-buttons.py). -->
++    <style name="ActionPrimaryButton" parent="android:Widget.DeviceDefault.Button.Borderless">
++        <item name="android:background">@drawable/onfirelos_action_primary</item>
++        <item name="android:textColor">@color/onfirelos_action_primary_text</item>
++        <item name="android:minHeight">44dp</item>
++        <item name="android:textAllCaps">false</item>
++        <item name="android:textSize">14sp</item>
++        <item name="android:fontFamily">sans-serif-medium</item>
++        <item name="android:stateListAnimator">@null</item>
++    </style>
+ 
+-    <style name="ActionSecondaryButton" parent="android:Widget.DeviceDefault.Button"/>
++    <style name="ActionSecondaryButton" parent="android:Widget.DeviceDefault.Button.Borderless">
++        <item name="android:background">@drawable/onfirelos_action_secondary</item>
++        <item name="android:textColor">@color/onfirelos_action_secondary_text</item>
++        <item name="android:minHeight">44dp</item>
++        <item name="android:textAllCaps">false</item>
++        <item name="android:textSize">14sp</item>
++        <item name="android:fontFamily">sans-serif-medium</item>
++        <item name="android:stateListAnimator">@null</item>
++    </style>
+ 
+     <style name="DreamStartButton" parent="android:Widget.DeviceDefault.Button" />
+ 
 diff --git a/res/values/themes.xml b/res/values/themes.xml
 index 8c38649..45a5b4c 100644
 --- a/res/values/themes.xml

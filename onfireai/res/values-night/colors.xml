@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The tokens of docs/DESIGN.md, dark. -->
+<resources>
+    <color name="accent">#8AA366</color>
+    <color name="background">#1A1C18</color>
+    <color name="surface">#24271F</color>
+    <color name="surface_variant">#2F332B</color>
+    <color name="on_background">#E4E6DD</color>
+    <color name="on_background_quiet">#99E4E6DD</color>
+    <color name="on_accent">#1A1C18</color>
+    <color name="divider">#1AE4E6DD</color>
+    <color name="accent_tonal">#338AA366</color>
+</resources>

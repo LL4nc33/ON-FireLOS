@@ -1,5 +1,5 @@
 diff --git a/BoardConfig.mk b/BoardConfig.mk
-index 0134616..38bccdb 100644
+index 0134616..c0d71e5 100644
 --- a/BoardConfig.mk
 +++ b/BoardConfig.mk
 @@ -1,4 +1,26 @@
@@ -140,7 +140,7 @@ index 0134616..38bccdb 100644
 +# ON-FireLOS: the bundled apps this ROM reworks carry it in their version
 +# name, after their own number (app-versions.py): "ON-FireLOS 1.01 (20261108)".
 +# ONFIRELOS_VERSION is the release number, counted up per release.
-+ONFIRELOS_VERSION := 1.02
++ONFIRELOS_VERSION := 1.03
 +ONFIRELOS_APP_VERSION := ON-FireLOS $(ONFIRELOS_VERSION) ($(shell date +%Y%m%d))
 diff --git a/bluetooth/libbt-vendor/mtk.c b/bluetooth/libbt-vendor/mtk.c
 index eaf233b..f60137e 100644
@@ -1783,7 +1783,7 @@ literal 0
 HcmV?d00001
 
 diff --git a/device.mk b/device.mk
-index 85bcaab..818250e 100644
+index 85bcaab..b9cd145 100644
 --- a/device.mk
 +++ b/device.mk
 @@ -4,6 +4,13 @@ VENDOR := vendor/amazon/suez
@@ -1811,7 +1811,7 @@ index 85bcaab..818250e 100644
      $(DEVICE)/media/mtk_omx_core.cfg:system/etc/mtk_omx_core.cfg
  
  PRODUCT_COPY_FILES += \
-@@ -170,10 +179,70 @@ PRODUCT_COPY_FILES += \
+@@ -170,10 +179,75 @@ PRODUCT_COPY_FILES += \
      $(DEVICE)/seccomp/mediaextractor-seccomp.policy:$(TARGET_COPY_OUT_VENDOR)/etc/seccomp_policy/mediaextractor.policy
  
  # call dalvik heap config
@@ -1877,6 +1877,11 @@ index 85bcaab..818250e 100644
 +PRODUCT_COPY_FILES += device/amazon/suez/rootdir/etc/onfirelos-webview.sh:$(TARGET_COPY_OUT_SYSTEM)/etc/onfirelos-webview.sh
 +PRODUCT_COPY_FILES += device/amazon/suez/rootdir/etc/onfirelos-stores.rc:$(TARGET_COPY_OUT_SYSTEM)/etc/init/onfirelos-stores.rc
 +PRODUCT_COPY_FILES += device/amazon/suez/rootdir/etc/onfirelos-stores.sh:$(TARGET_COPY_OUT_SYSTEM)/etc/onfirelos-stores.sh
++
++# ON-FireLOS: the assistant ON-FireAI (onfireai/, scripts/onfireai-into-tree.sh).
++ifneq ($(wildcard packages/apps/ONFireAI/Android.mk),)
++PRODUCT_PACKAGES += ONFireAI
++endif
 +
 +# ON-FireLOS: apps in place of Google's (prebuilt-apps/, scripts/fetch-store-apps.sh).
 +PRODUCT_PACKAGES += \

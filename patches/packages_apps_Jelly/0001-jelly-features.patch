@@ -241,7 +241,7 @@ index c4da7f7..64dbdb3 100644
  
      private void setClearTextTrafficConfig() {
 diff --git a/app/src/main/java/org/lineageos/jelly/MainActivity.java b/app/src/main/java/org/lineageos/jelly/MainActivity.java
-index 143cbb6..d91557e 100644
+index 143cbb6..a416623 100644
 --- a/app/src/main/java/org/lineageos/jelly/MainActivity.java
 +++ b/app/src/main/java/org/lineageos/jelly/MainActivity.java
 @@ -39,16 +39,15 @@ import android.os.AsyncTask;
@@ -328,7 +328,7 @@ index 143cbb6..d91557e 100644
      private AppBarLayout mAppBar;
      private FrameLayout mWebViewContainer;
      private WebViewExt mWebView;
-@@ -149,9 +141,64 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -149,9 +141,68 @@ public class MainActivity extends WebViewExtActivity implements
  
      private boolean mSearchActive = false;
  
@@ -386,6 +386,10 @@ index 143cbb6..d91557e 100644
      @Override
      protected void onCreate(Bundle savedInstanceState) {
          super.onCreate(savedInstanceState);
++        if (savedInstanceState == null && openInWebApp(getIntent())) {
++            mRedirected = true;
++            return;
++        }
 +        if (savedInstanceState == null && resumeLastTab(getIntent())) {
 +            mRedirected = true;
 +            return;
@@ -393,7 +397,7 @@ index 143cbb6..d91557e 100644
  
          setContentView(R.layout.activity_main);
  
-@@ -203,8 +250,10 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -203,8 +254,10 @@ public class MainActivity extends WebViewExtActivity implements
          // Restore from previous instance
          if (savedInstanceState != null) {
              mIncognito = savedInstanceState.getBoolean(IntentUtils.EXTRA_INCOGNITO, mIncognito);
@@ -406,7 +410,7 @@ index 143cbb6..d91557e 100644
              }
              desktopMode = savedInstanceState.getBoolean(IntentUtils.EXTRA_DESKTOP_MODE, false);
              mThemeColor = savedInstanceState.getInt(STATE_KEY_THEME_COLOR, 0);
-@@ -218,23 +267,70 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -218,23 +271,70 @@ public class MainActivity extends WebViewExtActivity implements
          // Make sure prefs are set before loading them
          PreferenceManager.setDefaultValues(this, R.xml.settings, false);
  
@@ -483,7 +487,7 @@ index 143cbb6..d91557e 100644
  
          mHasThemeColorSupport = WebViewCompat.isThemeColorSupported(mWebView);
  
-@@ -257,16 +353,100 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -257,16 +357,120 @@ public class MainActivity extends WebViewExtActivity implements
          }
      }
  
@@ -516,6 +520,26 @@ index 143cbb6..d91557e 100644
 +     * time, and old ones piled up in Recents. A start with an address - a
 +     * link from another app, "New tab", a shortcut - still opens a new one.
 +     */
++    /** ON-FireLOS: asks for a link to open in its installed web app (jelly-open-in-webapp.py). */
++    public static final String EXTRA_PREFER_WEBAPP = "org.lineageos.jelly.extra.PREFER_WEBAPP";
++
++    private boolean openInWebApp(Intent intent) {
++        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())
++                || !intent.getBooleanExtra(EXTRA_PREFER_WEBAPP, false)) {
++            return false;
++        }
++        final String url = intent.getDataString();
++        final WebAppManifest app = WebAppStore.findInstalledForUrl(this, url);
++        if (app == null) {
++            return false;
++        }
++        // Finished first, as below: this window was never set up.
++        finish();
++        startActivity(WebAppStore.launchIntent(this, app, url)
++                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
++        return true;
++    }
++
 +    private boolean resumeLastTab(Intent intent) {
 +        if (!Intent.ACTION_MAIN.equals(intent.getAction())
 +                || !intent.hasCategory(Intent.CATEGORY_LAUNCHER)
@@ -549,15 +573,15 @@ index 143cbb6..d91557e 100644
 +        return false;
 +    }
 +
-     @Override
--    protected void onStart() {
--        super.onStart();
--        registerReceiver(mUrlResolvedReceiver, new IntentFilter(IntentUtils.EVENT_URL_RESOLVED));
++    @Override
 +    public boolean isShowingFullscreen() {
 +        return mCustomView != null;
 +    }
 +
-+    @Override
+     @Override
+-    protected void onStart() {
+-        super.onStart();
+-        registerReceiver(mUrlResolvedReceiver, new IntentFilter(IntentUtils.EVENT_URL_RESOLVED));
 +    protected boolean isRendererGone() {
 +        return mRendererGone;
 +    }
@@ -588,7 +612,7 @@ index 143cbb6..d91557e 100644
          HttpResponseCache cache = HttpResponseCache.getInstalled();
          if (cache != null) {
              cache.flush();
-@@ -276,17 +456,70 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -276,17 +480,70 @@ public class MainActivity extends WebViewExtActivity implements
  
      @Override
      public void onPause() {
@@ -663,7 +687,7 @@ index 143cbb6..d91557e 100644
              getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                      WindowManager.LayoutParams.FLAG_SECURE);
          } else {
-@@ -296,8 +529,19 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -296,8 +553,19 @@ public class MainActivity extends WebViewExtActivity implements
  
      @Override
      protected void onDestroy() {
@@ -685,7 +709,7 @@ index 143cbb6..d91557e 100644
  
          super.onDestroy();
      }
-@@ -318,6 +562,9 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -318,6 +586,9 @@ public class MainActivity extends WebViewExtActivity implements
      @Override
      public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                             @NonNull int[] results) {
@@ -695,7 +719,7 @@ index 143cbb6..d91557e 100644
          switch (requestCode) {
              case LOCATION_PERM_REQ:
                  if (hasLocationPermission()) {
-@@ -351,10 +598,13 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -351,10 +622,13 @@ public class MainActivity extends WebViewExtActivity implements
      @Override
      public void onSaveInstanceState(Bundle outState) {
          super.onSaveInstanceState(outState);
@@ -711,7 +735,7 @@ index 143cbb6..d91557e 100644
          outState.putBoolean(IntentUtils.EXTRA_DESKTOP_MODE, mWebView.isDesktopMode());
          outState.putInt(STATE_KEY_THEME_COLOR, mThemeColor);
      }
-@@ -370,6 +620,40 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -370,6 +644,40 @@ public class MainActivity extends WebViewExtActivity implements
                      R.attr.actionOverflowMenuStyle, 0);
              popupMenu.inflate(R.menu.menu_main);
  
@@ -752,7 +776,7 @@ index 143cbb6..d91557e 100644
              MenuItem desktopMode = popupMenu.getMenu().findItem(R.id.desktop_mode);
              desktopMode.setTitle(getString(isDesktop ?
                      R.string.menu_mobile_mode : R.string.menu_desktop_mode));
-@@ -410,6 +694,39 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -410,6 +718,39 @@ public class MainActivity extends WebViewExtActivity implements
                      case R.id.menu_settings:
                          startActivity(new Intent(this, SettingsActivity.class));
                          break;
@@ -792,7 +816,7 @@ index 143cbb6..d91557e 100644
                      case R.id.desktop_mode:
                          mWebView.setDesktopMode(!isDesktop);
                          desktopMode.setTitle(getString(isDesktop ?
-@@ -437,6 +754,7 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -437,6 +778,7 @@ public class MainActivity extends WebViewExtActivity implements
          findViewById(R.id.toolbar_search_page).setVisibility(View.VISIBLE);
          mSearchController.onShow();
          mSearchActive = true;
@@ -800,7 +824,7 @@ index 143cbb6..d91557e 100644
      }
  
      @Override
-@@ -444,6 +762,7 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -444,6 +786,7 @@ public class MainActivity extends WebViewExtActivity implements
          findViewById(R.id.toolbar_search_page).setVisibility(View.GONE);
          mToolbarSearchBar.setVisibility(View.VISIBLE);
          mSearchActive = false;
@@ -808,7 +832,7 @@ index 143cbb6..d91557e 100644
      }
  
      private void shareUrl(String url) {
-@@ -500,13 +819,13 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -500,13 +843,13 @@ public class MainActivity extends WebViewExtActivity implements
                  .setTitle(R.string.download_title)
                  .setMessage(getString(R.string.download_message, fileName))
                  .setPositiveButton(getString(R.string.download_positive),
@@ -824,7 +848,7 @@ index 143cbb6..d91557e 100644
          DownloadManager.Request request;
  
          try {
-@@ -516,21 +835,60 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -516,21 +859,60 @@ public class MainActivity extends WebViewExtActivity implements
              return;
          }
  
@@ -887,7 +911,7 @@ index 143cbb6..d91557e 100644
          View tabLayout = view.findViewById(R.id.sheet_new_tab);
          View shareLayout = view.findViewById(R.id.sheet_share);
          View favouriteLayout = view.findViewById(R.id.sheet_favourite);
-@@ -626,27 +984,27 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -626,27 +1008,27 @@ public class MainActivity extends WebViewExtActivity implements
          mLoadingProgress.setProgressTintList(ColorStateList.valueOf(progressColor));
          mLoadingProgress.postInvalidate();
  
@@ -927,7 +951,7 @@ index 143cbb6..d91557e 100644
      }
  
      private void resetSystemUIColor() {
-@@ -682,6 +1040,7 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -682,6 +1064,7 @@ public class MainActivity extends WebViewExtActivity implements
                  ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
          mAppBar.setVisibility(View.GONE);
          mWebViewContainer.setVisibility(View.GONE);
@@ -935,7 +959,7 @@ index 143cbb6..d91557e 100644
      }
  
      @Override
-@@ -689,6 +1048,7 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -689,6 +1072,7 @@ public class MainActivity extends WebViewExtActivity implements
          if (mCustomView == null) {
              return;
          }
@@ -943,7 +967,7 @@ index 143cbb6..d91557e 100644
          getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
          setImmersiveMode(false);
          mAppBar.setVisibility(View.VISIBLE);
-@@ -701,6 +1061,9 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -701,6 +1085,9 @@ public class MainActivity extends WebViewExtActivity implements
      }
  
      private void addShortcut() {
@@ -953,7 +977,7 @@ index 143cbb6..d91557e 100644
          Intent intent = new Intent(this, MainActivity.class);
          intent.setData(Uri.parse(mWebView.getUrl()));
          intent.setAction(Intent.ACTION_MAIN);
-@@ -724,6 +1087,305 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -724,6 +1111,305 @@ public class MainActivity extends WebViewExtActivity implements
          getSystemService(ShortcutManager.class).requestPinShortcut(shortcutInfo, null);
      }
  
@@ -1259,7 +1283,7 @@ index 143cbb6..d91557e 100644
      private void setImmersiveMode(boolean enable) {
          int flags = getWindow().getDecorView().getSystemUiVisibility();
          int immersiveModeFlags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-@@ -746,32 +1408,10 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -746,32 +1432,10 @@ public class MainActivity extends WebViewExtActivity implements
          setImmersiveMode(hasFocus && mCustomView != null);
      }
  
@@ -1296,7 +1320,7 @@ index 143cbb6..d91557e 100644
          CoordinatorLayout.LayoutParams appBarParams =
                  (CoordinatorLayout.LayoutParams) mAppBar.getLayoutParams();
          CoordinatorLayout.LayoutParams containerParams =
-@@ -784,7 +1424,7 @@ public class MainActivity extends WebViewExtActivity implements
+@@ -784,7 +1448,7 @@ public class MainActivity extends WebViewExtActivity implements
          int margin = (int) UiUtils.getDimenAttr(this, R.style.AppTheme,
                  android.R.attr.actionBarSize);
  

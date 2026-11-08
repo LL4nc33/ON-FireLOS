@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The sheet: comes up from the bottom over whatever is open. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:background="@drawable/sheet_bg"
+        android:clickable="true"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:paddingBottom="16dp"
+        android:paddingEnd="20dp"
+        android:paddingStart="20dp"
+        android:paddingTop="10dp">
+
+        <View
+            android:layout_width="32dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/handle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="4dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_spark" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/app_name"
+                android:textColor="@color/on_background_quiet"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/new_conversation"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/action_new"
+                android:src="@drawable/ic_new" />
+
+            <ImageButton
+                android:id="@+id/settings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/action_settings"
+                android:src="@drawable/ic_settings" />
+        </LinearLayout>
+
+        <org.onfirelos.ai.MaxScrollView
+            android:id="@+id/scroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fadingEdgeLength="24dp"
+            android:overScrollMode="ifContentScrolls"
+            android:requiresFadingEdge="vertical">
+
+            <LinearLayout
+                android:id="@+id/messages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingEnd="4dp"
+                android:paddingStart="4dp" />
+        </org.onfirelos.ai.MaxScrollView>
+
+        <HorizontalScrollView
+            android:id="@+id/chips_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:paddingStart="4dp"
+            android:textColor="@color/on_background_quiet"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/input"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:background="@drawable/field_bg"
+                android:hint="@string/hint_ask"
+                android:imeOptions="actionSend|flagNoExtractUi"
+                android:inputType="textCapSentences|textAutoCorrect"
+                android:maxLines="1"
+                android:paddingEnd="20dp"
+                android:paddingStart="20dp"
+                android:textColor="@color/on_background"
+                android:textSize="16sp" />
+
+            <FrameLayout
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginStart="12dp">
+
+                <View
+                    android:id="@+id/level"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:alpha="0"
+                    android:background="@drawable/chip_bg" />
+
+                <ImageButton
+                    android:id="@+id/mic"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/mic_button"
+                    android:contentDescription="@string/action_mic"
+                    android:elevation="2dp"
+                    android:src="@drawable/ic_mic" />
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

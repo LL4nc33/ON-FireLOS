@@ -24,3 +24,9 @@ keys/
 
 # Logs of scripts/verify-camera.sh (device log, test photos)
 findings/camera-verify/
+
+# ON-FireAI: the wake word and speech models and their library, fetched by
+# scripts/fetch-onfireai-kws.sh (not ours to redistribute here)
+onfireai/jni/arm64-v8a/
+onfireai/assets/kws/
+onfireai/assets/asr/
