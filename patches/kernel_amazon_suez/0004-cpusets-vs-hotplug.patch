@@ -1,0 +1,82 @@
+diff --git a/kernel/cpuset.c b/kernel/cpuset.c
+index fe33cb70..276a805f 100644
+--- a/kernel/cpuset.c
++++ b/kernel/cpuset.c
+@@ -2153,7 +2153,18 @@ hotplug_update_tasks_legacy(struct cpuset *cs,
+ 	bool is_empty;
+ 
+ 	mutex_lock(&callback_mutex);
+-	cpumask_copy(cs->cpus_allowed, new_cpus);
++	/*
++	 * ON-FireLOS: cpus_allowed is left alone.
++	 *
++	 * Until now the shrunken mask was written back here.
++	 * This device's hotplug policy keeps taking cores offline
++	 * and online; as a result top-app and foreground decayed from 0-3
++	 * via 0-2 and 0-1 down to cpu0 alone and never grew back.
++	 *
++	 * cpus_allowed is the intent, effective_cpus is the intent
++	 * intersected with the running cores - hotplug_update_tasks()
++	 * a few lines further down does it the same way.
++	 */
+ 	cpumask_copy(cs->effective_cpus, new_cpus);
+ 	cs->mems_allowed = *new_mems;
+ 	cs->effective_mems = *new_mems;
+@@ -2162,14 +2173,17 @@ hotplug_update_tasks_legacy(struct cpuset *cs,
+ 	/*
+ 	 * Don't call update_tasks_cpumask() if the cpuset becomes empty,
+ 	 * as the tasks will be migratecd to an ancestor.
++	 *
++	 * effective_cpus is checked: cpus_allowed now only says what
++	 * is wanted, not what is running.
+ 	 */
+-	if (cpus_updated && !cpumask_empty(cs->cpus_allowed))
++	if (cpus_updated && !cpumask_empty(cs->effective_cpus))
+ 		update_tasks_cpumask(cs);
+ 	if (mems_updated && !nodes_empty(cs->mems_allowed))
+ 		update_tasks_nodemask(cs);
+ 
+-	is_empty = cpumask_empty(cs->cpus_allowed) ||
+-		   nodes_empty(cs->mems_allowed);
++	is_empty = cpumask_empty(cs->effective_cpus) ||
++		   nodes_empty(cs->effective_mems);
+ 
+ 	mutex_unlock(&cpuset_mutex);
+ 
+@@ -2284,8 +2298,13 @@ static void cpuset_hotplug_workfn(struct work_struct *work)
+ 	/* synchronize cpus_allowed to cpu_active_mask */
+ 	if (cpus_updated) {
+ 		mutex_lock(&callback_mutex);
+-		if (!on_dfl)
+-			cpumask_copy(top_cpuset.cpus_allowed, &new_cpus);
++		/*
++		 * ON-FireLOS: top_cpuset.cpus_allowed is no longer
++		 * shrunk. update_cpumask() checks new masks against
++		 * exactly this one and otherwise rejects every core that
++		 * is currently offline - which is why top-app held 0-2
++		 * instead of 0-3 after boot, although init had written 0-3.
++		 */
+ 		cpumask_copy(top_cpuset.effective_cpus, &new_cpus);
+ 		mutex_unlock(&callback_mutex);
+ 		/* we don't mess with cpumasks of tasks in top_cpuset */
+@@ -2367,7 +2386,19 @@ static struct notifier_block cpuset_track_online_nodes_nb = {
+  */
+ void __init cpuset_init_smp(void)
+ {
+-	cpumask_copy(top_cpuset.cpus_allowed, cpu_active_mask);
++	/*
++	 * ON-FireLOS: cpu_possible_mask instead of cpu_active_mask.
++	 *
++	 * The root's cpus_allowed says what the hardware has;
++	 * effective_cpus says what is currently online. With
++	 * cpu_active_mask this held whatever happened to be running at
++	 * that moment - 0-2 on this device - and update_cpumask() then
++	 * rejected every attempt to set 0-3, because it checks against
++	 * exactly this mask.
++	 *
++	 * cpuset_bind() does the same in the modern hierarchy.
++	 */
++	cpumask_copy(top_cpuset.cpus_allowed, cpu_possible_mask);
+ 	top_cpuset.mems_allowed = node_states[N_MEMORY];
+ 	top_cpuset.old_mems_allowed = top_cpuset.mems_allowed;
+ 

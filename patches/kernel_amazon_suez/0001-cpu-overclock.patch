@@ -1,0 +1,99 @@
+diff --git a/drivers/misc/mediatek/base/power/mt8173/mt_cpufreq.c b/drivers/misc/mediatek/base/power/mt8173/mt_cpufreq.c
+index 0c6b5501..0e1d66a5 100644
+--- a/drivers/misc/mediatek/base/power/mt8173/mt_cpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt8173/mt_cpufreq.c
+@@ -464,6 +464,44 @@ bool is_in_cpufreq = 0;
+ 
+ static int system_boost;
+ 
++/* ON-FireLOS: unlock the higher DVFS tables. Commenting out one line is
++   enough to return to the stock state. See read_efuse_speed(). */
++/* OFF by default. With the table enabled the device froze:
++   cfinteractive (the governor thread) hit a NULL pointer, the crash
++   path hung, the remaining cores waited on a lock, and after about
++   30 s the hardware watchdog fired (wdt_by_pass_pwk). Triggered by
++   switching cameras with several apps open. Without the table it no
++   longer happened in the same sequence (a comparison, not a proof). The
++   cause in the code has not been found. The higher steps were never
++   reached anyway - the thermal budget allows 1807 MHz under load.
++#define ONFIRELOS_CPU_OVERCLOCK 1 */
++
++
++#ifdef ONFIRELOS_CPU_OVERCLOCK
++/* Adjustable upper limit per cluster, in kHz.
++ *
++ * After read_efuse_speed() the higher DVFS steps are in the table, but
++ * they should not be active by default. A one-off scaling_max_freq at
++ * boot is not enough for that: _mt_cpufreq_init() resets policy->max from
++ * the table EVERY time a core comes online, and the big cluster is
++ * switched off completely at idle. Measured: limit set to 1261 MHz,
++ * cluster off and on again, limit was back at 1807 MHz.
++ *
++ * So the limit lives here in the driver and is applied on every
++ * initialisation. The default is the stock values of the efuse binning.
++ *
++ *   /sys/module/<module>/parameters/onfirelos_max_big
++ *   /sys/module/<module>/parameters/onfirelos_max_little
++ *
++ * 0 means: no limit, full table.
++ */
++static unsigned int onfirelos_max_big = 1807000;
++static unsigned int onfirelos_max_little = 1404000;
++module_param(onfirelos_max_big, uint, 0644);
++module_param(onfirelos_max_little, uint, 0644);
++MODULE_PARM_DESC(onfirelos_max_big, "Upper limit of the big cluster in kHz, 0 = off");
++MODULE_PARM_DESC(onfirelos_max_little, "Upper limit of the little cluster in kHz, 0 = off");
++#endif
+ static unsigned int read_efuse_speed(enum mt_cpu_dvfs_id id)
+ {				/* TODO: remove it latter */
+ 	unsigned int efuse = 0;
+@@ -551,6 +589,33 @@ static unsigned int read_efuse_speed(enum mt_cpu_dvfs_id id)
+ 		}
+ 	}
+ 
++#ifdef ONFIRELOS_CPU_OVERCLOCK
++	/* The efuse bins suez as [1.4G, 1.8G]: CPU_LEVEL_5 little,
++	 * CPU_LEVEL_4 big. MediaTek already ships tables for [1.6G, 2.0G]
++	 * in the same kernel, with their own voltages:
++	 *
++	 *   big     1807 MHz @ 1089 mV  ->  1989 MHz @ 1125 mV   (+10 % clock, +3.3 % volt)
++	 *   little  1404 MHz @ 1083 mV  ->  1573 MHz @ 1125 mV   (+12 % clock, +3.9 % volt)
++	 *
++	 * No values here are made up. It is still a real overclock,
++	 * because the efuse describes the binning of exactly this
++	 * chip. That is why init.mt8173.rc resets scaling_max_freq to the
++	 * stock values at boot; the higher steps are only made available
++	 * and get unlocked by scripts/set-mode.sh. Without this change
++	 * there would be nothing to unlock - the table is the limit.
++	 *
++	 * Chips binned faster (CPU_LEVEL_1, SB) are not
++	 * downgraded.
++	 */
++	if (id == MT_CPU_DVFS_BIG) {
++		if (lv > CPU_LEVEL_2)
++			lv = CPU_LEVEL_2;
++	} else {
++		if (lv > CPU_LEVEL_3)
++			lv = CPU_LEVEL_3;
++	}
++
++#endif
+ 	return lv;
+ }
+ 
+@@ -4440,6 +4505,15 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
+ 
+ 		policy->cur = _mt_cpufreq_get_cur_phy_freq(id);	/* use cur phy freq is better */
+ 		policy->max = cpu_dvfs_get_max_freq(id_to_cpu_dvfs(id));
++#ifdef ONFIRELOS_CPU_OVERCLOCK
++		{
++			unsigned int cap = (MT_CPU_DVFS_BIG == id)
++			    ? onfirelos_max_big : onfirelos_max_little;
++
++			if (cap && policy->max > cap)
++				policy->max = cap;
++		}
++#endif
+ 		policy->min = cpu_dvfs_get_min_freq(id_to_cpu_dvfs(id));
+ 
+ 		if (_sync_opp_tbl_idx(p) >= 0)	/* sync p->idx_opp_tbl first before _restore_default_volt() */

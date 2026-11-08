@@ -1,0 +1,16 @@
+diff --git a/config/common.mk b/config/common.mk
+index f6ac880..6656623 100644
+--- a/config/common.mk
++++ b/config/common.mk
+@@ -134,6 +134,11 @@ PRODUCT_PACKAGES += \
+     Terminal
+ 
+ # Custom Lineage packages
++#
++# ON-FireLOS: the Updater asks this project's releases instead of the
++# official LineageOS servers, which have nothing for this device
++# (lineage.updater.uri in device/amazon/suez/device.mk). Full ROM zips only:
++# incremental updates do not work on amonet devices.
+ PRODUCT_PACKAGES += \
+     LineageSettingsProvider \
+     LineageSetupWizard \

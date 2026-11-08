@@ -1,0 +1,471 @@
+diff --git a/Android.mk b/Android.mk
+index a0b633a..e1b85eb 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -11,6 +11,9 @@ LOCAL_PRIVATE_PLATFORM_APIS := true
+ LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/res
+ LOCAL_FULL_MANIFEST_FILE := $(LOCAL_PATH)/AndroidManifest.xml
+ 
++# ON-FireLOS: reworked for the ROM; the version says so after its own.
++LOCAL_AAPT_FLAGS += --version-name "$(PLATFORM_VERSION) · $(ONFIRELOS_APP_VERSION)"
++
+ include $(LOCAL_PATH)/build_apk.mk
+ 
+ ########################
+diff --git a/res/drawable/onfirelos_search_pill.xml b/res/drawable/onfirelos_search_pill.xml
+new file mode 100644
+index 0000000..e321933
+--- /dev/null
++++ b/res/drawable/onfirelos_search_pill.xml
+@@ -0,0 +1,21 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<shape xmlns:android="http://schemas.android.com/apk/res/android"
++    android:shape="rectangle">
++    <solid android:color="@color/onfirelos_surface_variant" />
++    <corners android:radius="100dp" />
++    <padding android:left="12dp" android:right="4dp" />
++</shape>
+diff --git a/res/layout/drawer_layout.xml b/res/layout/drawer_layout.xml
+index 8eefa3e..4ce053d 100644
+--- a/res/layout/drawer_layout.xml
++++ b/res/layout/drawer_layout.xml
+@@ -37,7 +37,7 @@
+                 android:layout_width="match_parent"
+                 android:layout_height="?android:attr/actionBarSize"
+                 android:background="?android:attr/colorPrimary"
+-                android:elevation="8dp"
++                android:elevation="0dp"
+                 android:theme="?actionBarTheme"
+                 android:popupTheme="?actionBarPopupTheme">
+ 
+@@ -83,7 +83,7 @@
+                 android:layout_width="match_parent"
+                 android:layout_height="?android:attr/actionBarSize"
+                 android:background="?android:attr/colorPrimary"
+-                android:elevation="8dp"
++                android:elevation="0dp"
+                 android:theme="?actionBarTheme"
+                 android:popupTheme="?actionBarPopupTheme" />
+ 
+diff --git a/res/layout/fixed_layout.xml b/res/layout/fixed_layout.xml
+index 4d7f2ea..1666fd7 100644
+--- a/res/layout/fixed_layout.xml
++++ b/res/layout/fixed_layout.xml
+@@ -33,7 +33,7 @@
+             android:layout_width="match_parent"
+             android:layout_height="?android:attr/actionBarSize"
+             android:background="?android:attr/colorPrimary"
+-            android:elevation="8dp"
++            android:elevation="0dp"
+             android:theme="?actionBarTheme"
+             android:popupTheme="?actionBarPopupTheme">
+ 
+diff --git a/res/layout/fragment_pick.xml b/res/layout/fragment_pick.xml
+index dab5a9e..539f0b8 100644
+--- a/res/layout/fragment_pick.xml
++++ b/res/layout/fragment_pick.xml
+@@ -27,7 +27,7 @@
+         android:layout_width="@dimen/bottom_bar_negative_button_width"
+         android:background="@android:color/transparent"
+         android:text="@android:string/cancel"
+-        android:textColor="@color/primary"/>
++        android:textColor="@color/accent"/>
+     <TextView
+         style="@style/BottomBarButton"
+         android:id="@android:id/button1"
+diff --git a/res/layout/inspector_activity.xml b/res/layout/inspector_activity.xml
+index f48bc92..27f7f85 100644
+--- a/res/layout/inspector_activity.xml
++++ b/res/layout/inspector_activity.xml
+@@ -25,7 +25,7 @@
+         android:layout_width="match_parent"
+         android:layout_height="?android:attr/actionBarSize"
+         android:background="?android:attr/colorPrimary"
+-        android:elevation="8dp"
++        android:elevation="0dp"
+         android:theme="?actionBarTheme"
+         android:popupTheme="?actionBarPopupTheme">
+     </Toolbar>
+diff --git a/res/values-land/onfirelos_large_title.xml b/res/values-land/onfirelos_large_title.xml
+new file mode 100644
+index 0000000..9654ad1
+--- /dev/null
++++ b/res/values-land/onfirelos_large_title.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0.
++     Landscape has less height to give away. -->
++<resources>
++    <dimen name="onfirelos_large_title_height">96dp</dimen>
++</resources>
+diff --git a/res/values-night/lineage_colors.xml b/res/values-night/lineage_colors.xml
+index e1bb45a..91215c0 100644
+--- a/res/values-night/lineage_colors.xml
++++ b/res/values-night/lineage_colors.xml
+@@ -15,12 +15,13 @@
+ -->
+ 
+ <resources>
+-    <color name="window_background">#212121</color>
+-    <color name="drawer_background">#212121</color>
+-    <color name="drawer_border">#212121</color>
+-    <color name="directory_background">#212121</color>
++    <!-- ON-FireLOS: the design's dark background, the bars lie on it. -->
++    <color name="window_background">@color/onfirelos_background</color>
++    <color name="drawer_background">@color/onfirelos_background</color>
++    <color name="drawer_border">@color/onfirelos_background</color>
++    <color name="directory_background">@color/onfirelos_background</color>
+ 
+-    <color name="text_cursor">@*android:color/black</color>
++    <color name="text_cursor">@color/onfirelos_on_background</color>
+ 
+     <color name="band_select_background">#88ffffff</color>
+     <color name="band_select_border">#44ffffff</color>
+@@ -40,7 +41,7 @@
+     <color name="item_doc_title">#ffcccccc</color>
+     <color name="item_doc_title_disabled">@*android:color/secondary_text_default_material_dark</color>
+     <color name="item_doc_details">#ffcccccc</color>
+-    <color name="item_doc_background">#333333</color>
++    <color name="item_doc_background">@color/onfirelos_surface</color>
+     <color name="item_doc_background_disabled">#ff212121</color>
+     <color name="item_breadcrumb_background_hovered">#1affffff</color>
+     <color name="item_doc_droppable_background">#ff170f04</color>
+diff --git a/res/values-night/onfirelos_colors.xml b/res/values-night/onfirelos_colors.xml
+new file mode 100644
+index 0000000..9ba3879
+--- /dev/null
++++ b/res/values-night/onfirelos_colors.xml
+@@ -0,0 +1,24 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS design tokens (docs/DESIGN.md), dark. -->
++    <color name="onfirelos_background">#1A1C18</color>
++    <color name="onfirelos_surface">#24271F</color>
++    <color name="onfirelos_surface_variant">#2F332B</color>
++    <color name="onfirelos_on_background">#E4E6DD</color>
++    <!-- Dark status bar icons on the light bar. -->
++    <bool name="onfirelos_light_bars">false</bool>
++</resources>
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index c500261..6717053 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -18,10 +18,11 @@
+     <!-- This is the window background, but also the background for anything
+          else that needs to manually declare a background matching the "default"
+          app background (e.g. the drawer overlay). -->
+-    <color name="window_background">#fff1f1f1</color>
+-    <color name="drawer_background">#fff1f1f1</color>
++    <!-- ON-FireLOS: the design's background, the bars lie on it. -->
++    <color name="window_background">@color/onfirelos_background</color>
++    <color name="drawer_background">@color/onfirelos_background</color>
+     <color name="drawer_border">#ffd4d4d4</color>
+-    <color name="directory_background">#fff7f7f7</color>
++    <color name="directory_background">@color/onfirelos_background</color>
+     <color name="menu_search_background">@android:color/transparent</color>
+ 
+     <color name="primary_dark">#ff254FAE</color>
+@@ -29,7 +30,7 @@
+     <color name="accent">@color/tool_bar_color</color>
+     <color name="accent_dark">@*android:color/accent_device_default_dark</color>
+ 
+-    <color name="text_cursor">@*android:color/white</color>
++    <color name="text_cursor">@color/onfirelos_on_background</color>
+     <color name="text_handle">#FF82B1FF</color>     <!--Blue A100-->
+     <color name="text_highlight">#FF82B1FF</color>  <!--Blue A100-->
+ 
+diff --git a/res/values/onfirelos_colors.xml b/res/values/onfirelos_colors.xml
+new file mode 100644
+index 0000000..1f2cc18
+--- /dev/null
++++ b/res/values/onfirelos_colors.xml
+@@ -0,0 +1,24 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS design tokens (docs/DESIGN.md), light. -->
++    <color name="onfirelos_background">#F6F8F3</color>
++    <color name="onfirelos_surface">#FFFFFF</color>
++    <color name="onfirelos_surface_variant">#E8ECE3</color>
++    <color name="onfirelos_on_background">#DE1B1D19</color>
++    <!-- Dark status bar icons on the light bar. -->
++    <bool name="onfirelos_light_bars">true</bool>
++</resources>
+diff --git a/res/values/onfirelos_large_title.xml b/res/values/onfirelos_large_title.xml
+new file mode 100644
+index 0000000..08d78a8
+--- /dev/null
++++ b/res/values/onfirelos_large_title.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0.
++     The large title above a root's top level (docs/DESIGN.md). -->
++<resources>
++    <dimen name="onfirelos_large_title_height">152dp</dimen>
++    <!-- Beyond the grid's own padding, in line with the items' edges. -->
++    <dimen name="onfirelos_large_title_padding_start">8dp</dimen>
++    <dimen name="onfirelos_large_title_padding_bottom">16dp</dimen>
++    <dimen name="onfirelos_large_title_text_size">34sp</dimen>
++</resources>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index 950b903..7ec25bb 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -16,14 +16,24 @@
+ 
+ <resources xmlns:android="http://schemas.android.com/apk/res/android">
+ 
+-    <style name="ActionBarTheme" parent="@*android:style/ThemeOverlay.Material.Dark.ActionBar">
+-        <item name="android:colorControlNormal">@android:color/white</item>
++    <!-- ON-FireLOS: the bars are flat on the background, so not the dark
++         overlay but the plain one over the DayNight theme; icons and title
++         in the text colour, the search field a pill. -->
++    <style name="ActionBarTheme" parent="@android:style/ThemeOverlay.Material.ActionBar">
++        <item name="android:colorControlNormal">@color/onfirelos_on_background</item>
++        <item name="android:searchViewStyle">@style/OnFireLosSearchView</item>
+         <item name="android:textSelectHandle">@drawable/text_select_handle_middle</item>
+         <item name="android:textSelectHandleLeft">@drawable/text_select_handle_left</item>
+         <item name="android:textSelectHandleRight">@drawable/text_select_handle_right</item>
+         <item name="android:textCursorDrawable">@drawable/text_cursor</item>
+         <item name="android:textColorHighlight">@color/text_highlight</item>
+-        <item name="android:textColorPrimary">@android:color/white</item>
++        <item name="android:textColorPrimary">@color/onfirelos_on_background</item>
++    </style>
++
++    <!-- The action bar search view sets queryBackground to @empty, so the
++         theme's queryBackground never reaches it; the pill goes in here. -->
++    <style name="OnFireLosSearchView" parent="@*android:style/Widget.Material.SearchView.ActionBar">
++        <item name="android:queryBackground">@drawable/onfirelos_search_pill</item>
+     </style>
+     <style name="ActionBarPopupTheme" parent="@style/Theme.AppCompat.DayNight" />
+ 
+@@ -33,8 +43,12 @@
+         <item name="actionBarPopupTheme">@style/ActionBarPopupTheme</item>
+ 
+         <item name="android:windowBackground">@color/window_background</item>
+-        <item name="android:colorPrimaryDark">@color/primary_dark</item>
+-        <item name="android:colorPrimary">@color/primary</item>
++        <!-- ON-FireLOS: bars and status bar flat on the background. -->
++        <item name="android:colorPrimaryDark">@color/onfirelos_background</item>
++        <item name="android:colorPrimary">@color/onfirelos_background</item>
++        <item name="android:windowLightStatusBar">@bool/onfirelos_light_bars</item>
++        <item name="android:navigationBarColor">@color/onfirelos_background</item>
++        <item name="android:windowLightNavigationBar">@bool/onfirelos_light_bars</item>
+         <item name="android:colorAccent">@color/accent</item>
+         <item name="android:colorControlActivated">?android:attr/colorAccent</item>
+         <item name="android:queryBackground">@color/menu_search_background</item>
+diff --git a/src/com/android/documentsui/dirlist/DirectoryFragment.java b/src/com/android/documentsui/dirlist/DirectoryFragment.java
+index cec9640..6b0d380 100644
+--- a/src/com/android/documentsui/dirlist/DirectoryFragment.java
++++ b/src/com/android/documentsui/dirlist/DirectoryFragment.java
+@@ -172,6 +172,8 @@ public class DirectoryFragment extends Fragment implements SwipeRefreshLayout.On
+     private DocumentClipper mClipper;
+     private GridLayoutManager mLayout;
+     private int mColumnCount = 1;  // This will get updated when layout changes.
++    // ON-FireLOS: the large title above a root's top level.
++    private @Nullable LargeTitleDecoration mLargeTitle;
+ 
+     private float mLiveScale = 1.0f;
+     private @ViewMode int mMode;
+@@ -270,6 +272,11 @@ public class DirectoryFragment extends Fragment implements SwipeRefreshLayout.On
+             mBandSelector.removeOnBandStartedListener(mBandSelectStartedCallback);
+         }
+ 
++        if (mLargeTitle != null) {
++            mLargeTitle.release();
++            mLargeTitle = null;
++        }
++
+         super.onDestroyView();
+     }
+ 
+@@ -318,6 +325,13 @@ public class DirectoryFragment extends Fragment implements SwipeRefreshLayout.On
+         }
+         mRecView.setLayoutManager(mLayout);
+ 
++        // ON-FireLOS: a root's top level opens with its name as a large title; folders below
++        // show the breadcrumb, search results neither.
++        if (mState.stack.size() <= 1 && !mActivity.isSearchExpanded()) {
++            mLargeTitle = new LargeTitleDecoration(mActivity);
++            mRecView.addItemDecoration(mLargeTitle);
++        }
++
+         mModel.addUpdateListener(mAdapter.getModelUpdateListener());
+         mModel.addUpdateListener(mModelUpdateListener);
+ 
+diff --git a/src/com/android/documentsui/dirlist/LargeTitleDecoration.java b/src/com/android/documentsui/dirlist/LargeTitleDecoration.java
+new file mode 100644
+index 0000000..400c245
+--- /dev/null
++++ b/src/com/android/documentsui/dirlist/LargeTitleDecoration.java
+@@ -0,0 +1,129 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.documentsui.dirlist;
++
++import android.content.res.Resources;
++import android.content.res.TypedArray;
++import android.graphics.Canvas;
++import android.graphics.Color;
++import android.graphics.Paint;
++import android.graphics.Rect;
++import android.support.v7.widget.GridLayoutManager;
++import android.support.v7.widget.RecyclerView;
++import android.text.TextPaint;
++import android.text.TextUtils;
++import android.view.View;
++import android.widget.Toolbar;
++
++import com.android.documentsui.BaseActivity;
++import com.android.documentsui.R;
++
++/**
++ * The large title above a root's top level (docs/DESIGN.md). The first row of the grid moves
++ * down to make room and the title is drawn above it, so it scrolls away with the content; the
++ * tool bar's title, which says the same, fades in as it goes.
++ */
++final class LargeTitleDecoration extends RecyclerView.ItemDecoration {
++    private final BaseActivity mActivity;
++    private final TextPaint mPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
++    private final int mHeight;
++    private final int mPaddingStart;
++    private final int mPaddingBottom;
++    private final int mToolbarTitleColor;
++    private int mToolbarTitleAlpha = -1;
++
++    LargeTitleDecoration(BaseActivity activity) {
++        mActivity = activity;
++        final Resources res = activity.getResources();
++        mHeight = res.getDimensionPixelSize(R.dimen.onfirelos_large_title_height);
++        mPaddingStart = res.getDimensionPixelSize(R.dimen.onfirelos_large_title_padding_start);
++        mPaddingBottom = res.getDimensionPixelSize(R.dimen.onfirelos_large_title_padding_bottom);
++        mPaint.setTextSize(res.getDimension(R.dimen.onfirelos_large_title_text_size));
++        final TypedArray a = activity.obtainStyledAttributes(
++                new int[] { android.R.attr.textColorPrimary });
++        mPaint.setColor(a.getColor(0, Color.BLACK));
++        a.recycle();
++        final Toolbar toolbar = activity.findViewById(R.id.toolbar);
++        final TypedArray t = (toolbar != null ? toolbar.getContext() : activity)
++                .obtainStyledAttributes(new int[] { android.R.attr.textColorPrimary });
++        mToolbarTitleColor = t.getColor(0, Color.BLACK);
++        t.recycle();
++    }
++
++    @Override
++    public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
++            RecyclerView.State state) {
++        if (isFirstRow(parent, parent.getChildAdapterPosition(view))) {
++            outRect.top = mHeight;
++        }
++    }
++
++    @Override
++    public void onDraw(Canvas c, RecyclerView parent, RecyclerView.State state) {
++        View first = null;
++        for (int i = 0; i < parent.getChildCount() && first == null; i++) {
++            final View child = parent.getChildAt(i);
++            if (isFirstRow(parent, parent.getChildAdapterPosition(child))) {
++                first = child;
++            }
++        }
++        if (first == null) {
++            // Scrolled away (or nothing to show yet): only the tool bar's title.
++            setToolbarTitleAlpha(1f);
++            return;
++        }
++        final int top = parent.getLayoutManager().getDecoratedTop(first)
++                + Math.round(first.getTranslationY());
++        setToolbarTitleAlpha(Math.max(0f, Math.min(1f,
++                (parent.getPaddingTop() - top) / (float) mHeight)));
++
++        final CharSequence title = mActivity.getCurrentRoot().title;
++        if (TextUtils.isEmpty(title)) return;
++        final boolean rtl = parent.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
++        final int start = parent.getPaddingStart() + mPaddingStart;
++        final int width = parent.getWidth() - start - parent.getPaddingEnd() - mPaddingStart;
++        final CharSequence text = TextUtils.ellipsize(title, mPaint, width,
++                TextUtils.TruncateAt.END);
++        final float x = rtl ? parent.getWidth() - start - mPaint.measureText(text, 0, text.length())
++                : start;
++        final float y = top + mHeight - mPaddingBottom - mPaint.descent();
++        c.drawText(text, 0, text.length(), x, y, mPaint);
++    }
++
++    /** The tool bar's own title back at full strength, when the list goes. */
++    void release() {
++        setToolbarTitleAlpha(1f);
++    }
++
++    private static boolean isFirstRow(RecyclerView parent, int position) {
++        if (position == RecyclerView.NO_POSITION) return false;
++        final RecyclerView.LayoutManager layout = parent.getLayoutManager();
++        if (layout instanceof GridLayoutManager) {
++            final GridLayoutManager grid = (GridLayoutManager) layout;
++            return grid.getSpanSizeLookup().getSpanGroupIndex(position, grid.getSpanCount()) == 0;
++        }
++        return position == 0;
++    }
++
++    private void setToolbarTitleAlpha(float fraction) {
++        final int alpha = Math.round(Color.alpha(mToolbarTitleColor) * fraction);
++        if (alpha == mToolbarTitleAlpha) return;
++        final Toolbar toolbar = mActivity.findViewById(R.id.toolbar);
++        if (toolbar == null) return;
++        mToolbarTitleAlpha = alpha;
++        toolbar.setTitleTextColor((mToolbarTitleColor & 0x00ffffff) | (alpha << 24));
++    }
++}

@@ -1,0 +1,19 @@
+diff --git a/config/common_mobile.mk b/config/common_mobile.mk
+index 8424a1c..5e0a802 100644
+--- a/config/common_mobile.mk
++++ b/config/common_mobile.mk
+@@ -23,14 +23,9 @@ PRODUCT_PACKAGES += \
+     Eleven \
+     ExactCalculator \
+     Jelly \
+-    LockClock \
+     TrebuchetQuickStep \
+     WeatherProvider
+ 
+-# Exchange support
+-PRODUCT_PACKAGES += \
+-    Exchange2
+-
+ # Berry styles
+ PRODUCT_PACKAGES += \
+     LineageBlackTheme \
