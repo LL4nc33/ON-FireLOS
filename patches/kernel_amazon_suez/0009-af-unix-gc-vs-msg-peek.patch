@@ -1,0 +1,107 @@
+From: ON-FireLOS
+Subject: [PATCH] af_unix: protect the garbage collector against MSG_PEEK (CVE-2021-0920)
+
+MSG_PEEK installs a passed file descriptor without changing the
+inflight counter. If the collection of Unix sockets was running at that
+moment, it could free a socket that was getting a new descriptor at the
+same time - use-after-free, exploited in the wild.
+
+After taking the reference, unix_peek_fds() takes unix_gc_lock once
+and releases it again. For that, unix_gc_lock becomes global.
+Corresponds to upstream cbcf01128d0a ("af_unix: fix garbage collect vs MSG_PEEK").
+---
+--- a/include/net/af_unix.h	2026-10-29 14:03:54.299254631 +0000
++++ b/include/net/af_unix.h	2026-10-29 14:13:45.145128636 +0000
+@@ -17,6 +17,7 @@
+ #define UNIX_HASH_BITS	8
+ 
+ extern unsigned int unix_tot_inflight;
++extern spinlock_t unix_gc_lock;
+ extern spinlock_t unix_table_lock;
+ extern struct hlist_head unix_socket_table[2 * UNIX_HASH_SIZE];
+ 
+--- a/net/unix/garbage.c	2026-10-29 14:03:54.299393452 +0000
++++ b/net/unix/garbage.c	2026-10-29 14:13:45.148174762 +0000
+@@ -90,7 +90,7 @@
+ 
+ static LIST_HEAD(gc_inflight_list);
+ static LIST_HEAD(gc_candidates);
+-static DEFINE_SPINLOCK(unix_gc_lock);
++DEFINE_SPINLOCK(unix_gc_lock);
+ static DECLARE_WAIT_QUEUE_HEAD(unix_gc_wait);
+ 
+ unsigned int unix_tot_inflight;
+--- a/net/unix/af_unix.c	2026-10-29 14:03:54.299472893 +0000
++++ b/net/unix/af_unix.c	2026-10-29 14:13:45.150854497 +0000
+@@ -1510,6 +1510,53 @@
+ 		unix_notinflight(scm->fp->user, scm->fp->fp[i]);
+ }
+ 
++static void unix_peek_fds(struct scm_cookie *scm, struct sk_buff *skb)
++{
++	scm->fp = scm_fp_dup(UNIXCB(skb).fp);
++
++	/*
++	 * Garbage collection of unix sockets starts by selecting a set of
++	 * candidate sockets which have reference only from being in flight
++	 * (total_refs == inflight_refs).  This condition is checked once during
++	 * the candidate collection phase, and candidates are marked as such, so
++	 * that non-candidates can later be ignored.  While inflight_refs is
++	 * protected by unix_gc_lock, total_refs (file count) is not, hence this
++	 * is an instantaneous decision.
++	 *
++	 * Once a candidate, however, the socket must not be reinstalled into a
++	 * file descriptor while the garbage collection is in progress.
++	 *
++	 * If the above conditions are met, then the directed graph of
++	 * candidates (*) does not change while unix_gc_lock is held.
++	 *
++	 * Any operations that changes the file count through file descriptors
++	 * (dup, close, sendmsg) does not change the graph since candidates are
++	 * not installed in fds.
++	 *
++	 * Dequeing a candidate via recvmsg would install it into an fd, but
++	 * that takes unix_gc_lock to decrement the inflight count, so it's
++	 * serialized with garbage collection.
++	 *
++	 * MSG_PEEK is special in that it does not change the inflight count,
++	 * yet does install the socket into an fd.  The following lock/unlock
++	 * pair is to ensure serialization with garbage collection.  It must be
++	 * done between incrementing the file count and installing the file into
++	 * an fd.
++	 *
++	 * If garbage collection starts after the barrier provided by the
++	 * lock/unlock, then it will see the elevated refcount and not mark this
++	 * as a candidate.  If a garbage collection is already in progress
++	 * before the file count was incremented, then the lock/unlock pair will
++	 * ensure that garbage collection is finished before progressing to
++	 * installing the fd.
++	 *
++	 * (*) A -> B where B is on the queue of A or B is on the queue of C
++	 * which is on the queue of listening socket A.
++	 */
++	spin_lock(&unix_gc_lock);
++	spin_unlock(&unix_gc_lock);
++}
++
+ static void unix_destruct_scm(struct sk_buff *skb)
+ {
+ 	struct scm_cookie scm;
+@@ -2083,7 +2130,7 @@
+ 		sk_peek_offset_fwd(sk, size);
+ 
+ 		if (UNIXCB(skb).fp)
+-			siocb->scm->fp = scm_fp_dup(UNIXCB(skb).fp);
++			unix_peek_fds(siocb->scm, skb);
+ 	}
+ 	err = (flags & MSG_TRUNC) ? skb->len - skip : size;
+ 
+@@ -2337,7 +2384,7 @@
+ 			/* It is questionable, see note in unix_dgram_recvmsg.
+ 			 */
+ 			if (UNIXCB(skb).fp)
+-				siocb->scm->fp = scm_fp_dup(UNIXCB(skb).fp);
++				unix_peek_fds(siocb->scm, skb);
+ 
+ 			sk_peek_offset_fwd(sk, chunk);
+ 

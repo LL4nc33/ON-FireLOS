@@ -1,0 +1,133 @@
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c
+index 1487aa6a..c50b1672 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c
+@@ -10080,18 +10080,11 @@ wlanoidSetCountryCode(IN P_ADAPTER_T prAdapter,
+ 	pucCountry = pvSetBuffer;
+ 
+ 	u2Country = (((UINT_16) pucCountry[0]) << 8) | ((UINT_16) pucCountry[1]);
+-	if ((u2Country != COUNTRY_CODE_US) &&
+-			(u2Country != COUNTRY_CODE_JP) &&
+-			(u2Country != COUNTRY_CODE_DE) &&
+-			(u2Country != COUNTRY_CODE_FR) &&
+-			(u2Country != COUNTRY_CODE_IT) &&
+-			(u2Country != COUNTRY_CODE_GB) &&
+-			(u2Country != COUNTRY_CODE_ES) &&
+-			(u2Country != COUNTRY_CODE_CA))
+-		u2Country = COUNTRY_CODE_WW;
+-
++	/* ON-FireLOS: every country gets its own channel group; Amazon let
++	 * only eight through and turned the rest into the world domain.
++	 */
+ 	if (!rlmIsValidCountryCode(u2Country))
+-		return WLAN_STATUS_INVALID_DATA;
++		u2Country = COUNTRY_CODE_WW;
+ 
+ 	prAdapter->rWifiVar.rConnSettings.u2CountryCode = u2Country;
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c b/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c
+index 586abadc..92072e2b 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c
+@@ -279,10 +279,10 @@ DOMAIN_INFO_ENTRY arSupportedRegDomains[] = {
+ 
+ 	  {115, BAND_5G, CHNL_SPAN_20, 36, 4, FALSE}
+ 	  ,			/* CH_SET_UNII_LOW_36_48 */
+-/*	  {118, BAND_5G, CHNL_SPAN_20, 52, 4, FALSE}
+-	  ,			* CH_SET_UNII_MID_52_64 */
+-/*	  {121, BAND_5G, CHNL_SPAN_20, 100, 12, FALSE}
+-	  ,			* CH_SET_UNII_WW_100_144 */
++	  {118, BAND_5G, CHNL_SPAN_20, 52, 4, FALSE}
++	  ,			/* CH_SET_UNII_MID_52_64 */
++	  {121, BAND_5G, CHNL_SPAN_20, 100, 12, FALSE}
++	  ,			/* CH_SET_UNII_WW_100_144 */
+ 	  {125, BAND_5G, CHNL_SPAN_20, 149, 5, FALSE}
+ 	  ,			/* CH_SET_UNII_UPPER_149_165 */
+ 	  {0, BAND_NULL, 0, 0, 0, FALSE}
+@@ -351,14 +351,12 @@ DOMAIN_INFO_ENTRY arSupportedRegDomains[] = {
+ 
+ 	  {115, BAND_5G, CHNL_SPAN_20, 36, 4, FALSE}
+ 	  ,			/* CH_SET_UNII_LOW_36_48 */
+-#if 0
+ 	  {118, BAND_5G, CHNL_SPAN_20, 52, 4, FALSE}
+ 	  ,			/* CH_SET_UNII_MID_52_64 */
+ 	  {121, BAND_5G, CHNL_SPAN_20, 100, 11, FALSE}
+ 	  ,			/* CH_SET_UNII_WW_100_140 */
+-#endif
+-	  {125, BAND_NULL, 0, 0, 0, FALSE}
+-	  ,			/* CH_SET_UNII_UPPER_NA */
++	  {125, BAND_5G, CHNL_SPAN_20, 149, 5, FALSE}
++	  ,			/* CH_SET_UNII_UPPER_149_165: ON-FireLOS, EU SRD band */
+ 	  {0, BAND_NULL, 0, 0, 0, FALSE}
+ 	  }
+ 	 }
+@@ -370,12 +368,10 @@ DOMAIN_INFO_ENTRY arSupportedRegDomains[] = {
+ 	  ,			/* CH_SET_2G4_1_13 */
+ 	  {115, BAND_5G, CHNL_SPAN_20, 36, 4, FALSE}
+ 	  ,			/* CH_SET_UNII_LOW_36_48 */
+-#if 0
+ 	  {118, BAND_5G, CHNL_SPAN_20, 52, 4, FALSE}
+ 	  ,			/* CH_SET_UNII_MID_52_64 */
+ 	  {121, BAND_5G, CHNL_SPAN_20, 100, 11, FALSE}
+ 	  ,			/* CH_SET_UNII_WW_100_140 */
+-#endif
+ 	  {125, BAND_NULL, 0, 0, 0, FALSE}
+ 	  ,			/* CH_SET_UNII_UPPER_NA */
+ 	  {0, BAND_NULL, 0, 0, 0, FALSE}
+@@ -1904,6 +1900,14 @@ rlmConvertCountry2Region(
+ 		}
+ 	}
+ 
++	/* ON-FireLOS: the rest of the European channel group, e.g. AT or NL */
++	if (u2RetRegionCode == REGION_CODE_WW) {
++		for (j = 0; j < ARRAY_SIZE(g_u2CountryGroup5); j++) {
++			if (g_u2CountryGroup5[j] == *pu2CountryCode)
++				return REGION_CODE_CE;
++		}
++	}
++
+ 	return u2RetRegionCode;
+ } /* rlmConvertCountry2Region */
+ 
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+index d8ddddba..668563a4 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c
+@@ -2217,6 +2217,16 @@ VOID wlanUpdateChannelTable(P_GLUE_INFO_T prGlueInfo)
+ 				if (mtk_5ghz_channels[j].hw_value == aucChannelList[i].ucChannelNum) {
+ 					mtk_5ghz_channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
+ 					mtk_5ghz_channels[j].orig_flags &= ~IEEE80211_CHAN_DISABLED;
++					/* ON-FireLOS: radar channels only after hearing an access point */
++					if (mtk_5ghz_channels[j].hw_value >= 52 && mtk_5ghz_channels[j].hw_value <= 144) {
++						mtk_5ghz_channels[j].flags |= IEEE80211_CHAN_RADAR | IEEE80211_CHAN_NO_IR;
++						mtk_5ghz_channels[j].orig_flags |= IEEE80211_CHAN_RADAR | IEEE80211_CHAN_NO_IR;
++					}
++					/* the SRD band (149-165): low power, no network of our own */
++					if (mtk_5ghz_channels[j].hw_value >= 149) {
++						mtk_5ghz_channels[j].flags |= IEEE80211_CHAN_NO_IR;
++						mtk_5ghz_channels[j].orig_flags |= IEEE80211_CHAN_NO_IR;
++					}
+ 					break;
+ 				}
+ 			}
+diff --git a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_p2p.c b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_p2p.c
+index 34f3e056..52bb0068 100644
+--- a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_p2p.c
++++ b/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_p2p.c
+@@ -1469,6 +1469,16 @@ VOID p2pUpdateChannelTableByDomain(P_GLUE_INFO_T prGlueInfo)
+ 				if (mtk_5ghz_a_channels[j].hw_value == aucChannelList[i].ucChannelNum) {
+ 					mtk_5ghz_a_channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
+ 					mtk_5ghz_a_channels[j].orig_flags &= ~IEEE80211_CHAN_DISABLED;
++					/* ON-FireLOS: radar channels only after hearing an access point */
++					if (mtk_5ghz_a_channels[j].hw_value >= 52 && mtk_5ghz_a_channels[j].hw_value <= 144) {
++						mtk_5ghz_a_channels[j].flags |= IEEE80211_CHAN_RADAR | IEEE80211_CHAN_NO_IR;
++						mtk_5ghz_a_channels[j].orig_flags |= IEEE80211_CHAN_RADAR | IEEE80211_CHAN_NO_IR;
++					}
++					/* the SRD band (149-165): low power, no network of our own */
++					if (mtk_5ghz_a_channels[j].hw_value >= 149) {
++						mtk_5ghz_a_channels[j].flags |= IEEE80211_CHAN_NO_IR;
++						mtk_5ghz_a_channels[j].orig_flags |= IEEE80211_CHAN_NO_IR;
++					}
+ 					break;
+ 				}
+ 			}

@@ -1,0 +1,3378 @@
+diff --git a/Android.mk b/Android.mk
+index 5a94894..d7e688e 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -189,6 +189,9 @@ LOCAL_FULL_LIBS_MANIFEST_FILES := \
+ LOCAL_MANIFEST_FILE := quickstep/AndroidManifest.xml
+ LOCAL_JACK_COVERAGE_INCLUDE_FILTER := com.android.launcher3.*
+ 
++# ON-FireLOS: reworked for the ROM; the version says so after its own.
++LOCAL_AAPT_FLAGS += --version-name "$(PLATFORM_VERSION) · $(ONFIRELOS_APP_VERSION)"
++
+ include $(BUILD_PACKAGE)
+ 
+ 
+diff --git a/quickstep/src/com/android/quickstep/views/LauncherRecentsView.java b/quickstep/src/com/android/quickstep/views/LauncherRecentsView.java
+index 7c5828b..f68fa96 100644
+--- a/quickstep/src/com/android/quickstep/views/LauncherRecentsView.java
++++ b/quickstep/src/com/android/quickstep/views/LauncherRecentsView.java
+@@ -65,6 +65,10 @@ public class LauncherRecentsView extends RecentsView<Launcher> {
+     @ViewDebug.ExportedProperty(category = "launcher")
+     private float mTranslationYFactor;
+ 
++    // ON-FireLOS: clear all in the navigation bar. Still null while the super
++    // constructor runs, which already counts the tasks.
++    private NavBarClearAll mClearAll;
++
+     public LauncherRecentsView(Context context) {
+         this(context, null);
+     }
+@@ -76,6 +80,32 @@ public class LauncherRecentsView extends RecentsView<Launcher> {
+     public LauncherRecentsView(Context context, AttributeSet attrs, int defStyleAttr) {
+         super(context, attrs, defStyleAttr);
+         setContentAlpha(0);
++        mClearAll = new NavBarClearAll(mActivity, this);
++    }
++
++    @Override
++    protected void onAttachedToWindow() {
++        super.onAttachedToWindow();
++        mClearAll.attach();
++    }
++
++    @Override
++    protected void onDetachedFromWindow() {
++        super.onDetachedFromWindow();
++        mClearAll.detach();
++    }
++
++    @Override
++    public void onViewRemoved(View child) {
++        super.onViewRemoved(child);
++        onTaskCountChanged();
++    }
++
++    @Override
++    protected void onTaskCountChanged() {
++        if (mClearAll != null) {
++            mClearAll.onTaskCountChanged();
++        }
+     }
+ 
+     @Override
+diff --git a/quickstep/src/com/android/quickstep/views/NavBarClearAll.java b/quickstep/src/com/android/quickstep/views/NavBarClearAll.java
+new file mode 100644
+index 0000000..b1d243f
+--- /dev/null
++++ b/quickstep/src/com/android/quickstep/views/NavBarClearAll.java
+@@ -0,0 +1,113 @@
++/*
++ * Copyright (C) 2026 ON-FireLOS
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.quickstep.views;
++
++import static com.android.launcher3.LauncherState.OVERVIEW;
++
++import android.Manifest;
++import android.content.BroadcastReceiver;
++import android.content.Context;
++import android.content.Intent;
++import android.content.IntentFilter;
++
++import com.android.launcher3.Launcher;
++import com.android.launcher3.LauncherState;
++import com.android.launcher3.LauncherStateManager;
++
++/**
++ * ON-FireLOS: "Clear all" sits at the far end of the recent apps list. While
++ * the overview is open and holds at least one app, this tells the navigation
++ * bar, which then offers clear all in its slot on the right; a tap there comes
++ * back here and clears the list as the button at its end would.
++ * Both directions need the STATUS_BAR permission, which only the system holds.
++ */
++final class NavBarClearAll implements LauncherStateManager.StateListener {
++    private static final String SYSTEMUI = "com.android.systemui";
++    private static final String ACTION_STATE = "org.lineageos.trebuchet.action.OVERVIEW_STATE";
++    private static final String EXTRA_CLEAR_ALL = "clear_all";
++    private static final String ACTION_CLEAR_ALL = "org.lineageos.trebuchet.action.CLEAR_ALL";
++
++    private final Launcher mLauncher;
++    private final RecentsView mRecents;
++    private boolean mInOverview;
++    private Boolean mReported;
++
++    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            if (mInOverview && mRecents.getTaskViewCount() > 0) {
++                mRecents.clearAllTasks();
++            }
++        }
++    };
++
++    NavBarClearAll(Launcher launcher, RecentsView recents) {
++        mLauncher = launcher;
++        mRecents = recents;
++    }
++
++    void attach() {
++        mLauncher.registerReceiver(mReceiver, new IntentFilter(ACTION_CLEAR_ALL),
++                Manifest.permission.STATUS_BAR, null);
++        mLauncher.getStateManager().addStateListener(this);
++        mInOverview = mLauncher.isInState(OVERVIEW);
++        report();
++    }
++
++    void detach() {
++        mLauncher.getStateManager().removeStateListener(this);
++        mLauncher.unregisterReceiver(mReceiver);
++        mInOverview = false;
++        report();
++    }
++
++    /** The number of apps in the list changed. */
++    void onTaskCountChanged() {
++        report();
++    }
++
++    @Override
++    public void onStateSetImmediately(LauncherState state) {
++        mInOverview = state == OVERVIEW;
++        report();
++    }
++
++    @Override
++    public void onStateTransitionStart(LauncherState toState) {
++        // Leaving: the button goes at once, not after the animation.
++        if (toState != OVERVIEW) {
++            mInOverview = false;
++            report();
++        }
++    }
++
++    @Override
++    public void onStateTransitionComplete(LauncherState finalState) {
++        mInOverview = finalState == OVERVIEW;
++        report();
++    }
++
++    private void report() {
++        boolean show = mInOverview && mRecents.getTaskViewCount() > 0;
++        if (mReported != null && mReported == show) {
++            return;
++        }
++        mReported = show;
++        mLauncher.sendBroadcast(new Intent(ACTION_STATE).setPackage(SYSTEMUI)
++                .putExtra(EXTRA_CLEAR_ALL, show), Manifest.permission.STATUS_BAR);
++    }
++}
+diff --git a/quickstep/src/com/android/quickstep/views/RecentsView.java b/quickstep/src/com/android/quickstep/views/RecentsView.java
+index e18708b..1384798 100644
+--- a/quickstep/src/com/android/quickstep/views/RecentsView.java
++++ b/quickstep/src/com/android/quickstep/views/RecentsView.java
+@@ -985,6 +985,15 @@ public abstract class RecentsView<T extends BaseActivity> extends PagedView impl
+         runDismissAnimation(createAllTasksDismissAnimation(DISMISS_TASK_DURATION));
+     }
+ 
++    /** ON-FireLOS: what the clear all button at the end of the list does. */
++    public void clearAllTasks() {
++        runDismissAnimation(createAllTasksDismissAnimation(DISMISS_TASK_DURATION));
++    }
++
++    /** ON-FireLOS: called whenever the list may have gained or lost an app. */
++    protected void onTaskCountChanged() {
++    }
++
+     private void dismissCurrentTask() {
+         TaskView taskView = getTaskView(getNextPage());
+         if (taskView != null) {
+@@ -1082,6 +1091,7 @@ public abstract class RecentsView<T extends BaseActivity> extends PagedView impl
+     }
+ 
+     public void updateEmptyMessage() {
++        onTaskCountChanged();
+         boolean isEmpty = getChildCount() == 0;
+         boolean hasSizeChanged = mLastMeasureSize.x != getWidth()
+                 || mLastMeasureSize.y != getHeight();
+diff --git a/res/drawable/ic_options_system_monitor.xml b/res/drawable/ic_options_system_monitor.xml
+new file mode 100644
+index 0000000..28016db
+--- /dev/null
++++ b/res/drawable/ic_options_system_monitor.xml
+@@ -0,0 +1,25 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<!-- The system usage in the long-press menu: four load bars, drawn like its other icons. -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="@dimen/options_menu_icon_size"
++    android:height="@dimen/options_menu_icon_size"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++    <path
++        android:fillColor="?android:attr/textColorPrimary"
++        android:pathData="M4,4.5h11a1,1 0 0 1 0,2h-11a1,1 0 0 1 0,-2z M4,9.5h16a1,1 0 0 1 0,2h-16a1,1 0 0 1 0,-2z M4,14.5h7a1,1 0 0 1 0,2h-7a1,1 0 0 1 0,-2z M4,19.5h13a1,1 0 0 1 0,2h-13a1,1 0 0 1 0,-2z" />
++</vector>
+diff --git a/res/drawable/ic_style.xml b/res/drawable/ic_style.xml
+new file mode 100644
+index 0000000..ea02b35
+--- /dev/null
++++ b/res/drawable/ic_style.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS: "Style" entry of the home-screen menu. Material Icons
++     "palette" (outlined), Apache 2.0. -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++        android:width="@dimen/options_menu_icon_size"
++        android:height="@dimen/options_menu_icon_size"
++        android:viewportWidth="24.0"
++        android:viewportHeight="24.0"
++        android:tint="?android:attr/textColorPrimary" >
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M12,22C6.49,22 2,17.51 2,12S6.49,2 12,2s10,4.04 10,9c0,3.31 -2.69,6 -6,6h-1.77c-0.28,0 -0.5,0.22 -0.5,0.5 0,0.12 0.05,0.23 0.13,0.33 0.41,0.47 0.64,1.06 0.64,1.67 0,1.38 -1.12,2.5 -2.5,2.5zM12,4c-4.41,0 -8,3.59 -8,8s3.59,8 8,8c0.28,0 0.5,-0.22 0.5,-0.5 0,-0.16 -0.08,-0.28 -0.14,-0.35 -0.41,-0.46 -0.63,-1.05 -0.63,-1.65 0,-1.38 1.12,-2.5 2.5,-2.5H16c2.21,0 4,-1.79 4,-4 0,-3.86 -3.59,-7 -8,-7z"/>
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M6.5,11.5m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0M9.5,7.5m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0M14.5,7.5m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0M17.5,11.5m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0"/>
++</vector>
+diff --git a/res/drawable/ic_system_monitor.xml b/res/drawable/ic_system_monitor.xml
+new file mode 100644
+index 0000000..5e1ac70
+--- /dev/null
++++ b/res/drawable/ic_system_monitor.xml
+@@ -0,0 +1,28 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<!-- Four load bars. -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="48dp"
++    android:height="48dp"
++    android:viewportWidth="48"
++    android:viewportHeight="48">
++    <path android:fillColor="#FF37474F"
++        android:pathData="M8,4h32a4,4 0 0 1 4,4v32a4,4 0 0 1 -4,4h-32a4,4 0 0 1 -4,-4v-32a4,4 0 0 1 4,-4z" />
++    <path android:fillColor="#FF8AA366" android:pathData="M10,11h20v3h-20z" />
++    <path android:fillColor="#FF8AA366" android:pathData="M10,19h26v3h-26z" />
++    <path android:fillColor="#FFFFB74D" android:pathData="M10,27h14v3h-14z" />
++    <path android:fillColor="#FF8AA366" android:pathData="M10,35h22v3h-22z" />
++</vector>
+diff --git a/res/layout/system_monitor_widget.xml b/res/layout/system_monitor_widget.xml
+new file mode 100644
+index 0000000..c5fc87c
+--- /dev/null
++++ b/res/layout/system_monitor_widget.xml
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<com.android.launcher3.widget.custom.SystemMonitorView
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent" />
+diff --git a/res/values-af/onfirelos_strings.xml b/res/values-af/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b5fb102
+--- /dev/null
++++ b/res/values-af/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Stelselgebruik</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Berging</string>
++    <string name="webapp_uninstall_message">Die webprogram en sy ikone word verwyder. Wat die werf gestoor het, bly in die blaaier.</string>
++    <string name="webapp_uninstall_title">Deïnstalleer %1$s?</string>
++</resources>
+diff --git a/res/values-am/onfirelos_strings.xml b/res/values-am/onfirelos_strings.xml
+new file mode 100644
+index 0000000..76932e0
+--- /dev/null
++++ b/res/values-am/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">የሥርዓት አጠቃቀም</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ማከማቻ</string>
++    <string name="webapp_uninstall_message">የድር መተግበሪያው እና አዶዎቹ ይወገዳሉ። ጣቢያው ያስቀመጠው በአሳሹ ውስጥ ይቆያል።</string>
++    <string name="webapp_uninstall_title">%1$s ይራገፍ?</string>
++</resources>
+diff --git a/res/values-ar/onfirelos_strings.xml b/res/values-ar/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b3d0d2f
+--- /dev/null
++++ b/res/values-ar/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">استخدام النظام</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">مساحة التخزين</string>
++    <string name="webapp_uninstall_message">ستتم إزالة تطبيق الويب ورموزه. تبقى البيانات التي حفظها الموقع في المتصفح.</string>
++    <string name="webapp_uninstall_title">هل تريد إلغاء تثبيت %1$s؟</string>
++</resources>
+diff --git a/res/values-as/onfirelos_strings.xml b/res/values-as/onfirelos_strings.xml
+new file mode 100644
+index 0000000..dc0b887
+--- /dev/null
++++ b/res/values-as/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ছিষ্টেমৰ ব্যৱহাৰ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ষ্ট’ৰেজ</string>
++    <string name="webapp_uninstall_message">ৱেব এপটো আৰু ইয়াৰ চিহ্নসমূহ আঁতৰোৱা হ’ব। ছাইটটোৱে ছেভ কৰা বস্তুবোৰ ব্ৰাউজাৰত থাকি যাব।</string>
++    <string name="webapp_uninstall_title">%1$s আনইনষ্টল কৰিবনে?</string>
++</resources>
+diff --git a/res/values-az/onfirelos_strings.xml b/res/values-az/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b37e424
+--- /dev/null
++++ b/res/values-az/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Sistem istifadəsi</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Yaddaş</string>
++    <string name="webapp_uninstall_message">Veb tətbiq və onun ikonaları silinir. Saytın yadda saxladıqları brauzerdə qalır.</string>
++    <string name="webapp_uninstall_title">%1$s sistemdən silinsin?</string>
++</resources>
+diff --git a/res/values-be/onfirelos_strings.xml b/res/values-be/onfirelos_strings.xml
+new file mode 100644
+index 0000000..dfbf9a8
+--- /dev/null
++++ b/res/values-be/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Выкарыстанне сістэмы</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Сховішча</string>
++    <string name="webapp_uninstall_message">Вэб-праграма і яе значкі будуць выдалены. Тое, што захаваў сайт, застанецца ў браўзеры.</string>
++    <string name="webapp_uninstall_title">Выдаліць праграму «%1$s»?</string>
++</resources>
+diff --git a/res/values-bg/onfirelos_strings.xml b/res/values-bg/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7f4ad48
+--- /dev/null
++++ b/res/values-bg/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Натоварване на системата</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Хранилище</string>
++    <string name="webapp_uninstall_message">Уеб приложението и иконите му ще бъдат премахнати. Запазеното от сайта остава в браузъра.</string>
++    <string name="webapp_uninstall_title">Да се деинсталира ли „%1$s“?</string>
++</resources>
+diff --git a/res/values-bn/onfirelos_strings.xml b/res/values-bn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..eed35fa
+--- /dev/null
++++ b/res/values-bn/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">সিস্টেমের ব্যবহার</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">স্টোরেজ</string>
++    <string name="webapp_uninstall_message">ওয়েব অ্যাপ ও এর আইকনগুলি সরিয়ে দেওয়া হবে। সাইটটি যা সেভ করেছে তা ব্রাউজারে থেকে যাবে।</string>
++    <string name="webapp_uninstall_title">%1$s আনইনস্টল করবেন?</string>
++</resources>
+diff --git a/res/values-bs/onfirelos_strings.xml b/res/values-bs/onfirelos_strings.xml
+new file mode 100644
+index 0000000..958e0db
+--- /dev/null
++++ b/res/values-bs/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Korištenje sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Pohrana</string>
++    <string name="webapp_uninstall_message">Web aplikacija i njene ikone se uklanjaju. Ono što je stranica sačuvala ostaje u pregledniku.</string>
++    <string name="webapp_uninstall_title">Deinstalirati aplikaciju %1$s?</string>
++</resources>
+diff --git a/res/values-ca/onfirelos_strings.xml b/res/values-ca/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b527dc7
+--- /dev/null
++++ b/res/values-ca/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Ús del sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Emmagatzematge</string>
++    <string name="webapp_uninstall_message">Se suprimiran l\'aplicació web i les seves icones. El que hagi desat el lloc es mantindrà al navegador.</string>
++    <string name="webapp_uninstall_title">Vols desinstal·lar %1$s?</string>
++</resources>
+diff --git a/res/values-cs/onfirelos_strings.xml b/res/values-cs/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0e06bce
+--- /dev/null
++++ b/res/values-cs/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Využití systému</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Úložiště</string>
++    <string name="webapp_uninstall_message">Webová aplikace a její ikony budou odstraněny. Data uložená webem zůstanou v prohlížeči.</string>
++    <string name="webapp_uninstall_title">Odinstalovat aplikaci %1$s?</string>
++</resources>
+diff --git a/res/values-da/onfirelos_strings.xml b/res/values-da/onfirelos_strings.xml
+new file mode 100644
+index 0000000..54d91e8
+--- /dev/null
++++ b/res/values-da/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Systemforbrug</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Lagerplads</string>
++    <string name="webapp_uninstall_message">Webappen og dens ikoner fjernes. Det, websitet har gemt, forbliver i browseren.</string>
++    <string name="webapp_uninstall_title">Vil du afinstallere %1$s?</string>
++</resources>
+diff --git a/res/values-de/onfirelos_menu_strings.xml b/res/values-de/onfirelos_menu_strings.xml
+new file mode 100644
+index 0000000..13e195e
+--- /dev/null
++++ b/res/values-de/onfirelos_menu_strings.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0.
++     Beside the gear, the place says enough (trebuchet-monitor-menu.py). -->
++<resources>
++    <string name="onfirelos_menu_home_settings">Startbildschirm</string>
++</resources>
+diff --git a/res/values-de/onfirelos_strings.xml b/res/values-de/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e986f46
+--- /dev/null
++++ b/res/values-de/onfirelos_strings.xml
+@@ -0,0 +1,25 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <string name="webapp_uninstall_title">„%1$s“ deinstallieren?</string>
++    <string name="webapp_uninstall_message">Die Web-App und ihre Symbole werden entfernt. Was die Seite gespeichert hat, bleibt im Browser.</string>
++
++    <string name="system_monitor_label">Auslastung</string>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_storage">Speicher</string>
++</resources>
+diff --git a/res/values-el/onfirelos_strings.xml b/res/values-el/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fda52a4
+--- /dev/null
++++ b/res/values-el/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Χρήση συστήματος</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Αποθηκευτικός χώρος</string>
++    <string name="webapp_uninstall_message">Η εφαρμογή ιστού και τα εικονίδιά της καταργούνται. Ό,τι αποθήκευσε ο ιστότοπος παραμένει στο πρόγραμμα περιήγησης.</string>
++    <string name="webapp_uninstall_title">Απεγκατάσταση %1$s;</string>
++</resources>
+diff --git a/res/values-es-rUS/onfirelos_strings.xml b/res/values-es-rUS/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e184808
+--- /dev/null
++++ b/res/values-es-rUS/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Uso del sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Almacenamiento</string>
++    <string name="webapp_uninstall_message">Se quitarán la app web y sus íconos. Lo que haya guardado el sitio permanecerá en el navegador.</string>
++    <string name="webapp_uninstall_title">¿Quieres desinstalar %1$s?</string>
++</resources>
+diff --git a/res/values-es/onfirelos_strings.xml b/res/values-es/onfirelos_strings.xml
+new file mode 100644
+index 0000000..77e7fa4
+--- /dev/null
++++ b/res/values-es/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Uso del sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Almacenamiento</string>
++    <string name="webapp_uninstall_message">Se eliminarán la aplicación web y sus iconos. Lo que haya guardado el sitio se conservará en el navegador.</string>
++    <string name="webapp_uninstall_title">¿Desinstalar %1$s?</string>
++</resources>
+diff --git a/res/values-et/onfirelos_strings.xml b/res/values-et/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b81860a
+--- /dev/null
++++ b/res/values-et/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Süsteemi koormus</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Salvestusruum</string>
++    <string name="webapp_uninstall_message">Veebirakendus ja selle ikoonid eemaldatakse. Saidi salvestatud andmed jäävad brauserisse.</string>
++    <string name="webapp_uninstall_title">Kas desinstallida %1$s?</string>
++</resources>
+diff --git a/res/values-eu/onfirelos_strings.xml b/res/values-eu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..bd84871
+--- /dev/null
++++ b/res/values-eu/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Sistemaren erabilera</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Memoria</string>
++    <string name="webapp_uninstall_message">Web-aplikazioa eta haren ikonoak kendu egingo dira. Webguneak gordetakoa arakatzailean geratuko da.</string>
++    <string name="webapp_uninstall_title">%1$s desinstalatu nahi duzu?</string>
++</resources>
+diff --git a/res/values-fa/onfirelos_strings.xml b/res/values-fa/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ea2db84
+--- /dev/null
++++ b/res/values-fa/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">مصرف سیستم</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">فضای ذخیره‌سازی</string>
++    <string name="webapp_uninstall_message">برنامه وب و نمادهای آن حذف می‌شوند. آنچه سایت ذخیره کرده است در مرورگر باقی می‌ماند.</string>
++    <string name="webapp_uninstall_title">%1$s حذف نصب شود؟</string>
++</resources>
+diff --git a/res/values-fi/onfirelos_strings.xml b/res/values-fi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..60d172b
+--- /dev/null
++++ b/res/values-fi/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Järjestelmän kuormitus</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Tallennustila</string>
++    <string name="webapp_uninstall_message">Verkkosovellus ja sen kuvakkeet poistetaan. Sivuston tallentamat tiedot jäävät selaimeen.</string>
++    <string name="webapp_uninstall_title">Poistetaanko %1$s?</string>
++</resources>
+diff --git a/res/values-fr-rCA/onfirelos_strings.xml b/res/values-fr-rCA/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d51f885
+--- /dev/null
++++ b/res/values-fr-rCA/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Utilisation du système</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Stockage</string>
++    <string name="webapp_uninstall_message">L\'appli Web et ses icônes seront supprimées. Les données enregistrées par le site restent dans le navigateur.</string>
++    <string name="webapp_uninstall_title">Désinstaller %1$s?</string>
++</resources>
+diff --git a/res/values-fr/onfirelos_strings.xml b/res/values-fr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..27244b5
+--- /dev/null
++++ b/res/values-fr/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Utilisation du système</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Stockage</string>
++    <string name="webapp_uninstall_message">L\'application Web et ses icônes seront supprimées. Les données enregistrées par le site restent dans le navigateur.</string>
++    <string name="webapp_uninstall_title">Désinstaller %1$s ?</string>
++</resources>
+diff --git a/res/values-gl/onfirelos_strings.xml b/res/values-gl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..83f92ee
+--- /dev/null
++++ b/res/values-gl/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Uso do sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Almacenamento</string>
++    <string name="webapp_uninstall_message">Quitaranse a aplicación web e as súas iconas. O que gardou o sitio permanece no navegador.</string>
++    <string name="webapp_uninstall_title">Queres desinstalar %1$s?</string>
++</resources>
+diff --git a/res/values-gu/onfirelos_strings.xml b/res/values-gu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..283ca5d
+--- /dev/null
++++ b/res/values-gu/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">સિસ્ટમ વપરાશ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">સ્ટોરેજ</string>
++    <string name="webapp_uninstall_message">વેબ ઍપ અને તેના આઇકન કાઢી નાખવામાં આવશે. સાઇટે સાચવેલો ડેટા બ્રાઉઝરમાં રહે છે.</string>
++    <string name="webapp_uninstall_title">%1$s અનઇન્સ્ટૉલ કરીએ?</string>
++</resources>
+diff --git a/res/values-hi/onfirelos_strings.xml b/res/values-hi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..997676d
+--- /dev/null
++++ b/res/values-hi/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">सिस्टम का इस्तेमाल</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">स्टोरेज</string>
++    <string name="webapp_uninstall_message">वेब ऐप्लिकेशन और उसके आइकॉन हटा दिए जाएंगे. साइट ने जो डेटा सेव किया है वह ब्राउज़र में रहता है.</string>
++    <string name="webapp_uninstall_title">%1$s को अनइंस्टॉल करें?</string>
++</resources>
+diff --git a/res/values-hr/onfirelos_strings.xml b/res/values-hr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7020201
+--- /dev/null
++++ b/res/values-hr/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Iskorištenost sustava</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Pohrana</string>
++    <string name="webapp_uninstall_message">Web-aplikacija i njezine ikone uklonit će se. Ono što je web-lokacija spremila ostaje u pregledniku.</string>
++    <string name="webapp_uninstall_title">Deinstalirati %1$s?</string>
++</resources>
+diff --git a/res/values-hu/onfirelos_strings.xml b/res/values-hu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..5c9df16
+--- /dev/null
++++ b/res/values-hu/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Rendszerterhelés</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Tárhely</string>
++    <string name="webapp_uninstall_message">A webalkalmazás és ikonjai eltávolításra kerülnek. Amit a webhely tárolt, az a böngészőben marad.</string>
++    <string name="webapp_uninstall_title">Eltávolítja a következőt: %1$s?</string>
++</resources>
+diff --git a/res/values-hy/onfirelos_strings.xml b/res/values-hy/onfirelos_strings.xml
+new file mode 100644
+index 0000000..5751095
+--- /dev/null
++++ b/res/values-hy/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Համակարգի բեռնվածություն</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Հիշողություն</string>
++    <string name="webapp_uninstall_message">Վեբ հավելվածը և դրա պատկերակները կհեռացվեն։ Կայքի պահած տվյալները կմնան դիտարկիչում։</string>
++    <string name="webapp_uninstall_title">Ապատեղադրե՞լ %1$s հավելվածը</string>
++</resources>
+diff --git a/res/values-in/onfirelos_strings.xml b/res/values-in/onfirelos_strings.xml
+new file mode 100644
+index 0000000..40a81be
+--- /dev/null
++++ b/res/values-in/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Penggunaan sistem</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Penyimpanan</string>
++    <string name="webapp_uninstall_message">Aplikasi web dan ikonnya akan dihapus. Data yang disimpan situs tetap ada di browser.</string>
++    <string name="webapp_uninstall_title">Uninstal %1$s?</string>
++</resources>
+diff --git a/res/values-is/onfirelos_strings.xml b/res/values-is/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e696f7e
+--- /dev/null
++++ b/res/values-is/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Kerfisnotkun</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Geymslurými</string>
++    <string name="webapp_uninstall_message">Vefforritið og tákn þess verða fjarlægð. Gögn sem vefsvæðið vistaði verða áfram í vafranum.</string>
++    <string name="webapp_uninstall_title">Fjarlægja %1$s?</string>
++</resources>
+diff --git a/res/values-it/onfirelos_strings.xml b/res/values-it/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f406e10
+--- /dev/null
++++ b/res/values-it/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Utilizzo del sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Archiviazione</string>
++    <string name="webapp_uninstall_message">L\'app web e le relative icone verranno rimosse. I dati salvati dal sito rimangono nel browser.</string>
++    <string name="webapp_uninstall_title">Disinstallare %1$s?</string>
++</resources>
+diff --git a/res/values-iw/onfirelos_strings.xml b/res/values-iw/onfirelos_strings.xml
+new file mode 100644
+index 0000000..114297b
+--- /dev/null
++++ b/res/values-iw/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ניצול המערכת</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">אחסון</string>
++    <string name="webapp_uninstall_message">אפליקציית האינטרנט והסמלים שלה יוסרו. הנתונים שהאתר שמר יישארו בדפדפן.</string>
++    <string name="webapp_uninstall_title">להסיר את ההתקנה של %1$s?</string>
++</resources>
+diff --git a/res/values-ja/onfirelos_strings.xml b/res/values-ja/onfirelos_strings.xml
+new file mode 100644
+index 0000000..535393c
+--- /dev/null
++++ b/res/values-ja/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">システム使用率</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ストレージ</string>
++    <string name="webapp_uninstall_message">ウェブアプリとそのアイコンが削除されます。サイトが保存したデータはブラウザに残ります。</string>
++    <string name="webapp_uninstall_title">%1$s をアンインストールしますか？</string>
++</resources>
+diff --git a/res/values-ka/onfirelos_strings.xml b/res/values-ka/onfirelos_strings.xml
+new file mode 100644
+index 0000000..dde3d49
+--- /dev/null
++++ b/res/values-ka/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">სისტემის დატვირთვა</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">მეხსიერება</string>
++    <string name="webapp_uninstall_message">ვებ-აპი და მისი ხატულები წაიშლება. საიტის მიერ შენახული მონაცემები ბრაუზერში დარჩება.</string>
++    <string name="webapp_uninstall_title">დეინსტალირდეს %1$s?</string>
++</resources>
+diff --git a/res/values-kk/onfirelos_strings.xml b/res/values-kk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2cee995
+--- /dev/null
++++ b/res/values-kk/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Жүйе жүктемесі</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Сақтау орны</string>
++    <string name="webapp_uninstall_message">Веб-қолданба мен оның белгішелері өшіріледі. Сайт сақтаған деректер браузерде қалады.</string>
++    <string name="webapp_uninstall_title">%1$s жойылсын ба?</string>
++</resources>
+diff --git a/res/values-km/onfirelos_strings.xml b/res/values-km/onfirelos_strings.xml
+new file mode 100644
+index 0000000..1ee814d
+--- /dev/null
++++ b/res/values-km/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ការប្រើប្រាស់ប្រព័ន្ធ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ទំហំផ្ទុក</string>
++    <string name="webapp_uninstall_message">កម្មវិធីបណ្ដាញ និងរូបតំណាងរបស់វានឹងត្រូវបានលុប។ ទិន្នន័យដែលគេហទំព័របានរក្សាទុកនៅតែមាននៅក្នុងកម្មវិធីរុករក។</string>
++    <string name="webapp_uninstall_title">លុបការដំឡើង %1$s?</string>
++</resources>
+diff --git a/res/values-kn/onfirelos_strings.xml b/res/values-kn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8918e89
+--- /dev/null
++++ b/res/values-kn/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ಸಿಸ್ಟಂ ಬಳಕೆ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ಸಂಗ್ರಹಣೆ</string>
++    <string name="webapp_uninstall_message">ವೆಬ್ ಆ್ಯಪ್ ಮತ್ತು ಅದರ ಐಕಾನ್‌ಗಳನ್ನು ತೆಗೆದುಹಾಕಲಾಗುತ್ತದೆ. ಸೈಟ್ ಉಳಿಸಿರುವ ಡೇಟಾ ಬ್ರೌಸರ್‌ನಲ್ಲೇ ಉಳಿಯುತ್ತದೆ.</string>
++    <string name="webapp_uninstall_title">%1$s ಅನ್ನು ಅನ್‌ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಬೇಕೇ?</string>
++</resources>
+diff --git a/res/values-ko/onfirelos_strings.xml b/res/values-ko/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0e19172
+--- /dev/null
++++ b/res/values-ko/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">시스템 사용량</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">저장용량</string>
++    <string name="webapp_uninstall_message">웹 앱과 아이콘이 삭제됩니다. 사이트에서 저장한 데이터는 브라우저에 남아 있습니다.</string>
++    <string name="webapp_uninstall_title">%1$s을(를) 제거하시겠습니까?</string>
++</resources>
+diff --git a/res/values-ky/onfirelos_strings.xml b/res/values-ky/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d76327d
+--- /dev/null
++++ b/res/values-ky/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Тутумдун жүктөлүшү</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Сактагыч</string>
++    <string name="webapp_uninstall_message">Веб-колдонмо жана анын сүрөтчөлөрү өчүрүлөт. Сайт сактаган маалыматтар серепчиде калат.</string>
++    <string name="webapp_uninstall_title">%1$s чыгарылып салынсынбы?</string>
++</resources>
+diff --git a/res/values-lo/onfirelos_strings.xml b/res/values-lo/onfirelos_strings.xml
+new file mode 100644
+index 0000000..9520220
+--- /dev/null
++++ b/res/values-lo/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ການນຳໃຊ້ລະບົບ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ບ່ອນຈັດເກັບຂໍ້ມູນ</string>
++    <string name="webapp_uninstall_message">ເວັບແອັບ ແລະ ໄອຄອນຂອງມັນຈະຖືກລຶບອອກ. ຂໍ້ມູນທີ່ເວັບໄຊບັນທຶກໄວ້ຈະຍັງຢູ່ໃນໂປຣແກຣມທ່ອງເວັບ.</string>
++    <string name="webapp_uninstall_title">ຖອນການຕິດຕັ້ງ %1$s ບໍ?</string>
++</resources>
+diff --git a/res/values-lt/onfirelos_strings.xml b/res/values-lt/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d11fe8d
+--- /dev/null
++++ b/res/values-lt/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Sistemos apkrova</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Saugykla</string>
++    <string name="webapp_uninstall_message">Žiniatinklio programa ir jos piktogramos pašalinamos. Svetainės išsaugoti duomenys lieka naršyklėje.</string>
++    <string name="webapp_uninstall_title">Pašalinti „%1$s“?</string>
++</resources>
+diff --git a/res/values-lv/onfirelos_strings.xml b/res/values-lv/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2d3ee8f
+--- /dev/null
++++ b/res/values-lv/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Sistēmas noslodze</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Krātuve</string>
++    <string name="webapp_uninstall_message">Tīmekļa lietotne un tās ikonas tiek noņemtas. Vietnes saglabātie dati paliek pārlūkā.</string>
++    <string name="webapp_uninstall_title">Vai atinstalēt lietotni %1$s?</string>
++</resources>
+diff --git a/res/values-mk/onfirelos_strings.xml b/res/values-mk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..9df5e04
+--- /dev/null
++++ b/res/values-mk/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Искористеност на системот</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Капацитет</string>
++    <string name="webapp_uninstall_message">Веб-апликацијата и нејзините икони се отстрануваат. Она што сајтот го зачувал останува во прелистувачот.</string>
++    <string name="webapp_uninstall_title">Да се деинсталира „%1$s“?</string>
++</resources>
+diff --git a/res/values-ml/onfirelos_strings.xml b/res/values-ml/onfirelos_strings.xml
+new file mode 100644
+index 0000000..002a6e6
+--- /dev/null
++++ b/res/values-ml/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">സിസ്റ്റം ഉപയോഗം</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">സ്റ്റോറേജ്</string>
++    <string name="webapp_uninstall_message">വെബ് ആപ്പും അതിന്റെ ഐക്കണുകളും നീക്കം ചെയ്യും. സൈറ്റ് സംഭരിച്ചവ ബ്രൗസറിൽ തന്നെ നിലനിൽക്കും.</string>
++    <string name="webapp_uninstall_title">%1$s അൺഇൻസ്റ്റാൾ ചെയ്യണോ?</string>
++</resources>
+diff --git a/res/values-mn/onfirelos_strings.xml b/res/values-mn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f37e0c5
+--- /dev/null
++++ b/res/values-mn/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Системийн ачаалал</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Хадгалах сан</string>
++    <string name="webapp_uninstall_message">Веб апп болон түүний дүрс тэмдгүүдийг устгана. Сайтын хадгалсан зүйлс хөтөчид үлдэнэ.</string>
++    <string name="webapp_uninstall_title">%1$s-г устгах уу?</string>
++</resources>
+diff --git a/res/values-mr/onfirelos_strings.xml b/res/values-mr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7fe895a
+--- /dev/null
++++ b/res/values-mr/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">सिस्टम वापर</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">स्टोरेज</string>
++    <string name="webapp_uninstall_message">वेब ॲप आणि त्याचे आयकन काढले जातात. साइटने स्टोअर केलेला डेटा ब्राउझरमध्येच राहतो.</string>
++    <string name="webapp_uninstall_title">%1$s अनइंस्टॉल करायचे?</string>
++</resources>
+diff --git a/res/values-ms/onfirelos_strings.xml b/res/values-ms/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e43f49d
+--- /dev/null
++++ b/res/values-ms/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Penggunaan sistem</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Storan</string>
++    <string name="webapp_uninstall_message">Apl web dan ikonnya dialih keluar. Data yang disimpan oleh tapak kekal dalam penyemak imbas.</string>
++    <string name="webapp_uninstall_title">Nyahpasang %1$s?</string>
++</resources>
+diff --git a/res/values-my/onfirelos_strings.xml b/res/values-my/onfirelos_strings.xml
+new file mode 100644
+index 0000000..766a79c
+--- /dev/null
++++ b/res/values-my/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">စနစ် အသုံးပြုမှု</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">သိုလှောင်ခန်း</string>
++    <string name="webapp_uninstall_message">ဝဘ်အက်ပ်နှင့် ၎င်း၏ သင်္ကေတများကို ဖယ်ရှားမည်။ ဝဘ်ဆိုက်က သိမ်းထားသည့်အရာများ ဘရောင်ဇာတွင် ကျန်ရှိမည်။</string>
++    <string name="webapp_uninstall_title">%1$s ကို ဖယ်ရှားမလား။</string>
++</resources>
+diff --git a/res/values-nb/onfirelos_strings.xml b/res/values-nb/onfirelos_strings.xml
+new file mode 100644
+index 0000000..938f18f
+--- /dev/null
++++ b/res/values-nb/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Systembruk</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Lagring</string>
++    <string name="webapp_uninstall_message">Nettappen og ikonene dens fjernes. Det nettstedet har lagret, blir værende i nettleseren.</string>
++    <string name="webapp_uninstall_title">Vil du avinstallere %1$s?</string>
++</resources>
+diff --git a/res/values-ne/onfirelos_strings.xml b/res/values-ne/onfirelos_strings.xml
+new file mode 100644
+index 0000000..afa67d8
+--- /dev/null
++++ b/res/values-ne/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">प्रणालीको प्रयोग</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">भण्डारण</string>
++    <string name="webapp_uninstall_message">वेब एप र यसका आइकनहरू हटाइन्छन्। साइटले भण्डारण गरेका कुराहरू ब्राउजरमै रहन्छन्।</string>
++    <string name="webapp_uninstall_title">%1$s को स्थापना रद्द गर्ने हो?</string>
++</resources>
+diff --git a/res/values-nl/onfirelos_strings.xml b/res/values-nl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ec3c34a
+--- /dev/null
++++ b/res/values-nl/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Systeemgebruik</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Opslag</string>
++    <string name="webapp_uninstall_message">De web-app en de bijbehorende iconen worden verwijderd. Wat de site heeft opgeslagen, blijft in de browser.</string>
++    <string name="webapp_uninstall_title">%1$s verwijderen?</string>
++</resources>
+diff --git a/res/values-or/onfirelos_strings.xml b/res/values-or/onfirelos_strings.xml
+new file mode 100644
+index 0000000..9de0b4f
+--- /dev/null
++++ b/res/values-or/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ସିଷ୍ଟମ୍ ବ୍ୟବହାର</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ଷ୍ଟୋରେଜ୍</string>
++    <string name="webapp_uninstall_message">ୱେବ୍ ଆପ୍ ଏବଂ ଏହାର ଆଇକନଗୁଡ଼ିକୁ କାଢ଼ି ଦିଆଯାଏ। ସାଇଟ୍ ଯାହା ସେଭ୍ କରିଛି ତାହା ବ୍ରାଉଜରରେ ରହେ।</string>
++    <string name="webapp_uninstall_title">%1$s ଅନଇନଷ୍ଟଲ୍ କରିବେ?</string>
++</resources>
+diff --git a/res/values-pa/onfirelos_strings.xml b/res/values-pa/onfirelos_strings.xml
+new file mode 100644
+index 0000000..df225fb
+--- /dev/null
++++ b/res/values-pa/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">ਸਿਸਟਮ ਵਰਤੋਂ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ਸਟੋਰੇਜ</string>
++    <string name="webapp_uninstall_message">ਵੈੱਬ ਐਪ ਅਤੇ ਇਸਦੇ ਪ੍ਰਤੀਕ ਹਟਾ ਦਿੱਤੇ ਜਾਂਦੇ ਹਨ। ਸਾਈਟ ਵੱਲੋਂ ਰੱਖਿਅਤ ਕੀਤਾ ਡਾਟਾ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਹੀ ਰਹਿੰਦਾ ਹੈ।</string>
++    <string name="webapp_uninstall_title">ਕੀ %1$s ਨੂੰ ਅਣਸਥਾਪਤ ਕਰਨਾ ਹੈ?</string>
++</resources>
+diff --git a/res/values-pl/onfirelos_strings.xml b/res/values-pl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..741f39a
+--- /dev/null
++++ b/res/values-pl/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Obciążenie systemu</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Pamięć wewnętrzna</string>
++    <string name="webapp_uninstall_message">Aplikacja internetowa i jej ikony zostaną usunięte. Dane zapisane przez stronę pozostaną w przeglądarce.</string>
++    <string name="webapp_uninstall_title">Odinstalować %1$s?</string>
++</resources>
+diff --git a/res/values-pt-rBR/onfirelos_strings.xml b/res/values-pt-rBR/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e9916bc
+--- /dev/null
++++ b/res/values-pt-rBR/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Uso do sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Armazenamento</string>
++    <string name="webapp_uninstall_message">O app da Web e os ícones dele serão removidos. O que o site armazenou permanece no navegador.</string>
++    <string name="webapp_uninstall_title">Desinstalar %1$s?</string>
++</resources>
+diff --git a/res/values-pt-rPT/onfirelos_strings.xml b/res/values-pt-rPT/onfirelos_strings.xml
+new file mode 100644
+index 0000000..05dde5f
+--- /dev/null
++++ b/res/values-pt-rPT/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Utilização do sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Armazenamento</string>
++    <string name="webapp_uninstall_message">A app Web e os respetivos ícones são removidos. O que o site guardou permanece no navegador.</string>
++    <string name="webapp_uninstall_title">Desinstalar %1$s?</string>
++</resources>
+diff --git a/res/values-pt/onfirelos_strings.xml b/res/values-pt/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e9916bc
+--- /dev/null
++++ b/res/values-pt/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Uso do sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Armazenamento</string>
++    <string name="webapp_uninstall_message">O app da Web e os ícones dele serão removidos. O que o site armazenou permanece no navegador.</string>
++    <string name="webapp_uninstall_title">Desinstalar %1$s?</string>
++</resources>
+diff --git a/res/values-ro/onfirelos_strings.xml b/res/values-ro/onfirelos_strings.xml
+new file mode 100644
+index 0000000..271b156
+--- /dev/null
++++ b/res/values-ro/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Utilizarea sistemului</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Stocare</string>
++    <string name="webapp_uninstall_message">Aplicația web și pictogramele ei sunt eliminate. Ce a stocat site-ul rămâne în browser.</string>
++    <string name="webapp_uninstall_title">Dezinstalați %1$s?</string>
++</resources>
+diff --git a/res/values-ru/onfirelos_strings.xml b/res/values-ru/onfirelos_strings.xml
+new file mode 100644
+index 0000000..adef96c
+--- /dev/null
++++ b/res/values-ru/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Загрузка системы</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Хранилище</string>
++    <string name="webapp_uninstall_message">Веб-приложение и его значки будут удалены. Данные, сохраненные сайтом, останутся в браузере.</string>
++    <string name="webapp_uninstall_title">Удалить «%1$s»?</string>
++</resources>
+diff --git a/res/values-si/onfirelos_strings.xml b/res/values-si/onfirelos_strings.xml
+new file mode 100644
+index 0000000..668962a
+--- /dev/null
++++ b/res/values-si/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">පද්ධති භාවිතය</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">ගබඩාව</string>
++    <string name="webapp_uninstall_message">වෙබ් යෙදුම සහ එහි නිරූපක ඉවත් කෙරේ. අඩවිය සුරකින ලද දේ බ්‍රවුසරයේ ඉතිරි වේ.</string>
++    <string name="webapp_uninstall_title">%1$s අස්ථාපනය කරන්නද?</string>
++</resources>
+diff --git a/res/values-sk/onfirelos_strings.xml b/res/values-sk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2f2f486
+--- /dev/null
++++ b/res/values-sk/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Vyťaženie systému</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Úložisko</string>
++    <string name="webapp_uninstall_message">Webová aplikácia a jej ikony budú odstránené. Údaje uložené webom zostanú v prehliadači.</string>
++    <string name="webapp_uninstall_title">Odinštalovať %1$s?</string>
++</resources>
+diff --git a/res/values-sl/onfirelos_strings.xml b/res/values-sl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..605d5c4
+--- /dev/null
++++ b/res/values-sl/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Obremenitev sistema</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Shramba</string>
++    <string name="webapp_uninstall_message">Spletna aplikacija in njene ikone bodo odstranjene. Podatki, ki jih je shranilo spletno mesto, ostanejo v brskalniku.</string>
++    <string name="webapp_uninstall_title">Želite odstraniti %1$s?</string>
++</resources>
+diff --git a/res/values-sq/onfirelos_strings.xml b/res/values-sq/onfirelos_strings.xml
+new file mode 100644
+index 0000000..cf2369f
+--- /dev/null
++++ b/res/values-sq/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Ngarkesa e sistemit</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Hapësira ruajtëse</string>
++    <string name="webapp_uninstall_message">Aplikacioni i uebit dhe ikonat e tij do të hiqen. Të dhënat që ka ruajtur sajti mbeten në shfletues.</string>
++    <string name="webapp_uninstall_title">Të çinstalohet %1$s?</string>
++</resources>
+diff --git a/res/values-sr/onfirelos_strings.xml b/res/values-sr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..51d152d
+--- /dev/null
++++ b/res/values-sr/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Оптерећење система</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Меморијски простор</string>
++    <string name="webapp_uninstall_message">Веб-апликација и њене иконе биће уклоњене. Оно што је сајт сачувао остаје у прегледачу.</string>
++    <string name="webapp_uninstall_title">Желите да деинсталирате %1$s?</string>
++</resources>
+diff --git a/res/values-sv/onfirelos_strings.xml b/res/values-sv/onfirelos_strings.xml
+new file mode 100644
+index 0000000..59af6b6
+--- /dev/null
++++ b/res/values-sv/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Systembelastning</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Lagring</string>
++    <string name="webapp_uninstall_message">Webbappen och dess ikoner tas bort. Det som webbplatsen har sparat finns kvar i webbläsaren.</string>
++    <string name="webapp_uninstall_title">Vill du avinstallera %1$s?</string>
++</resources>
+diff --git a/res/values-sw/onfirelos_strings.xml b/res/values-sw/onfirelos_strings.xml
+new file mode 100644
+index 0000000..65187ab
+--- /dev/null
++++ b/res/values-sw/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Matumizi ya mfumo</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Hifadhi</string>
++    <string name="webapp_uninstall_message">Programu ya wavuti na aikoni zake zitaondolewa. Data iliyohifadhiwa na tovuti itabaki kwenye kivinjari.</string>
++    <string name="webapp_uninstall_title">Ungependa kuondoa %1$s?</string>
++</resources>
+diff --git a/res/values-ta/onfirelos_strings.xml b/res/values-ta/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6f59dba
+--- /dev/null
++++ b/res/values-ta/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">சிஸ்டம் பயன்பாடு</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">சேமிப்பகம்</string>
++    <string name="webapp_uninstall_message">இணைய ஆப்ஸும் அதன் ஐகான்களும் அகற்றப்படும். தளம் சேமித்தவை உலாவியிலேயே இருக்கும்.</string>
++    <string name="webapp_uninstall_title">%1$s ஆப்ஸை நிறுவல் நீக்கவா?</string>
++</resources>
+diff --git a/res/values-te/onfirelos_strings.xml b/res/values-te/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c76c0a7
+--- /dev/null
++++ b/res/values-te/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">సిస్టమ్ వినియోగం</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">స్టోరేజ్</string>
++    <string name="webapp_uninstall_message">వెబ్ యాప్, దాని చిహ్నాలు తీసివేయబడతాయి. సైట్ సేవ్ చేసినవి బ్రౌజర్‌లోనే ఉంటాయి.</string>
++    <string name="webapp_uninstall_title">%1$s‌ను అన్‌ఇన్‌స్టాల్ చేయాలా?</string>
++</resources>
+diff --git a/res/values-th/onfirelos_strings.xml b/res/values-th/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d8020f0
+--- /dev/null
++++ b/res/values-th/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">การใช้งานระบบ</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">พื้นที่เก็บข้อมูล</string>
++    <string name="webapp_uninstall_message">ระบบจะนำเว็บแอปและไอคอนออก ข้อมูลที่เว็บไซต์จัดเก็บไว้จะยังอยู่ในเบราว์เซอร์</string>
++    <string name="webapp_uninstall_title">ถอนการติดตั้ง %1$s ไหม</string>
++</resources>
+diff --git a/res/values-tl/onfirelos_strings.xml b/res/values-tl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c6fcb60
+--- /dev/null
++++ b/res/values-tl/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Paggamit ng system</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Storage</string>
++    <string name="webapp_uninstall_message">Aalisin ang web app at ang mga icon nito. Mananatili sa browser ang data na na-store ng site.</string>
++    <string name="webapp_uninstall_title">I-uninstall ang %1$s?</string>
++</resources>
+diff --git a/res/values-tr/onfirelos_strings.xml b/res/values-tr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..79bcf02
+--- /dev/null
++++ b/res/values-tr/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Sistem kullanımı</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Depolama</string>
++    <string name="webapp_uninstall_message">Web uygulaması ve simgeleri kaldırılır. Sitenin depoladığı veriler tarayıcıda kalır.</string>
++    <string name="webapp_uninstall_title">%1$s kaldırılsın mı?</string>
++</resources>
+diff --git a/res/values-uk/onfirelos_strings.xml b/res/values-uk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fd30c5a
+--- /dev/null
++++ b/res/values-uk/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Навантаження системи</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Пам’ять</string>
++    <string name="webapp_uninstall_message">Веб-додаток і його значки буде видалено. Дані, збережені сайтом, залишаться в браузері.</string>
++    <string name="webapp_uninstall_title">Видалити «%1$s»?</string>
++</resources>
+diff --git a/res/values-ur/onfirelos_strings.xml b/res/values-ur/onfirelos_strings.xml
+new file mode 100644
+index 0000000..302adbc
+--- /dev/null
++++ b/res/values-ur/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">سسٹم کا استعمال</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">اسٹوریج</string>
++    <string name="webapp_uninstall_message">ویب ایپ اور اس کے آئیکنز ہٹا دیے جائیں گے۔ سائٹ نے جو کچھ محفوظ کیا ہے وہ براؤزر میں رہے گا۔</string>
++    <string name="webapp_uninstall_title">%1$s کو اَن انسٹال کریں؟</string>
++</resources>
+diff --git a/res/values-uz/onfirelos_strings.xml b/res/values-uz/onfirelos_strings.xml
+new file mode 100644
+index 0000000..721faf2
+--- /dev/null
++++ b/res/values-uz/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Tizim yuklamasi</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Xotira</string>
++    <string name="webapp_uninstall_message">Veb ilova va uning belgilari olib tashlanadi. Sayt saqlagan maʼlumotlar brauzerda qoladi.</string>
++    <string name="webapp_uninstall_title">%1$s o‘chirib tashlansinmi?</string>
++</resources>
+diff --git a/res/values-vi/onfirelos_strings.xml b/res/values-vi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7fcb3b0
+--- /dev/null
++++ b/res/values-vi/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Mức sử dụng hệ thống</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Bộ nhớ</string>
++    <string name="webapp_uninstall_message">Ứng dụng web và các biểu tượng của ứng dụng sẽ bị xóa. Dữ liệu mà trang web đã lưu vẫn còn trong trình duyệt.</string>
++    <string name="webapp_uninstall_title">Gỡ cài đặt %1$s?</string>
++</resources>
+diff --git a/res/values-zh-rCN/onfirelos_strings.xml b/res/values-zh-rCN/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8050cf8
+--- /dev/null
++++ b/res/values-zh-rCN/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">系统负载</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">存储空间</string>
++    <string name="webapp_uninstall_message">系统将移除此网页应用及其图标。网站存储的数据会保留在浏览器中。</string>
++    <string name="webapp_uninstall_title">要卸载“%1$s”吗？</string>
++</resources>
+diff --git a/res/values-zh-rHK/onfirelos_strings.xml b/res/values-zh-rHK/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ab6f823
+--- /dev/null
++++ b/res/values-zh-rHK/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">系統負載</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">儲存空間</string>
++    <string name="webapp_uninstall_message">系統將移除此網頁應用程式及其圖示。網站儲存的資料會保留在瀏覽器中。</string>
++    <string name="webapp_uninstall_title">要解除安裝「%1$s」嗎？</string>
++</resources>
+diff --git a/res/values-zh-rTW/onfirelos_strings.xml b/res/values-zh-rTW/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0b5d972
+--- /dev/null
++++ b/res/values-zh-rTW/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">系統負載</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">儲存空間</string>
++    <string name="webapp_uninstall_message">系統將移除這個網頁應用程式及其圖示。網站儲存的資料會保留在瀏覽器中。</string>
++    <string name="webapp_uninstall_title">要解除安裝「%1$s」嗎？</string>
++</resources>
+diff --git a/res/values-zu/onfirelos_strings.xml b/res/values-zu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..db0391b
+--- /dev/null
++++ b/res/values-zu/onfirelos_strings.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_label">Ukusetshenziswa kwesistimu</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_storage">Isitoreji</string>
++    <string name="webapp_uninstall_message">Uhlelo lokusebenza lwewebhu nezithonjana zalo kuzosuswa. Okulondolozwe yisayithi kuhlala esipheqululini.</string>
++    <string name="webapp_uninstall_title">Khipha i-%1$s?</string>
++</resources>
+diff --git a/res/values/onfirelos_menu_strings.xml b/res/values/onfirelos_menu_strings.xml
+new file mode 100644
+index 0000000..629ef64
+--- /dev/null
++++ b/res/values/onfirelos_menu_strings.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0.
++     The long-press menu's entry for the home settings: every language's own
++     translation of "Home settings", German shorter (trebuchet-monitor-menu.py). -->
++<resources>
++    <string name="onfirelos_menu_home_settings">@string/settings_button_text</string>
++</resources>
+diff --git a/res/values/onfirelos_strings.xml b/res/values/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7bee62b
+--- /dev/null
++++ b/res/values/onfirelos_strings.xml
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- Uninstalling a web app installed from the browser -->
++    <string name="webapp_uninstall_title">Uninstall %1$s?</string>
++    <string name="webapp_uninstall_message">The web app and its icons are removed. What the site stored stays in the browser.</string>
++
++    <!-- Home screen widget showing system load -->
++    <string name="system_monitor_label">System usage</string>
++    <string name="system_monitor_cpu">CPU</string>
++    <string name="system_monitor_ram">RAM</string>
++    <string name="system_monitor_gpu">GPU</string>
++    <string name="system_monitor_storage">Storage</string>
++</resources>
+diff --git a/res/xml/custom_widgets.xml b/res/xml/custom_widgets.xml
+index 4b54386..6c0c9c5 100644
+--- a/res/xml/custom_widgets.xml
++++ b/res/xml/custom_widgets.xml
+@@ -15,7 +15,19 @@
+      limitations under the License.
+ -->
+ 
+-<widgets>
++<widgets xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:launcher="http://schemas.android.com/apk/res-auto">
++    <!-- ON-FireLOS: CPU, memory, GPU and storage use, drawn by the launcher. -->
++    <widget
++        android:label="@string/system_monitor_label"
++        android:initialLayout="@layout/system_monitor_widget"
++        android:icon="@drawable/ic_system_monitor"
++        android:resizeMode="horizontal|vertical"
++        launcher:numRows="2"
++        launcher:numColumns="2"
++        launcher:numMinRows="1"
++        launcher:numMinColumns="2"
++        launcher:providerId="1" />
+     <!-- Sample widget definition
+         <widget
+             android:label="My custom widget"
+@@ -28,4 +40,4 @@
+             launcher:numMinColumns="2"
+             launcher:providerId="1" />
+     -->
+-</widgets>
+\ No newline at end of file
++</widgets>
+diff --git a/res/xml/default_workspace_5x6.xml b/res/xml/default_workspace_5x6.xml
+index fad3bcb..7386e3b 100644
+--- a/res/xml/default_workspace_5x6.xml
++++ b/res/xml/default_workspace_5x6.xml
+@@ -1,135 +1,77 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<!-- Copyright (C) 2012 The Android Open Source Project
+-
+-     Licensed under the Apache License, Version 2.0 (the "License");
+-     you may not use this file except in compliance with the License.
+-     You may obtain a copy of the License at
+-
+-          http://www.apache.org/licenses/LICENSE-2.0
+-
+-     Unless required by applicable law or agreed to in writing, software
+-     distributed under the License is distributed on an "AS IS" BASIS,
+-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-     See the License for the specific language governing permissions and
+-     limitations under the License.
+--->
+-
++<!-- Copyright (C) 2026 ON-FireLOS, Apache-2.0. The home screen of a new
++     installation on the tablet (launcher-default.py): the dock, the glance
++     widget, the system monitor. -->
+ <favorites xmlns:launcher="http://schemas.android.com/apk/res-auto/com.android.launcher3">
+ 
+-    <!-- Hotseat -->
+-    <include launcher:workspace="@xml/dw_phone_hotseat" />
+-
+-    <!-- Screen 0 -->
+-    <appwidget
+-        launcher:packageName="com.google.android.googlequicksearchbox"
+-        launcher:className="com.google.android.googlequicksearchbox.SearchWidgetProvider"
++    <!-- Dock (the screen is the position) -->
++    <favorite
++        launcher:container="-101"
+         launcher:screen="0"
+         launcher:x="0"
+         launcher:y="0"
+-        launcher:spanX="5"
+-        launcher:spanY="1" />
++        launcher:packageName="com.aurora.store"
++        launcher:className="com.aurora.store.ComposeActivity" />
++    <favorite
++        launcher:container="-101"
++        launcher:screen="1"
++        launcher:x="1"
++        launcher:y="0"
++        launcher:packageName="com.android.gallery3d"
++        launcher:className="com.android.gallery3d.app.GalleryActivity" />
++    <favorite
++        launcher:container="-101"
++        launcher:screen="2"
++        launcher:x="2"
++        launcher:y="0"
++        launcher:packageName="com.android.settings"
++        launcher:className="com.android.settings.Settings" />
++    <favorite
++        launcher:container="-101"
++        launcher:screen="3"
++        launcher:x="3"
++        launcher:y="0"
++        launcher:packageName="com.looker.droidify"
++        launcher:className="com.looker.droidify.MainActivity" />
++    <favorite
++        launcher:container="-101"
++        launcher:screen="4"
++        launcher:x="4"
++        launcher:y="0"
++        launcher:packageName="org.lineageos.eleven"
++        launcher:className="org.lineageos.eleven.ui.activities.HomeActivity" />
++    <favorite
++        launcher:container="-101"
++        launcher:screen="5"
++        launcher:x="5"
++        launcher:y="0"
++        launcher:packageName="org.lineageos.jelly"
++        launcher:className="org.lineageos.jelly.MainActivity" />
++    <favorite
++        launcher:container="-101"
++        launcher:screen="6"
++        launcher:x="6"
++        launcher:y="0"
++        launcher:packageName="com.android.camera2"
++        launcher:className="com.android.camera.CameraLauncher" />
+ 
++    <!-- Home screen -->
+     <appwidget
+-        launcher:packageName="org.lineageos.lockclock"
+-        launcher:className="org.lineageos.lockclock.ClockWidgetProvider"
+-        launcher:screen="0"
+-        launcher:x="0"
+-        launcher:y="1"
+-        launcher:spanX="5"
+-        launcher:spanY="2" />
+-
+-    <!-- Google Folder -->
+-    <folder launcher:screen="0" launcher:x="0" launcher:y="-1" launcher:title="@string/google_title">
+-        <favorite
+-            launcher:className="com.google.android.googlequicksearchbox.SearchActivity"
+-            launcher:packageName="com.google.android.googlequicksearchbox" />
+-        <favorite
+-            launcher:className="com.google.android.gm.ConversationListActivityGmail"
+-            launcher:packageName="com.google.android.gm" />
+-        <favorite
+-            launcher:className="com.google.android.maps.MapsActivity"
+-            launcher:packageName="com.google.android.apps.maps" />
+-        <favorite
+-            launcher:className="com.google.android.youtube.app.honeycomb.Shell$HomeActivity"
+-            launcher:packageName="com.google.android.youtube" />
+-        <favorite
+-            launcher:className="com.google.android.apps.docs.app.NewMainProxyActivity"
+-            launcher:packageName="com.google.android.apps.docs" />
+-        <favorite
+-            launcher:className="com.android.music.activitymanagement.TopLevelActivity"
+-            launcher:packageName="com.google.android.music" />
+-        <favorite
+-            launcher:className="com.google.android.youtube.videos.EntryPoint"
+-            launcher:packageName="com.google.android.videos" />
+-        <favorite
+-            launcher:className="com.google.android.apps.photos.home.HomeActivity"
+-            launcher:packageName="com.google.android.apps.photos" />
+-        <favorite
+-            launcher:className="com.android.calendar.AllInOneActivity"
+-            launcher:packageName="com.google.android.calendar" />
+-        <favorite
+-            launcher:className="com.google.android.keep.activities.BrowseActivity"
+-            launcher:packageName="com.google.android.keep" />
+-    </folder>
+-
+-    <resolve
++        launcher:packageName="com.android.deskclock"
++        launcher:className="com.android.alarmclock.GlanceAppWidgetProvider"
+         launcher:screen="0"
+         launcher:x="1"
+-        launcher:y="-1" >
+-        <favorite
+-            launcher:className="com.google.android.apps.tachyon.MainActivity"
+-            launcher:packageName="com.google.android.apps.tachyon" />
+-    </resolve>
++        launcher:y="0"
++        launcher:spanX="5"
++        launcher:spanY="1" />
+ 
+-    <resolve
++    <customwidget
++        launcher:packageName="com.android.launcher3"
++        launcher:className="#custom-widget-1"
+         launcher:screen="0"
+         launcher:x="4"
+-        launcher:y="-1" >
+-        <favorite
+-            launcher:packageName="com.android.vending"
+-            launcher:className="com.android.vending.AssetBrowserActivity" />
+-        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_MARKET;end" />
+-        <favorite launcher:uri="market://details?id=com.android.launcher" />
+-    </resolve>
+-
+-    <!-- Screen 1 -->
+-    <appwidget
+-        launcher:packageName="org.lineageos.eleven"
+-        launcher:className="org.lineageos.eleven.appwidgets.AppWidgetLarge"
+-        launcher:screen="1"
+-        launcher:x="0"
+-        launcher:y="0"
+-        launcher:spanX="6"
++        launcher:y="4"
++        launcher:spanX="3"
+         launcher:spanY="2" />
+ 
+-    <resolve
+-        launcher:screen="1"
+-        launcher:x="0"
+-        launcher:y="-1" >
+-        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_EMAIL;end" />
+-        <favorite launcher:uri="mailto:" />
+-    </resolve>
+-
+-    <resolve
+-        launcher:screen="1"
+-        launcher:x="1"
+-        launcher:y="-1" >
+-        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_GALLERY;end" />
+-        <favorite launcher:uri="#Intent;type=images/*;end" />
+-    </resolve>
+-
+-    <favorite
+-        launcher:packageName="org.lineageos.eleven"
+-        launcher:className="org.lineageos.eleven.ui.activities.HomeActivity"
+-        launcher:screen="1"
+-        launcher:x="2"
+-        launcher:y="-1" />
+-
+-    <favorite
+-        launcher:packageName="com.android.settings"
+-        launcher:className="com.android.settings.Settings"
+-        launcher:screen="1"
+-        launcher:x="3"
+-        launcher:y="-1" />
+-
+ </favorites>
+diff --git a/src/com/android/launcher3/AllAppsList.java b/src/com/android/launcher3/AllAppsList.java
+index 5eb6cc7..4380b79 100644
+--- a/src/com/android/launcher3/AllAppsList.java
++++ b/src/com/android/launcher3/AllAppsList.java
+@@ -22,6 +22,7 @@ import android.content.pm.ApplicationInfo;
+ import android.content.pm.LauncherActivityInfo;
+ import android.os.Process;
+ import android.os.UserHandle;
++import android.text.TextUtils;
+ import android.support.annotation.NonNull;
+ import android.support.annotation.Nullable;
+ import android.util.Log;
+@@ -103,6 +104,46 @@ public class AllAppsList {
+         data.remove(appInfo);
+     }
+ 
++    /**
++     * Brings the installed web apps of a user in line with Jelly's pinned
++     * shortcuts: new ones are added, uninstalled ones removed, renamed ones
++     * updated. Results go to added/removed/modified like any other change.
++     */
++    public void syncWebApps(Context context, UserHandle user) {
++        List<WebAppInfo> apps = WebAppInfo.query(context, user);
++        if (apps == null) {
++            // The system could not be asked; keep what is listed.
++            return;
++        }
++        HashSet<ComponentName> present = new HashSet<>();
++        for (WebAppInfo app : apps) {
++            present.add(app.componentName);
++            AppInfo existing = findAppInfo(app.componentName, user);
++            if (existing == null) {
++                data.add(app);
++                added.add(app);
++            } else if (existing instanceof WebAppInfo
++                    && (!TextUtils.equals(existing.title, app.title)
++                            || !sameIcon(existing, app))) {
++                data.set(data.indexOf(existing), app);
++                modified.add(app);
++            }
++        }
++        for (int i = data.size() - 1; i >= 0; i--) {
++            AppInfo info = data.get(i);
++            if (info instanceof WebAppInfo && info.user.equals(user)
++                    && !present.contains(info.componentName)) {
++                removed.add(info);
++                data.remove(i);
++            }
++        }
++    }
++
++    private static boolean sameIcon(AppInfo a, AppInfo b) {
++        return a.iconBitmap == b.iconBitmap
++                || (a.iconBitmap != null && b.iconBitmap != null && a.iconBitmap.sameAs(b.iconBitmap));
++    }
++
+     public void clear() {
+         data.clear();
+         // TODO: do we clear these too?
+@@ -163,6 +204,10 @@ public class AllAppsList {
+     public void updateIconsAndLabels(HashSet<String> packages, UserHandle user,
+             ArrayList<AppInfo> outUpdates) {
+         for (AppInfo info : data) {
++            if (info instanceof WebAppInfo) {
++                // Its icon is the shortcut's, not one the icon cache knows.
++                continue;
++            }
+             if (info.user.equals(user) && packages.contains(info.componentName.getPackageName())) {
+                 mIconCache.updateTitleAndIcon(info);
+                 outUpdates.add(info);
+@@ -182,6 +227,11 @@ public class AllAppsList {
+             // to the removed list.
+             for (int i = data.size() - 1; i >= 0; i--) {
+                 final AppInfo applicationInfo = data.get(i);
++                if (applicationInfo instanceof WebAppInfo) {
++                    // Belongs to Jelly but is no activity of it; an update of
++                    // the browser must not take the installed web apps along.
++                    continue;
++                }
+                 if (user.equals(applicationInfo.user)
+                         && packageName.equals(applicationInfo.componentName.getPackageName())) {
+                     if (!findActivity(matches, applicationInfo.componentName)) {
+diff --git a/src/com/android/launcher3/AppWidgetResizeFrame.java b/src/com/android/launcher3/AppWidgetResizeFrame.java
+index 5658179..c0000a8 100644
+--- a/src/com/android/launcher3/AppWidgetResizeFrame.java
++++ b/src/com/android/launcher3/AppWidgetResizeFrame.java
+@@ -231,8 +231,9 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
+      *  Based on the current deltas, we determine if and how to resize the widget.
+      */
+     private void resizeWidgetIfNeeded(boolean onDismiss) {
+-        float xThreshold = mCellLayout.getCellWidth();
+-        float yThreshold = mCellLayout.getCellHeight();
++        // ON-FireLOS: by what the widget grows (stepX, stepY), not by whole cells.
++        float xThreshold = stepX();
++        float yThreshold = stepY();
+ 
+         int hSpanInc = getSpanIncrement((mDeltaX + mDeltaXAddOn) / xThreshold - mRunningHInc);
+         int vSpanInc = getSpanIncrement((mDeltaY + mDeltaYAddOn) / yThreshold - mRunningVInc);
+@@ -309,6 +310,33 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
+                 sTmpRect.right, sTmpRect.bottom);
+     }
+ 
++    // ON-FireLOS: a cell as a widget uses it - the smaller width and the smaller height of
++    // a cell in portrait and in landscape, in px - so a widget keeps its size when the
++    // tablet turns (ShortcutAndWidgetContainer).
++    // Worked out once, like sCellSize; not to be changed by callers.
++    private static Point sWidgetCell;
++
++    public static Point getWidgetCellSize(Context context) {
++        if (sWidgetCell == null) {
++            getWidgetSizeRanges(context, 1, 1, null);
++            sWidgetCell = new Point(Math.min(sCellSize[0].x, sCellSize[1].x),
++                    Math.min(sCellSize[0].y, sCellSize[1].y));
++        }
++        return sWidgetCell;
++    }
++
++    // What a span adds to a widget while it is resized: a cell as the widget uses it, so the
++    // frame under the finger keeps to the widget (not in multi-window, where it is scaled).
++    private int stepX() {
++        return mLauncher.getDeviceProfile().appWidgetScale.x != 1f ? mCellLayout.getCellWidth()
++                : Math.min(mCellLayout.getCellWidth(), getWidgetCellSize(getContext()).x);
++    }
++
++    private int stepY() {
++        return mLauncher.getDeviceProfile().appWidgetScale.y != 1f ? mCellLayout.getCellHeight()
++                : Math.min(mCellLayout.getCellHeight(), getWidgetCellSize(getContext()).y);
++    }
++
+     public static Rect getWidgetSizeRanges(Context context, int spanX, int spanY, Rect rect) {
+         if (sCellSize == null) {
+             InvariantDeviceProfile inv = LauncherAppState.getIDP(context);
+@@ -331,7 +359,10 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
+         // Compute portrait size
+         int portWidth = (int) ((spanX * sCellSize[1].x) / density);
+         int portHeight = (int) ((spanY * sCellSize[1].y) / density);
+-        rect.set(portWidth, landHeight, landWidth, portHeight);
++        // ON-FireLOS: the one size it has in both orientations (getWidgetCellSize).
++        int width = Math.min(portWidth, landWidth);
++        int height = Math.min(portHeight, landHeight);
++        rect.set(width, height, width, height);
+         return rect;
+     }
+ 
+@@ -344,8 +375,8 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
+     }
+ 
+     private void onTouchUp() {
+-        int xThreshold = mCellLayout.getCellWidth();
+-        int yThreshold = mCellLayout.getCellHeight();
++        int xThreshold = stepX();
++        int yThreshold = stepY();
+ 
+         mDeltaXAddOn = mRunningHInc * xThreshold;
+         mDeltaYAddOn = mRunningVInc * yThreshold;
+diff --git a/src/com/android/launcher3/BaseDraggingActivity.java b/src/com/android/launcher3/BaseDraggingActivity.java
+index eec196e..73458b9 100644
+--- a/src/com/android/launcher3/BaseDraggingActivity.java
++++ b/src/com/android/launcher3/BaseDraggingActivity.java
+@@ -175,7 +175,13 @@ public abstract class BaseDraggingActivity extends BaseActivity
+                     && (item.itemType == Favorites.ITEM_TYPE_SHORTCUT
+                     || item.itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT)
+                     && !((ShortcutInfo) item).isPromise();
+-            if (isShortcut) {
++            if (item instanceof WebAppInfo) {
++                // A web app in all apps is a pinned shortcut of the browser;
++                // only the shortcut service may start it.
++                DeepShortcutManager.getInstance(this).startShortcut(
++                        WebAppInfo.PACKAGE, ((WebAppInfo) item).getShortcutId(),
++                        intent.getSourceBounds(), optsBundle, item.user);
++            } else if (isShortcut) {
+                 // Shortcuts need some special checks due to legacy reasons.
+                 startShortcutIntentSafely(intent, optsBundle, item);
+             } else if (user == null || user.equals(Process.myUserHandle())) {
+diff --git a/src/com/android/launcher3/CellLayout.java b/src/com/android/launcher3/CellLayout.java
+index 6c2fd8e..dcc729e 100644
+--- a/src/com/android/launcher3/CellLayout.java
++++ b/src/com/android/launcher3/CellLayout.java
+@@ -942,6 +942,8 @@ public class CellLayout extends ViewGroup {
+                 if (v instanceof LauncherAppWidgetHostView) {
+                     DeviceProfile profile = mLauncher.getDeviceProfile();
+                     Utilities.shrinkRect(r, profile.appWidgetScale.x, profile.appWidgetScale.y);
++                    // ON-FireLOS: the part of the cells the widget takes.
++                    getShortcutsAndWidgets().fitWidgetRect(r, cellY, spanX, spanY);
+                 }
+             } else {
+                 // Find the top left corner of the rect the object will occupy
+@@ -964,6 +966,15 @@ public class CellLayout extends ViewGroup {
+                     top += ((mCellHeight * spanY) - dragOutline.getHeight()) / 2;
+                     // We center about the x axis
+                     left += ((mCellWidth * spanX) - dragOutline.getWidth()) / 2;
++                    // ON-FireLOS: a widget centred on the part of the cells it will take.
++                    if (v instanceof LauncherAppWidgetHostView) {
++                        cellToRect(cellX, cellY, spanX, spanY, mTempRect);
++                        if (getShortcutsAndWidgets().fitWidgetRect(mTempRect, cellY, spanX,
++                                spanY)) {
++                            left = mTempRect.centerX() - dragOutline.getWidth() / 2;
++                            top = mTempRect.centerY() - dragOutline.getHeight() / 2;
++                        }
++                    }
+                 } else {
+                     if (dragOffset != null && dragRegion != null) {
+                         // Center the drag region *horizontally* in the cell and apply a drag
+diff --git a/src/com/android/launcher3/DefaultLayoutParser.java b/src/com/android/launcher3/DefaultLayoutParser.java
+index 1ec30ba..44a5813 100644
+--- a/src/com/android/launcher3/DefaultLayoutParser.java
++++ b/src/com/android/launcher3/DefaultLayoutParser.java
+@@ -33,6 +33,8 @@ public class DefaultLayoutParser extends AutoInstallsLayout {
+     private static final String TAG_FAVORITES = "favorites";
+     protected static final String TAG_FAVORITE = "favorite";
+     private static final String TAG_APPWIDGET = "appwidget";
++    // ON-FireLOS: one of the launcher's own widgets (custom_widgets.xml), e.g. the system monitor.
++    private static final String TAG_CUSTOM_WIDGET = "customwidget";
+     protected static final String TAG_SHORTCUT = "shortcut";
+     private static final String TAG_FOLDER = "folder";
+     private static final String TAG_PARTNER_FOLDER = "partner-folder";
+@@ -68,6 +70,7 @@ public class DefaultLayoutParser extends AutoInstallsLayout {
+         ArrayMap<String, TagParser> parsers = new ArrayMap<>();
+         parsers.put(TAG_FAVORITE, new AppShortcutWithUriParser());
+         parsers.put(TAG_APPWIDGET, new AppWidgetParser());
++        parsers.put(TAG_CUSTOM_WIDGET, new CustomWidgetTagParser());
+         parsers.put(TAG_SHORTCUT, new UriShortcutParser(mSourceRes));
+         parsers.put(TAG_RESOLVE, new ResolveParser());
+         parsers.put(TAG_FOLDER, new MyFolderParser());
+@@ -274,6 +277,30 @@ public class DefaultLayoutParser extends AutoInstallsLayout {
+     /**
+      * AppWidget parser which enforces that the app is already installed when the layout is parsed.
+      */
++    /**
++     * ON-FireLOS: a launcher widget by its provider "#custom-widget-N" in this package; it needs
++     * no binding, only its custom id.
++     */
++    protected class CustomWidgetTagParser extends PendingWidgetParser {
++
++        @Override
++        protected long verifyAndInsert(ComponentName cn, Bundle extras) {
++            // In this launcher's own package, whatever package the layout names.
++            cn = new ComponentName(mContext.getPackageName(), cn.getClassName());
++            int id = com.android.launcher3.widget.custom.CustomWidgetParser
++                    .getWidgetIdForCustomProvider(mContext, cn);
++            if (id == AppWidgetManager.INVALID_APPWIDGET_ID) {
++                Log.d(TAG, "Can't find custom widget: " + cn.getClassName());
++                return -1;
++            }
++            mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_CUSTOM_APPWIDGET);
++            mValues.put(Favorites.APPWIDGET_ID, id);
++            mValues.put(Favorites.APPWIDGET_PROVIDER, cn.flattenToString());
++            mValues.put(Favorites._ID, mCallback.generateNewItemId());
++            return mCallback.insertAndCheck(mDb, mValues);
++        }
++    }
++
+     protected class AppWidgetParser extends PendingWidgetParser {
+ 
+         @Override
+diff --git a/src/com/android/launcher3/HomeClockReporter.java b/src/com/android/launcher3/HomeClockReporter.java
+new file mode 100644
+index 0000000..24fd430
+--- /dev/null
++++ b/src/com/android/launcher3/HomeClockReporter.java
+@@ -0,0 +1,131 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.launcher3;
++
++import android.content.Intent;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.TextClock;
++
++/**
++ * ON-FireLOS: tells SystemUI whether the home screen shows the time itself - a widget on the
++ * page in view with a clock - so the status bar leaves its own out (SystemUI's Clock). Only
++ * while the home screen is in front, at rest and nothing lies over it.
++ */
++public class HomeClockReporter implements LauncherStateManager.StateListener {
++    public static final String ACTION = "org.onfirelos.action.HOME_SHOWS_CLOCK";
++    public static final String EXTRA = "shows_clock";
++
++    private final Launcher mLauncher;
++    private Boolean mReported;
++    private boolean mPosted;
++
++    private final Runnable mCheck = new Runnable() {
++        @Override
++        public void run() {
++            mPosted = false;
++            report(showsClock());
++        }
++    };
++
++    public HomeClockReporter(Launcher launcher) {
++        mLauncher = launcher;
++    }
++
++    /** Looks again once things have settled (after this frame's layout). */
++    public void check() {
++        final Workspace workspace = mLauncher.getWorkspace();
++        if (workspace != null && !mPosted) {
++            mPosted = true;
++            workspace.post(mCheck);
++        }
++    }
++
++    /** Says so, if it is news. */
++    public void report(boolean showsClock) {
++        if (mReported != null && mReported == showsClock) {
++            return;
++        }
++        mReported = showsClock;
++        mLauncher.sendBroadcast(new Intent(ACTION).setPackage("com.android.systemui")
++                .putExtra(EXTRA, showsClock));
++    }
++
++    private boolean showsClock() {
++        final Workspace workspace = mLauncher.getWorkspace();
++        if (workspace == null || !mLauncher.hasBeenResumed()
++                || !mLauncher.isInState(LauncherState.NORMAL)
++                || AbstractFloatingView.getTopOpenView(mLauncher) != null) {
++            return false;
++        }
++        final View page = workspace.getPageAt(workspace.getCurrentPage());
++        return page instanceof CellLayout
++                && showsTime(((CellLayout) page).getShortcutsAndWidgets());
++    }
++
++    /** A clock shown in the view: a TextClock whose format has the hour. */
++    private static boolean showsTime(View view) {
++        if (view.getVisibility() != View.VISIBLE) {
++            return false;
++        }
++        if (view instanceof TextClock) {
++            final TextClock clock = (TextClock) view;
++            final CharSequence format = clock.is24HourModeEnabled()
++                    ? clock.getFormat24Hour() : clock.getFormat12Hour();
++            // Without a format of its own, a TextClock shows the time.
++            return format == null || hasHour(format);
++        }
++        if (view instanceof ViewGroup) {
++            final ViewGroup group = (ViewGroup) view;
++            for (int i = 0; i < group.getChildCount(); i++) {
++                if (showsTime(group.getChildAt(i))) {
++                    return true;
++                }
++            }
++        }
++        return false;
++    }
++
++    // An hour letter outside quoted text ("EEEE" has none, "H:mm" and "h:mm a" do).
++    private static boolean hasHour(CharSequence format) {
++        boolean quoted = false;
++        for (int i = 0; i < format.length(); i++) {
++            final char c = format.charAt(i);
++            if (c == '\'') {
++                quoted = !quoted;
++            } else if (!quoted && (c == 'H' || c == 'h' || c == 'k' || c == 'K')) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    @Override
++    public void onStateSetImmediately(LauncherState state) {
++        check();
++    }
++
++    @Override
++    public void onStateTransitionStart(LauncherState toState) {
++        // Only where it ends: a swipe let go early goes back to the home screen at rest
++        // without a transition of its own to report.
++    }
++
++    @Override
++    public void onStateTransitionComplete(LauncherState finalState) {
++        check();
++    }
++}
+diff --git a/src/com/android/launcher3/Launcher.java b/src/com/android/launcher3/Launcher.java
+index 47f8754..19d3b07 100644
+--- a/src/com/android/launcher3/Launcher.java
++++ b/src/com/android/launcher3/Launcher.java
+@@ -287,6 +287,8 @@ public class Launcher extends BaseDraggingActivity implements LauncherExterns,
+         mDragController = new DragController(this);
+         mAllAppsController = new AllAppsTransitionController(this);
+         mStateManager = new LauncherStateManager(this);
++        // ON-FireLOS: the status bar clock steps aside for a clock widget (HomeClockReporter).
++        mStateManager.addStateListener(mHomeClock);
+         UiFactory.onCreate(this);
+ 
+         mAppWidgetManager = AppWidgetManagerCompat.getInstance(this);
+@@ -786,6 +788,13 @@ public class Launcher extends BaseDraggingActivity implements LauncherExterns,
+         }
+     }
+ 
++    // ON-FireLOS: whether the page in view shows the time (HomeClockReporter).
++    private final HomeClockReporter mHomeClock = new HomeClockReporter(this);
++
++    public HomeClockReporter getHomeClock() {
++        return mHomeClock;
++    }
++
+     @Override
+     protected void onResume() {
+         TraceHelper.beginSection("ON_RESUME");
+@@ -808,6 +817,7 @@ public class Launcher extends BaseDraggingActivity implements LauncherExterns,
+             mLauncherCallbacks.onResume();
+         }
+         UiFactory.onLauncherStateOrResumeChanged(this);
++        mHomeClock.check();
+ 
+         TraceHelper.endSection("ON_RESUME");
+     }
+@@ -820,6 +830,8 @@ public class Launcher extends BaseDraggingActivity implements LauncherExterns,
+         super.onPause();
+         mDragController.cancelDrag();
+         mDragController.resetLastGestureUpTime();
++        // ON-FireLOS: an app in front has no clock widget: the status bar shows the time.
++        mHomeClock.report(false);
+ 
+         if (mLauncherCallbacks != null) {
+             mLauncherCallbacks.onPause();
+diff --git a/src/com/android/launcher3/SecondaryDropTarget.java b/src/com/android/launcher3/SecondaryDropTarget.java
+index 76e85e2..929539c 100644
+--- a/src/com/android/launcher3/SecondaryDropTarget.java
++++ b/src/com/android/launcher3/SecondaryDropTarget.java
+@@ -9,6 +9,7 @@ import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP
+ import static com.android.launcher3.accessibility.LauncherAccessibilityDelegate.RECONFIGURE;
+ import static com.android.launcher3.accessibility.LauncherAccessibilityDelegate.UNINSTALL;
+ 
++import android.app.AlertDialog;
+ import android.appwidget.AppWidgetHostView;
+ import android.appwidget.AppWidgetManager;
+ import android.appwidget.AppWidgetProviderInfo;
+@@ -136,6 +137,11 @@ public class SecondaryDropTarget extends ButtonDropTarget implements OnAlarmList
+             return false;
+         }
+ 
++        if (WebAppInfo.isWebApp(info)) {
++            // In all apps or on the home screen alike.
++            return true;
++        }
++
+         if (info instanceof ItemInfoWithIcon) {
+             ItemInfoWithIcon iconInfo = (ItemInfoWithIcon) info;
+             if ((iconInfo.runtimeStatusFlags & FLAG_SYSTEM_MASK) != 0) {
+@@ -230,6 +236,13 @@ public class SecondaryDropTarget extends ButtonDropTarget implements OnAlarmList
+         }
+         // else: mCurrentAccessibilityAction == UNINSTALL
+ 
++        if (WebAppInfo.isWebApp(info)) {
++            // Belongs to the browser as far as the system is concerned; the
++            // package uninstaller would aim at the browser itself.
++            confirmWebAppUninstall(info);
++            return null;
++        }
++
+         ComponentName cn = getUninstallTarget(info);
+         if (cn == null) {
+             // System applications cannot be installed. For now, show a toast explaining that.
+@@ -249,6 +262,16 @@ public class SecondaryDropTarget extends ButtonDropTarget implements OnAlarmList
+         }
+     }
+ 
++    private void confirmWebAppUninstall(ItemInfo info) {
++        new AlertDialog.Builder(mLauncher)
++                .setTitle(mLauncher.getString(R.string.webapp_uninstall_title, info.title))
++                .setMessage(R.string.webapp_uninstall_message)
++                .setPositiveButton(R.string.uninstall_drop_target_label,
++                        (dialog, which) -> WebAppInfo.uninstall(mLauncher, info))
++                .setNegativeButton(android.R.string.cancel, null)
++                .show();
++    }
++
+     @Override
+     public void onAccessibilityDrop(View view, ItemInfo item) {
+         performDropAction(view, item);
+diff --git a/src/com/android/launcher3/ShortcutAndWidgetContainer.java b/src/com/android/launcher3/ShortcutAndWidgetContainer.java
+index baf6d87..186705f 100644
+--- a/src/com/android/launcher3/ShortcutAndWidgetContainer.java
++++ b/src/com/android/launcher3/ShortcutAndWidgetContainer.java
+@@ -20,6 +20,7 @@ import static android.view.MotionEvent.ACTION_DOWN;
+ 
+ import android.app.WallpaperManager;
+ import android.content.Context;
++import android.graphics.Point;
+ import android.graphics.Rect;
+ import android.view.MotionEvent;
+ import android.view.View;
+@@ -42,6 +43,7 @@ public class ShortcutAndWidgetContainer extends ViewGroup {
+     private int mCellHeight;
+ 
+     private int mCountX;
++    private int mCountY;
+ 
+     private Launcher mLauncher;
+     private boolean mInvertIfRtl = false;
+@@ -57,6 +59,7 @@ public class ShortcutAndWidgetContainer extends ViewGroup {
+         mCellWidth = cellWidth;
+         mCellHeight = cellHeight;
+         mCountX = countX;
++        mCountY = countY;
+     }
+ 
+     public View getChildAt(int x, int y) {
+@@ -95,11 +98,61 @@ public class ShortcutAndWidgetContainer extends ViewGroup {
+             DeviceProfile profile = mLauncher.getDeviceProfile();
+             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX,
+                     profile.appWidgetScale.x, profile.appWidgetScale.y);
++            // ON-FireLOS: placed as when measured (fitWidget).
++            fitWidget(lp);
+         } else {
+             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX);
+         }
+     }
+ 
++    /**
++     * ON-FireLOS: on the home screen a widget keeps one size in both orientations
++     * (AppWidgetResizeFrame.getWidgetCellSize): centred across its cells, at their top in the
++     * upper half of the screen and at their foot in the lower half - at the cell a reorder
++     * shows it in, too. Not in multi-window, where widgets are drawn scaled.
++     */
++    private void fitWidget(CellLayout.LayoutParams lp) {
++        if (!lp.isLockedToGrid) {
++            return;
++        }
++        mFitRect.set(lp.x, lp.y, lp.x + lp.width, lp.y + lp.height);
++        if (fitWidgetRect(mFitRect, lp.useTmpCoords ? lp.tmpCellY : lp.cellY,
++                lp.cellHSpan, lp.cellVSpan)) {
++            lp.x = mFitRect.left;
++            lp.y = mFitRect.top;
++            lp.width = mFitRect.width();
++            lp.height = mFitRect.height();
++        }
++    }
++
++    private final Rect mFitRect = new Rect();
++
++    /**
++     * The part of its cells, given as {@code cells}, that a widget at row {@code cellY} is
++     * drawn in (fitWidget); also where CellLayout outlines it while it is dragged. False, and
++     * {@code cells} unchanged, where widgets fill their cells.
++     */
++    public boolean fitWidgetRect(Rect cells, int cellY, int spanX, int spanY) {
++        final DeviceProfile profile = mLauncher.getDeviceProfile();
++        if (mContainerType != CellLayout.WORKSPACE
++                || profile.appWidgetScale.x != 1f || profile.appWidgetScale.y != 1f) {
++            return false;
++        }
++        Point cell = AppWidgetResizeFrame.getWidgetCellSize(getContext());
++        int width = Math.min(cells.width(), spanX * cell.x);
++        int height = Math.min(cells.height(), spanY * cell.y);
++        int left = cells.left + (cells.width() - width) / 2;
++        int top = cells.top;
++        int rows = 2 * cellY + spanY;
++        if (rows > mCountY) {
++            top += cells.height() - height;
++        } else if (rows == mCountY) {
++            top += (cells.height() - height) / 2;
++        }
++        cells.set(left, top, left + width, top + height);
++        return true;
++    }
++
+     // Set whether or not to invert the layout horizontally if the layout is in RTL mode.
+     public void setInvertIfRtl(boolean invert) {
+         mInvertIfRtl = invert;
+@@ -118,6 +171,8 @@ public class ShortcutAndWidgetContainer extends ViewGroup {
+             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX,
+                     profile.appWidgetScale.x, profile.appWidgetScale.y);
+             // Widgets have their own padding
++            // ON-FireLOS: one size in both orientations (fitWidget).
++            fitWidget(lp);
+         } else {
+             lp.setup(mCellWidth, mCellHeight, invertLayoutHorizontally(), mCountX);
+             // Center the icon/folder
+diff --git a/src/com/android/launcher3/WebAppInfo.java b/src/com/android/launcher3/WebAppInfo.java
+new file mode 100644
+index 0000000..bc080fc
+--- /dev/null
++++ b/src/com/android/launcher3/WebAppInfo.java
+@@ -0,0 +1,145 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.launcher3;
++
++import android.content.ComponentName;
++import android.content.Context;
++import android.os.Handler;
++import android.os.UserHandle;
++
++import com.android.launcher3.graphics.LauncherIcons;
++import com.android.launcher3.shortcuts.DeepShortcutManager;
++import com.android.launcher3.shortcuts.ShortcutInfoCompat;
++import com.android.launcher3.shortcuts.ShortcutKey;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/**
++ * A web app installed from the browser (Jelly), shown in all apps like an app.
++ *
++ * Jelly installs a web app as a pinned shortcut. To the platform that is a
++ * shortcut of Jelly, not an app: the launcher would badge it with Jelly's icon
++ * and keep it out of all apps, and dropping it on "uninstall" would aim at
++ * Jelly itself. Chrome avoids all of this with WebAPKs, real packages minted on
++ * Google's servers. Here the launcher simply knows Jelly's web app shortcuts
++ * and treats them as apps:
++ *
++ *  - no badge (LauncherIcons),
++ *  - listed in all apps (LoaderTask, ShortcutsChangedTask),
++ *  - removing the home screen icon does not uninstall (BgDataModel, LoaderTask),
++ *  - "uninstall" unpins the shortcut instead of removing Jelly
++ *    (SecondaryDropTarget).
++ */
++public class WebAppInfo extends AppInfo {
++    public static final String PACKAGE = "org.lineageos.jelly";
++    private static final String ID_PREFIX = "webapp-";
++
++    private final ShortcutInfoCompat mShortcut;
++    private final Context mContext;
++
++    public static boolean isWebApp(String packageName, String id) {
++        return PACKAGE.equals(packageName) && id != null && id.startsWith(ID_PREFIX);
++    }
++
++    public static boolean isWebApp(ShortcutInfoCompat shortcut) {
++        return isWebApp(shortcut.getPackage(), shortcut.getId());
++    }
++
++    public static boolean isWebApp(ShortcutKey key) {
++        return isWebApp(key.componentName.getPackageName(), key.getId());
++    }
++
++    /** A web app in all apps, or its icon on the home screen. */
++    public static boolean isWebApp(ItemInfo info) {
++        if (info instanceof WebAppInfo) {
++            return true;
++        }
++        if (info instanceof ShortcutInfo
++                && info.itemType == LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
++                && info.getIntent() != null) {
++            return isWebApp(info.getIntent().getPackage(),
++                    ((ShortcutInfo) info).getDeepShortcutId());
++        }
++        return false;
++    }
++
++    public static ShortcutKey keyOf(ItemInfo info) {
++        if (info instanceof WebAppInfo) {
++            return ShortcutKey.fromInfo(((WebAppInfo) info).mShortcut);
++        }
++        return ShortcutKey.fromItemInfo(info);
++    }
++
++    public WebAppInfo(Context context, ShortcutInfoCompat shortcut) {
++        mContext = context.getApplicationContext();
++        mShortcut = shortcut;
++        user = shortcut.getUserHandle();
++        // Never resolves to an activity; it only has to be unique per app,
++        // because all apps tells its entries apart by component.
++        componentName = new ComponentName(shortcut.getPackage(), shortcut.getId());
++        intent = shortcut.makeIntent();
++        title = Utilities.trim(shortcut.getShortLabel());
++        contentDescription = title;
++        // Offers "uninstall" - which is handled here, not by the package manager.
++        runtimeStatusFlags |= FLAG_SYSTEM_NO;
++        LauncherIcons li = LauncherIcons.obtain(context);
++        li.createShortcutIcon(shortcut, false).applyTo(this);
++        li.recycle();
++    }
++
++    public String getShortcutId() {
++        return mShortcut.getId();
++    }
++
++    /** Dragged from all apps onto the home screen: a pinned shortcut item. */
++    @Override
++    public ShortcutInfo makeShortcut() {
++        ShortcutInfo si = new ShortcutInfo(mShortcut, mContext);
++        si.iconBitmap = iconBitmap;
++        si.iconColor = iconColor;
++        return si;
++    }
++
++    /**
++     * The installed web apps of a user, or null if the system could not be asked - a
++     * failed query returns an empty list, which must not read as "all of them
++     * were uninstalled".
++     */
++    public static List<WebAppInfo> query(Context context, UserHandle user) {
++        List<WebAppInfo> result = new ArrayList<>();
++        DeepShortcutManager sm = DeepShortcutManager.getInstance(context);
++        List<ShortcutInfoCompat> pinned = sm.queryForPinnedShortcuts(PACKAGE, user);
++        if (!sm.wasLastCallSuccess()) {
++            return null;
++        }
++        for (ShortcutInfoCompat s : pinned) {
++            if (isWebApp(s) && s.isEnabled()) {
++                result.add(new WebAppInfo(context, s));
++            }
++        }
++        return result;
++    }
++
++    /** Uninstall: the pin is the installation. */
++    public static void uninstall(Context context, ItemInfo info) {
++        // Two binder calls into the shortcut service: not on the UI thread.
++        final ShortcutKey key = keyOf(info);
++        final Context app = context.getApplicationContext();
++        new Handler(LauncherModel.getWorkerLooper()).post(
++                () -> DeepShortcutManager.getInstance(app).unpinShortcut(key));
++    }
++}
+diff --git a/src/com/android/launcher3/Workspace.java b/src/com/android/launcher3/Workspace.java
+index de7e6d8..c7e908e 100644
+--- a/src/com/android/launcher3/Workspace.java
++++ b/src/com/android/launcher3/Workspace.java
+@@ -1020,6 +1020,8 @@ public class Workspace extends PagedView<WorkspacePageIndicator>
+     protected void onPageEndTransition() {
+         super.onPageEndTransition();
+         updateChildrenLayersEnabled();
++        // ON-FireLOS: another page, perhaps with a clock widget (HomeClockReporter).
++        mLauncher.getHomeClock().check();
+ 
+         if (mDragController.isDragging()) {
+             if (workspaceInModalState()) {
+@@ -2726,6 +2728,11 @@ public class Workspace extends PagedView<WorkspacePageIndicator>
+             DeviceProfile profile = mLauncher.getDeviceProfile();
+             Utilities.shrinkRect(r, profile.appWidgetScale.x, profile.appWidgetScale.y);
+         }
++        // ON-FireLOS: a widget to the part of its cells it takes (fitWidgetRect).
++        if (info.itemType == LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET
++                || info.itemType == LauncherSettings.Favorites.ITEM_TYPE_CUSTOM_APPWIDGET) {
++            layout.getShortcutsAndWidgets().fitWidgetRect(r, targetCell[1], spanX, spanY);
++        }
+         loc[0] = r.left;
+         loc[1] = r.top;
+ 
+diff --git a/src/com/android/launcher3/config/BaseFlags.java b/src/com/android/launcher3/config/BaseFlags.java
+index b8a368b..d59e6de 100644
+--- a/src/com/android/launcher3/config/BaseFlags.java
++++ b/src/com/android/launcher3/config/BaseFlags.java
+@@ -44,7 +44,8 @@ abstract class BaseFlags {
+     public static final boolean NO_ALL_APPS_ICON = true;
+ 
+     // When true, custom widgets are loaded using CustomWidgetParser.
+-    public static final boolean ENABLE_CUSTOM_WIDGETS = false;
++    // ON-FireLOS: on for the system usage widget (res/xml/custom_widgets.xml).
++    public static final boolean ENABLE_CUSTOM_WIDGETS = true;
+ 
+     // Features to control Launcher3Go behavior
+     public static final boolean GO_DISABLE_WIDGETS = false;
+diff --git a/src/com/android/launcher3/dragndrop/DragView.java b/src/com/android/launcher3/dragndrop/DragView.java
+index 551567a..da76643 100644
+--- a/src/com/android/launcher3/dragndrop/DragView.java
++++ b/src/com/android/launcher3/dragndrop/DragView.java
+@@ -46,6 +46,7 @@ import android.view.View;
+ 
+ import com.android.launcher3.FastBitmapDrawable;
+ import com.android.launcher3.ItemInfo;
++import com.android.launcher3.WebAppInfo;
+ import com.android.launcher3.ItemInfoWithIcon;
+ import com.android.launcher3.Launcher;
+ import com.android.launcher3.LauncherAnimUtils;
+@@ -372,7 +373,10 @@ public class DragView extends View {
+             boolean iconBadged = (info instanceof ItemInfoWithIcon)
+                     && (((ItemInfoWithIcon) info).runtimeStatusFlags & FLAG_ICON_BADGED) > 0;
+             if ((info.id == ItemInfo.NO_ID && !iconBadged)
+-                    || !(obj instanceof ShortcutInfoCompat)) {
++                    || !(obj instanceof ShortcutInfoCompat)
++                    || WebAppInfo.isWebApp(info)) {
++                // (A web app carries no badge of its browser, also not while
++                // it is being dragged.)
+                 // The item is not yet added on home screen.
+                 return new FixedSizeEmptyDrawable(iconSize);
+             }
+diff --git a/src/com/android/launcher3/graphics/LauncherIcons.java b/src/com/android/launcher3/graphics/LauncherIcons.java
+index 333fe59..10f44b1 100644
+--- a/src/com/android/launcher3/graphics/LauncherIcons.java
++++ b/src/com/android/launcher3/graphics/LauncherIcons.java
+@@ -44,6 +44,7 @@ import android.os.UserHandle;
+ import android.support.annotation.Nullable;
+ 
+ import com.android.launcher3.AppInfo;
++import com.android.launcher3.WebAppInfo;
+ import com.android.launcher3.FastBitmapDrawable;
+ import com.android.launcher3.IconCache;
+ import com.android.launcher3.InvariantDeviceProfile;
+@@ -383,6 +384,15 @@ public class LauncherIcons implements AutoCloseable {
+         }
+ 
+         BitmapInfo result = new BitmapInfo();
++        if (WebAppInfo.isWebApp(shortcutInfo)) {
++            // An installed web app is an app to the user: no badge of the
++            // browser that installed it, but the shadow every app icon gets.
++            final Bitmap plain = unbadgedBitmap;
++            result.color = ColorExtractor.findDominantColorByHue(plain);
++            result.icon = BitmapRenderer.createHardwareBitmap(mIconBitmapSize, mIconBitmapSize,
++                    (c) -> getShadowGenerator().recreateIcon(plain, c));
++            return result;
++        }
+         if (!badged) {
+             result.color = Themes.getColorAccent(mContext);
+             result.icon = unbadgedBitmap;
+diff --git a/src/com/android/launcher3/model/BgDataModel.java b/src/com/android/launcher3/model/BgDataModel.java
+index fff1e69..55808c5 100644
+--- a/src/com/android/launcher3/model/BgDataModel.java
++++ b/src/com/android/launcher3/model/BgDataModel.java
+@@ -22,6 +22,7 @@ import android.util.Log;
+ import android.util.MutableInt;
+ 
+ import com.android.launcher3.FolderInfo;
++import com.android.launcher3.WebAppInfo;
+ import com.android.launcher3.InstallShortcutReceiver;
+ import com.android.launcher3.ItemInfo;
+ import com.android.launcher3.LauncherAppWidgetInfo;
+@@ -272,7 +273,10 @@ public class BgDataModel {
+                     // Decrement pinned shortcut count
+                     ShortcutKey pinnedShortcut = ShortcutKey.fromItemInfo(item);
+                     MutableInt count = pinnedShortcutCounts.get(pinnedShortcut);
++                    // Removing a web app from the home screen is not uninstalling
++                    // it - it stays in all apps, like any app.
+                     if ((count == null || --count.value == 0)
++                            && !WebAppInfo.isWebApp(pinnedShortcut)
+                             && !InstallShortcutReceiver.getPendingShortcuts(context)
+                                 .contains(pinnedShortcut)) {
+                         DeepShortcutManager.getInstance(context).unpinShortcut(pinnedShortcut);
+diff --git a/src/com/android/launcher3/model/LoaderTask.java b/src/com/android/launcher3/model/LoaderTask.java
+index 06da843..9e139fe 100644
+--- a/src/com/android/launcher3/model/LoaderTask.java
++++ b/src/com/android/launcher3/model/LoaderTask.java
+@@ -41,6 +41,7 @@ import android.util.LongSparseArray;
+ import android.util.MutableInt;
+ 
+ import com.android.launcher3.AllAppsList;
++import com.android.launcher3.WebAppInfo;
+ import com.android.launcher3.AppInfo;
+ import com.android.launcher3.FolderInfo;
+ import com.android.launcher3.IconCache;
+@@ -729,6 +730,10 @@ public class LoaderTask implements Runnable {
+             HashSet<ShortcutKey> pendingShortcuts =
+                     InstallShortcutReceiver.getPendingShortcuts(context);
+             for (ShortcutKey key : shortcutKeyToPinnedShortcuts.keySet()) {
++                if (WebAppInfo.isWebApp(key)) {
++                    // Installed web apps live in all apps, home screen or not.
++                    continue;
++                }
+                 MutableInt numTimesPinned = mBgDataModel.pinnedShortcutCounts.get(key);
+                 if ((numTimesPinned == null || numTimesPinned.value == 0)
+                         && !pendingShortcuts.contains(key)) {
+@@ -827,6 +832,10 @@ public class LoaderTask implements Runnable {
+                 // This builds the icon bitmaps.
+                 mBgAllAppsList.add(new AppInfo(app, user, quietMode), app);
+             }
++            // Web apps installed from the browser are apps to the user.
++            if (mUserManager.isUserUnlocked(user)) {
++                mBgAllAppsList.syncWebApps(mApp.getContext(), user);
++            }
+         }
+ 
+         if (FeatureFlags.LAUNCHER3_PROMISE_APPS_IN_ALL_APPS) {
+diff --git a/src/com/android/launcher3/model/ShortcutsChangedTask.java b/src/com/android/launcher3/model/ShortcutsChangedTask.java
+index 59f3d1c..1c2d0c1 100644
+--- a/src/com/android/launcher3/model/ShortcutsChangedTask.java
++++ b/src/com/android/launcher3/model/ShortcutsChangedTask.java
+@@ -19,6 +19,8 @@ import android.content.Context;
+ import android.os.UserHandle;
+ 
+ import com.android.launcher3.AllAppsList;
++import com.android.launcher3.AppInfo;
++import com.android.launcher3.WebAppInfo;
+ import com.android.launcher3.ItemInfo;
+ import com.android.launcher3.LauncherAppState;
+ import com.android.launcher3.LauncherSettings;
+@@ -110,10 +112,31 @@ public class ShortcutsChangedTask extends BaseModelUpdateTask {
+         removedKeys.addAll(keyToShortcutInfo.keySet());
+ 
+         bindUpdatedShortcuts(updatedShortcutInfos, mUser);
+-        if (!keyToShortcutInfo.isEmpty()) {
++        // Was "if (!keyToShortcutInfo.isEmpty())": a shortcut unpinned
++        // elsewhere was taken out of that map above, so its icon stayed on the
++        // home screen, pointing at nothing, until the next restart.
++        if (!removedKeys.isEmpty()) {
+             deleteAndBindComponentsRemoved(ItemInfoMatcher.ofShortcutKeys(removedKeys));
+         }
+ 
++        if (WebAppInfo.PACKAGE.equals(mPackageName)) {
++            // A web app was installed, uninstalled or renamed.
++            apps.syncWebApps(context, mUser);
++            final ArrayList<AppInfo> addedOrModified = new ArrayList<>(apps.added);
++            addedOrModified.addAll(apps.modified);
++            apps.added.clear();
++            apps.modified.clear();
++            final ArrayList<AppInfo> removedApps = new ArrayList<>(apps.removed);
++            apps.removed.clear();
++            if (!addedOrModified.isEmpty()) {
++                scheduleCallbackTask((callbacks) -> callbacks.bindAppsAddedOrUpdated(
++                        addedOrModified));
++            }
++            if (!removedApps.isEmpty()) {
++                scheduleCallbackTask((callbacks) -> callbacks.bindAppInfosRemoved(removedApps));
++            }
++        }
++
+         if (mUpdateIdMap) {
+             // Update the deep shortcut map if the list of ids has changed for an activity.
+             dataModel.updateDeepShortcutMap(mPackageName, mUser, mShortcuts);
+diff --git a/src/com/android/launcher3/shortcuts/DeepShortcutManager.java b/src/com/android/launcher3/shortcuts/DeepShortcutManager.java
+index 24e2e2f..55bf0d4 100644
+--- a/src/com/android/launcher3/shortcuts/DeepShortcutManager.java
++++ b/src/com/android/launcher3/shortcuts/DeepShortcutManager.java
+@@ -67,8 +67,10 @@ public class DeepShortcutManager {
+     public static boolean supportsShortcuts(ItemInfo info) {
+         boolean isItemPromise = info instanceof com.android.launcher3.ShortcutInfo
+                 && ((com.android.launcher3.ShortcutInfo) info).hasPromiseIconUi();
++        // A web app would otherwise offer the browser's own shortcuts.
+         return info.itemType == LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
+-                && !info.isDisabled() && !isItemPromise;
++                && !info.isDisabled() && !isItemPromise
++                && !(info instanceof com.android.launcher3.WebAppInfo);
+     }
+ 
+     public boolean wasLastCallSuccess() {
+diff --git a/src/com/android/launcher3/views/OptionsPopupView.java b/src/com/android/launcher3/views/OptionsPopupView.java
+index 29020e7..2b1cb4d 100644
+--- a/src/com/android/launcher3/views/OptionsPopupView.java
++++ b/src/com/android/launcher3/views/OptionsPopupView.java
+@@ -27,18 +27,23 @@ import android.util.ArrayMap;
+ import android.util.AttributeSet;
+ import android.view.MotionEvent;
+ import android.view.View;
++import android.view.ViewGroup;
+ import android.view.View.OnClickListener;
+ import android.view.View.OnLongClickListener;
++import android.widget.LinearLayout;
+ import android.widget.Toast;
+ 
++import com.android.launcher3.BubbleTextView;
+ import com.android.launcher3.Launcher;
+ import com.android.launcher3.R;
+ import com.android.launcher3.Utilities;
++import com.android.launcher3.dragndrop.DragLayer;
+ import com.android.launcher3.popup.ArrowPopup;
+ import com.android.launcher3.shortcuts.DeepShortcutView;
+ import com.android.launcher3.userevent.nano.LauncherLogProto.Action;
+ import com.android.launcher3.userevent.nano.LauncherLogProto.ControlType;
+ import com.android.launcher3.widget.WidgetsFullSheet;
++import com.android.launcher3.widget.custom.SystemMonitorView;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -116,23 +121,117 @@ public class OptionsPopupView extends ArrowPopup
+         mTargetRect.roundOut(outPos);
+     }
+ 
++    // ON-FireLOS: a label measured at its natural width (the menu's width below).
++    private static final int UNBOUNDED =
++            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
++
+     public static void show(Launcher launcher, RectF targetRect, List<OptionItem> items) {
++        show(launcher, targetRect, items, false);
++    }
++
++    private static void show(Launcher launcher, RectF targetRect, List<OptionItem> items,
++            boolean withMonitor) {
+         OptionsPopupView popup = (OptionsPopupView) launcher.getLayoutInflater()
+                 .inflate(R.layout.longpress_options_menu, launcher.getDragLayer(), false);
+         popup.mTargetRect = targetRect;
++        popup.mItems = items;
+ 
+         for (OptionItem item : items) {
+             DeepShortcutView view = popup.inflateAndAdd(R.layout.system_shortcut, popup);
+             view.getIconView().setBackgroundResource(item.mIconRes);
+-            view.getBubbleText().setText(item.mLabelRes);
++            if (item.mLabel != null) {
++                view.getBubbleText().setText(item.mLabel);
++            } else {
++                view.getBubbleText().setText(item.mLabelRes);
++            }
+             view.setDividerVisibility(View.INVISIBLE);
+             view.setOnClickListener(popup);
+             view.setOnLongClickListener(popup);
+             popup.mItemMap.put(view, item);
++            // ON-FireLOS: opened anew for the card, it comes right after its entry (in the
++            // order shown, away from the arrow: reorderAndShow turns the list round above it).
++            if (withMonitor && item.mClickListener == MONITOR) {
++                popup.mMonitor = popup.newMonitor(view);
++                popup.addView(popup.mMonitor);
++            }
++        }
++        // ON-FireLOS: as wide as the longest label, up to half the screen, all items alike;
++        // at the fixed 220 dp "Home settings" was cut off in some 40 languages.
++        int min = launcher.getResources().getDimensionPixelSize(R.dimen.bg_popup_item_width);
++        int width = min;
++        for (int i = 0; i < popup.getChildCount(); i++) {
++            if (popup.getChildAt(i) instanceof DeepShortcutView) {
++                BubbleTextView text = ((DeepShortcutView) popup.getChildAt(i)).getBubbleText();
++                text.measure(UNBOUNDED, UNBOUNDED);
++                width = Math.max(width, text.getMeasuredWidth());
++            }
++        }
++        width = Math.min(width, Math.max(min, launcher.getDragLayer().getWidth() / 2));
++        for (int i = 0; width > min && i < popup.getChildCount(); i++) {
++            View child = popup.getChildAt(i);
++            if (child instanceof DeepShortcutView) {
++                ViewGroup.LayoutParams params = child.getLayoutParams();
++                params.width = width;
++                child.setLayoutParams(params);
++            }
+         }
+         popup.reorderAndShow(popup.getChildCount());
+     }
+ 
++    // ON-FireLOS: the system usage as a card that opens under its entry, in place.
++    private static final OnLongClickListener MONITOR = OptionsPopupView::toggleMonitor;
++    private List<OptionItem> mItems;
++    private SystemMonitorView mMonitor;
++
++    private static boolean toggleMonitor(View item) {
++        if (item.getParent() instanceof OptionsPopupView) {
++            ((OptionsPopupView) item.getParent()).toggleMonitor((DeepShortcutView) item);
++        }
++        // The menu stays open.
++        return false;
++    }
++
++    private void toggleMonitor(DeepShortcutView item) {
++        if (mMonitor != null) {
++            removeView(mMonitor);
++            mMonitor = null;
++            return;
++        }
++        final SystemMonitorView monitor = newMonitor(item);
++        final ViewGroup.MarginLayoutParams lp =
++                (ViewGroup.MarginLayoutParams) monitor.getLayoutParams();
++        final int height = lp.height + lp.topMargin + lp.bottomMargin;
++        final DragLayer dragLayer = mLauncher.getDragLayer();
++        final Rect insets = dragLayer.getInsets();
++        // Above its arrow the menu grows upwards, below it downwards.
++        final boolean fits = mIsAboveIcon ? getY() - height >= insets.top
++                : getY() + getHeight() + height <= dragLayer.getHeight() - insets.bottom;
++        if (!fits) {
++            // No room that way: the menu opens anew with the card and finds its place.
++            close(false);
++            show(mLauncher, mTargetRect, mItems, true);
++            return;
++        }
++        final int at = indexOfChild(item);
++        addView(monitor, mIsAboveIcon ? at : at + 1);
++        mMonitor = monitor;
++        monitor.setAlpha(0f);
++        monitor.animate().alpha(1f).setDuration(150);
++    }
++
++    private SystemMonitorView newMonitor(DeepShortcutView item) {
++        final SystemMonitorView monitor = new SystemMonitorView(getContext(), null);
++        monitor.useMenuColors(item.getBubbleText().getCurrentTextColor());
++        final float density = getResources().getDisplayMetrics().density;
++        final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, Math.round(156 * density));
++        final int side = Math.round(12 * density);
++        lp.setMargins(side, Math.round(4 * density), side, Math.round(4 * density));
++        monitor.setLayoutParams(lp);
++        monitor.setContentDescription(getContext().getString(R.string.system_monitor_label));
++        return monitor;
++    }
++
+     public static void showDefaultOptions(Launcher launcher, float x, float y) {
+         float halfSize = launcher.getResources().getDimension(R.dimen.options_menu_thumb_size) / 2;
+         if (x < 0 || y < 0) {
+@@ -144,16 +243,53 @@ public class OptionsPopupView extends ArrowPopup
+         ArrayList<OptionItem> options = new ArrayList<>();
+         options.add(new OptionItem(R.string.wallpaper_button_text, R.drawable.ic_wallpaper,
+                 ControlType.WALLPAPER_BUTTON, OptionsPopupView::startWallpaperPicker));
++        // ON-FireLOS: light/dark theme and accent colour one tap away, as on
++        // Pixel phones ("Styles & wallpapers"). The page lives in LineageParts;
++        // its own title is used, so the label is translated wherever
++        // LineageParts is. Left out when the page does not exist.
++        if (styleIntent().resolveActivity(launcher.getPackageManager()) != null) {
++            options.add(new OptionItem(styleLabel(launcher), R.drawable.ic_style,
++                    ControlType.SETTINGS_BUTTON, OptionsPopupView::startStyle));
++        }
+         if (Utilities.isWorkspaceEditAllowed(launcher)) {
+             options.add(new OptionItem(R.string.widget_button_text, R.drawable.ic_widget,
+                     ControlType.WIDGETS_BUTTON, OptionsPopupView::onWidgetsClicked));
+         }
+-        options.add(new OptionItem(R.string.settings_button_text, R.drawable.ic_setting,
++        // ON-FireLOS: the system usage, opening in place (toggleMonitor).
++        options.add(new OptionItem(R.string.system_monitor_label,
++                R.drawable.ic_options_system_monitor, 0, MONITOR));
++        options.add(new OptionItem(R.string.onfirelos_menu_home_settings, R.drawable.ic_setting,
+                 ControlType.SETTINGS_BUTTON, OptionsPopupView::startSettings));
+ 
+         show(launcher, target, options);
+     }
+ 
++    private static final String STYLE_ACTION = "org.lineageos.lineageparts.STYLE_SETTINGS";
++    private static final String STYLE_PACKAGE = "org.lineageos.lineageparts";
++
++    private static Intent styleIntent() {
++        return new Intent(STYLE_ACTION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++    }
++
++    private static CharSequence styleLabel(Launcher launcher) {
++        try {
++            android.content.res.Resources res =
++                    launcher.getPackageManager().getResourcesForApplication(STYLE_PACKAGE);
++            int id = res.getIdentifier("style_title", "string", STYLE_PACKAGE);
++            if (id != 0) {
++                return res.getText(id);
++            }
++        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
++            // fall through
++        }
++        return "Style";
++    }
++
++    public static boolean startStyle(View view) {
++        Launcher launcher = Launcher.getLauncher(view.getContext());
++        return launcher.startActivitySafely(view, styleIntent(), null);
++    }
++
+     public static boolean onWidgetsClicked(View view) {
+         return openWidgets(Launcher.getLauncher(view.getContext()));
+     }
+@@ -204,6 +340,7 @@ public class OptionsPopupView extends ArrowPopup
+     public static class OptionItem {
+ 
+         private final int mLabelRes;
++        private final CharSequence mLabel;
+         private final int mIconRes;
+         private final int mControlTypeForLog;
+         private final OnLongClickListener mClickListener;
+@@ -211,6 +348,16 @@ public class OptionsPopupView extends ArrowPopup
+         public OptionItem(int labelRes, int iconRes, int controlTypeForLog,
+                 OnLongClickListener clickListener) {
+             mLabelRes = labelRes;
++            mLabel = null;
++            mIconRes = iconRes;
++            mControlTypeForLog = controlTypeForLog;
++            mClickListener = clickListener;
++        }
++
++        public OptionItem(CharSequence label, int iconRes, int controlTypeForLog,
++                OnLongClickListener clickListener) {
++            mLabelRes = 0;
++            mLabel = label;
+             mIconRes = iconRes;
+             mControlTypeForLog = controlTypeForLog;
+             mClickListener = clickListener;
+diff --git a/src/com/android/launcher3/widget/LauncherAppWidgetHostView.java b/src/com/android/launcher3/widget/LauncherAppWidgetHostView.java
+index 12859c7..231a685 100644
+--- a/src/com/android/launcher3/widget/LauncherAppWidgetHostView.java
++++ b/src/com/android/launcher3/widget/LauncherAppWidgetHostView.java
+@@ -125,6 +125,10 @@ public class LauncherAppWidgetHostView extends AppWidgetHostView
+     @Override
+     public void updateAppWidget(RemoteViews remoteViews) {
+         super.updateAppWidget(remoteViews);
++        // ON-FireLOS: a widget's clock may have come or gone (HomeClockReporter).
++        if (getContext() instanceof com.android.launcher3.Launcher) {
++            ((com.android.launcher3.Launcher) getContext()).getHomeClock().check();
++        }
+ 
+         // The provider info or the views might have changed.
+         checkIfAutoAdvance();
+diff --git a/src/com/android/launcher3/widget/custom/CustomWidgetParser.java b/src/com/android/launcher3/widget/custom/CustomWidgetParser.java
+index 00720c4..5884059 100644
+--- a/src/com/android/launcher3/widget/custom/CustomWidgetParser.java
++++ b/src/com/android/launcher3/widget/custom/CustomWidgetParser.java
+@@ -60,7 +60,15 @@ public class CustomWidgetParser {
+         if (sWidgetsIdMap == null) {
+             parseCustomWidgets(context);
+         }
+-        int index = sWidgetsIdMap.indexOfValue(provider);
++        // ON-FireLOS: by equality - indexOfValue compares references on Android 9, and the
++        // default layout hands in a ComponentName of its own (launcher-default.py).
++        int index = -1;
++        for (int i = 0; i < sWidgetsIdMap.size(); i++) {
++            if (sWidgetsIdMap.valueAt(i).equals(provider)) {
++                index = i;
++                break;
++            }
++        }
+         if (index >= 0) {
+             return LauncherAppWidgetInfo.CUSTOM_WIDGET_ID - sWidgetsIdMap.keyAt(index);
+         } else {
+diff --git a/src/com/android/launcher3/widget/custom/SystemMonitorView.java b/src/com/android/launcher3/widget/custom/SystemMonitorView.java
+new file mode 100644
+index 0000000..b50e655
+--- /dev/null
++++ b/src/com/android/launcher3/widget/custom/SystemMonitorView.java
+@@ -0,0 +1,267 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.launcher3.widget.custom;
++
++import android.content.Context;
++import android.graphics.Canvas;
++import android.graphics.Paint;
++import android.graphics.RectF;
++import android.os.Environment;
++import android.os.StatFs;
++import android.util.AttributeSet;
++import android.view.ContextThemeWrapper;
++import android.view.View;
++
++import com.android.launcher3.R;
++import com.android.launcher3.util.Themes;
++
++import java.io.FileInputStream;
++import java.io.IOException;
++
++/**
++ * The home screen's view of CPU, memory, GPU and storage use.
++ *
++ * A custom widget: a plain view inside the launcher, not an app widget in
++ * another process. It samples only while it is on screen - the launcher's
++ * window hides it as soon as an app is in front - so it costs nothing the
++ * rest of the time.
++ */
++public class SystemMonitorView extends View {
++    private static final long INTERVAL_MS = 2000;
++    // Storage changes slowly; every 30 s is enough.
++    private static final int STORAGE_EVERY = 15;
++
++    private static final int CPU = 0;
++    private static final int RAM = 1;
++    private static final int GPU = 2;
++    private static final int STORAGE = 3;
++
++    private final String[] mLabels;
++    private final float[] mLoad = { -1, -1, -1, -1 };
++    private final String[] mDetail = new String[4];
++
++    private final Paint mBackground = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final Paint mTrack = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final Paint mFill = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final Paint mText = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final Paint mValue = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final RectF mRect = new RectF();
++    private int mAccent;
++    private final byte[] mBuffer = new byte[4096];
++
++    private long mLastBusy = -1;
++    private long mLastTotal = -1;
++    private int mTicks;
++
++    private final Runnable mSample = new Runnable() {
++        @Override
++        public void run() {
++            sample();
++            invalidate();
++            postDelayed(this, INTERVAL_MS);
++        }
++    };
++
++    public SystemMonitorView(Context context, AttributeSet attrs) {
++        super(context, attrs);
++        mLabels = new String[] {
++                context.getString(R.string.system_monitor_cpu),
++                context.getString(R.string.system_monitor_ram),
++                context.getString(R.string.system_monitor_gpu),
++                context.getString(R.string.system_monitor_storage) };
++        mBackground.setColor(0x73000000);
++        mTrack.setColor(0x33FFFFFF);
++        mText.setColor(0xFFFFFFFF);
++        mValue.setColor(0xB3FFFFFF);
++        mValue.setTextAlign(Paint.Align.RIGHT);
++        // The system accent of the dark theme: the widget's own background is
++        // dark whatever the launcher's theme, and the light theme's accent is
++        // made for white.
++        mAccent = Themes.getColorAccent(
++                new ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault));
++    }
++
++    /**
++     * ON-FireLOS: inside the home screen's long-press menu: the menu's text colour, its
++     * fainter tones for the values and the tracks, a faint card, and the accent made for the
++     * menu's ground - the dark theme's (as on the widget) under light text, the light
++     * theme's under dark text (OptionsPopupView).
++     */
++    public void useMenuColors(int text) {
++        final int rgb = text & 0x00FFFFFF;
++        mBackground.setColor(0x0F000000 | rgb);
++        mTrack.setColor(0x26000000 | rgb);
++        mText.setColor(text);
++        mValue.setColor(0xB3000000 | rgb);
++        final int brightness = (((text >> 16) & 0xFF) * 299 + ((text >> 8) & 0xFF) * 587
++                + (text & 0xFF) * 114) / 1000;
++        if (brightness < 128) {
++            mAccent = Themes.getColorAccent(new ContextThemeWrapper(getContext(),
++                    android.R.style.Theme_DeviceDefault_Light));
++        }
++        invalidate();
++    }
++
++    // --- Running only while visible.
++
++    /**
++     * Called on attach and detach, and whenever the window or a parent is
++     * shown or hidden - the launcher's window hides as soon as an app is in
++     * front.
++     */
++    @Override
++    public void onVisibilityAggregated(boolean visible) {
++        super.onVisibilityAggregated(visible);
++        removeCallbacks(mSample);
++        if (visible) {
++            // A fresh start: the CPU needs two readings for a value.
++            mLastTotal = -1;
++            mLoad[CPU] = -1;
++            mTicks = 0;
++            mSample.run();
++        }
++    }
++
++    // --- Sampling.
++
++    private void sample() {
++        try {
++            sampleCpu();
++            sampleRam();
++        } catch (RuntimeException e) {
++            // The kernel's format, not ours: show nothing rather than fail.
++            mLoad[CPU] = -1;
++            mLoad[RAM] = -1;
++        }
++        sampleGpu();
++        if (mTicks++ % STORAGE_EVERY == 0) {
++            sampleStorage();
++        }
++    }
++
++    /** Share of time not idle across all cores since the last reading. */
++    private void sampleCpu() {
++        String stat = read("/proc/stat");
++        if (stat == null || !stat.startsWith("cpu ")) {
++            mLoad[CPU] = -1;
++            return;
++        }
++        String[] f = stat.substring(4, stat.indexOf('\n')).trim().split("\\s+");
++        long total = 0;
++        for (String v : f) {
++            total += Long.parseLong(v);
++        }
++        // idle + iowait
++        long busy = total - Long.parseLong(f[3]) - Long.parseLong(f[4]);
++        if (mLastTotal >= 0 && total > mLastTotal) {
++            mLoad[CPU] = (float) (busy - mLastBusy) / (total - mLastTotal);
++        }
++        mLastBusy = busy;
++        mLastTotal = total;
++    }
++
++    private void sampleRam() {
++        String info = read("/proc/meminfo");
++        long total = field(info, "MemTotal:");
++        long available = field(info, "MemAvailable:");
++        if (total <= 0 || available < 0) {
++            mLoad[RAM] = -1;
++            return;
++        }
++        mLoad[RAM] = (float) (total - available) / total;
++        mDetail[RAM] = gigabytes((total - available) * 1024, total * 1024);
++    }
++
++    /** The PowerVR driver's own load figure, in percent. */
++    private void sampleGpu() {
++        String load = read("/sys/module/pvrsrvkm/parameters/gpu_loading");
++        try {
++            mLoad[GPU] = load == null ? -1 : Integer.parseInt(load.trim()) / 100f;
++        } catch (NumberFormatException e) {
++            mLoad[GPU] = -1;
++        }
++    }
++
++    private void sampleStorage() {
++        StatFs fs = new StatFs(Environment.getDataDirectory().getPath());
++        long total = fs.getTotalBytes();
++        long used = total - fs.getAvailableBytes();
++        mLoad[STORAGE] = total > 0 ? (float) used / total : -1;
++        mDetail[STORAGE] = gigabytes(used, total);
++    }
++
++    private String read(String path) {
++        try (FileInputStream in = new FileInputStream(path)) {
++            int n = in.read(mBuffer);
++            return n > 0 ? new String(mBuffer, 0, n) : null;
++        } catch (IOException | SecurityException e) {
++            return null;
++        }
++    }
++
++    /** A value in kB from /proc/meminfo, -1 if absent. */
++    private static long field(String text, String name) {
++        int at = text == null ? -1 : text.indexOf(name);
++        if (at < 0) {
++            return -1;
++        }
++        int end = text.indexOf(" kB", at);
++        return Long.parseLong(text.substring(at + name.length(), end).trim());
++    }
++
++    private static String gigabytes(long used, long total) {
++        return String.format("%.1f / %.1f GB", used / 1e9, total / 1e9);
++    }
++
++    // --- Drawing.
++
++    @Override
++    protected void onDraw(Canvas canvas) {
++        float density = getResources().getDisplayMetrics().density;
++        float pad = 12 * density;
++        float w = getWidth();
++        float h = getHeight();
++        mRect.set(0, 0, w, h);
++        canvas.drawRoundRect(mRect, 16 * density, 16 * density, mBackground);
++
++        float row = (h - 2 * pad) / mLabels.length;
++        float textSize = Math.min(row * 0.36f, 15 * density);
++        mText.setTextSize(textSize);
++        mValue.setTextSize(textSize * 0.9f);
++        float bar = Math.max(3 * density, Math.min(row * 0.14f, 6 * density));
++
++        for (int i = 0; i < mLabels.length; i++) {
++            float top = pad + i * row;
++            float baseline = top + row * 0.5f;
++            canvas.drawText(mLabels[i], pad, baseline, mText);
++            float load = mLoad[i];
++            String value = load < 0 ? "–" : Math.round(load * 100) + " %";
++            if (mDetail[i] != null && load >= 0 && w > 260 * density) {
++                value = mDetail[i] + "   " + value;
++            }
++            canvas.drawText(value, w - pad, baseline, mValue);
++
++            float barTop = baseline + row * 0.14f;
++            mRect.set(pad, barTop, w - pad, barTop + bar);
++            canvas.drawRoundRect(mRect, bar / 2, bar / 2, mTrack);
++            if (load > 0) {
++                mFill.setColor(load > 0.9f ? 0xFFEF5350 : load > 0.75f ? 0xFFFFB74D : mAccent);
++                mRect.right = pad + (w - 2 * pad) * Math.min(1f, load);
++                canvas.drawRoundRect(mRect, bar / 2, bar / 2, mFill);
++            }
++        }
++    }
++}

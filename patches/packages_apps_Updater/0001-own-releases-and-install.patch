@@ -1,0 +1,793 @@
+diff --git a/res/values-ar/strings.xml b/res/values-ar/strings.xml
+index 00cf397..e451875 100644
+--- a/res/values-ar/strings.xml
++++ b/res/values-ar/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">أندرويد <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">آخر تحقق: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> من <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">جارٍ التحقق من التحديث</string>
+diff --git a/res/values-ast-rES/strings.xml b/res/values-ast-rES/strings.xml
+index 1a9c751..70e2d96 100644
+--- a/res/values-ast-rES/strings.xml
++++ b/res/values-ast-rES/strings.xml
+@@ -39,8 +39,8 @@
+     <string name="snack_update_not_installable">Esti anovamientu nun se pue instalar sobre la versión actual.</string>
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="action_download">Baxar</string>
+diff --git a/res/values-az/strings.xml b/res/values-az/strings.xml
+index 5731ca5..3b482d9 100644
+--- a/res/values-az/strings.xml
++++ b/res/values-az/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Son yoxlama: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Yeniləmə təsdiqlənir</string>
+diff --git a/res/values-bg/strings.xml b/res/values-bg/strings.xml
+index 33e37b1..12058c2 100644
+--- a/res/values-bg/strings.xml
++++ b/res/values-bg/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Последна проверка: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> от <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Проверка на актуализацията</string>
+diff --git a/res/values-ca/strings.xml b/res/values-ca/strings.xml
+index 7a370ac..8eea0f6 100644
+--- a/res/values-ca/strings.xml
++++ b/res/values-ca/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Darrera comprovació: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">S\'està verificant l\'actualització</string>
+diff --git a/res/values-cs/strings.xml b/res/values-cs/strings.xml
+index 6dd6eb2..4ee2bd0 100644
+--- a/res/values-cs/strings.xml
++++ b/res/values-cs/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Poslední kontrola: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Ověření aktualizace</string>
+diff --git a/res/values-cy/strings.xml b/res/values-cy/strings.xml
+index f1a3945..de535d8 100644
+--- a/res/values-cy/strings.xml
++++ b/res/values-cy/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Gwiriwyd diwethaf: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> o <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> o <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Yn dilysu\'r diweddariad</string>
+diff --git a/res/values-da/strings.xml b/res/values-da/strings.xml
+index 190332f..24673d9 100644
+--- a/res/values-da/strings.xml
++++ b/res/values-da/strings.xml
+@@ -56,8 +56,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Sidst tjekket: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> af <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Verificerer opdatering</string>
+     <string name="list_no_updates">Ingen nye opdateringer fundet. Brug Genopfrisk-knappen, for manuel kontrol af nye opdateringer.</string>
+diff --git a/res/values-de/strings.xml b/res/values-de/strings.xml
+index 65f901d..47a28ea 100644
+--- a/res/values-de/strings.xml
++++ b/res/values-de/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Zuletzt geprüft: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> von <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> von <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Update wird geprüft</string>
+diff --git a/res/values-el/strings.xml b/res/values-el/strings.xml
+index 3a524fe..a26b820 100644
+--- a/res/values-el/strings.xml
++++ b/res/values-el/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Τελευταίος έλεγχος: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> από <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> από <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Επαλήθευση ενημέρωσης</string>
+diff --git a/res/values-en-rAU/strings.xml b/res/values-en-rAU/strings.xml
+index dc09620..a1bf2ca 100644
+--- a/res/values-en-rAU/strings.xml
++++ b/res/values-en-rAU/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-en-rCA/strings.xml b/res/values-en-rCA/strings.xml
+index c9ac84e..a9931c8 100644
+--- a/res/values-en-rCA/strings.xml
++++ b/res/values-en-rCA/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-en-rGB/strings.xml b/res/values-en-rGB/strings.xml
+index ad3de1c..87c8381 100644
+--- a/res/values-en-rGB/strings.xml
++++ b/res/values-en-rGB/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-en-rIN/strings.xml b/res/values-en-rIN/strings.xml
+index ad3de1c..87c8381 100644
+--- a/res/values-en-rIN/strings.xml
++++ b/res/values-en-rIN/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-es-rUS/strings.xml b/res/values-es-rUS/strings.xml
+index 2ae8b8f..a414126 100644
+--- a/res/values-es-rUS/strings.xml
++++ b/res/values-es-rUS/strings.xml
+@@ -61,8 +61,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última comprobación: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verificando actualización</string>
+diff --git a/res/values-es/strings.xml b/res/values-es/strings.xml
+index 3f38385..68170cb 100644
+--- a/res/values-es/strings.xml
++++ b/res/values-es/strings.xml
+@@ -54,8 +54,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última comprobación: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Verificando actualización</string>
+     <string name="list_no_updates">Sin nuevas actualizaciones disponibles. Para comprobar manualmente, pulsa el botón «Actualizar».</string>
+diff --git a/res/values-eu/strings.xml b/res/values-eu/strings.xml
+index fd7aa8f..f13cd49 100644
+--- a/res/values-eu/strings.xml
++++ b/res/values-eu/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Azken egiaztaketa: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Eguneraketa egiaztatzen</string>
+diff --git a/res/values-fi/strings.xml b/res/values-fi/strings.xml
+index 3a8d941..c629a16 100644
+--- a/res/values-fi/strings.xml
++++ b/res/values-fi/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Viimeksi tarkistettu: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Todentaa päivitystä</string>
+diff --git a/res/values-fr/strings.xml b/res/values-fr/strings.xml
+index b99ae71..ac61b1c 100644
+--- a/res/values-fr/strings.xml
++++ b/res/values-fr/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Dernière vérification : <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> sur <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> sur <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Vérification de la mise à jour en cours</string>
+diff --git a/res/values-fy-rNL/strings.xml b/res/values-fy-rNL/strings.xml
+index 2d608e3..c206d62 100644
+--- a/res/values-fy-rNL/strings.xml
++++ b/res/values-fy-rNL/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Lêst kontrolearre: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> fan <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> fan <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Fernijing ferifiearje</string>
+diff --git a/res/values-gd/strings.xml b/res/values-gd/strings.xml
+index ae7c66b..0ae4d00 100644
+--- a/res/values-gd/strings.xml
++++ b/res/values-gd/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">An sgrùdadh mu dheireadh: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> à <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">A’ dearbhadh an ùrachaidh</string>
+diff --git a/res/values-gl/strings.xml b/res/values-gl/strings.xml
+index f521e73..eed0f1a 100644
+--- a/res/values-gl/strings.xml
++++ b/res/values-gl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última comprobación: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new">restan <xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Comprobando actualización</string>
+diff --git a/res/values-hr/strings.xml b/res/values-hr/strings.xml
+index 3a572cc..3fcf9b6 100644
+--- a/res/values-hr/strings.xml
++++ b/res/values-hr/strings.xml
+@@ -52,7 +52,7 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Zadnja provjera: <xliff:g id="date" example="1 January 1970">%1$s </xliff:g> (<xliff:g id="time" example="01:23">%2$s </xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="7.1.2">%1$s</xliff:g>)</string>
+     <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s </xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s </xliff:g></string>
+     <string name="list_verifying_update">Provjera ažuriranja</string>
+     <string name="list_no_updates">Nema pronađenih novih ažuriranja. Za ručnu provjeru novih ažuriranja upotrijebite gumb Osvježi.</string>
+diff --git a/res/values-hu/strings.xml b/res/values-hu/strings.xml
+index 5adb3ab..7f9ce70 100644
+--- a/res/values-hu/strings.xml
++++ b/res/values-hu/strings.xml
+@@ -64,8 +64,8 @@ illetve, ha éppen tölt, akkor még <xliff:g id="percent_charging">%2$d</xliff:
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Utolsó ellenőrzés: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> a <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g>-ból - <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> a <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g>-ból (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Frissítésellenőrzés</string>
+diff --git a/res/values-in/strings.xml b/res/values-in/strings.xml
+index 0eeb16a..7b120c6 100644
+--- a/res/values-in/strings.xml
++++ b/res/values-in/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s </xliff:g></string>
+     <string name="header_last_updates_check">Terakhir diperiksa: <xliff:g id="date" example="1 January 1970">%1$s </xliff:g> (<xliff:g id="time" example="01:23">%2$s </xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> dari <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> dari <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="duration" example="3 minutes">%3$s</xliff:g> lagi) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Memverifikasi pembaruan</string>
+diff --git a/res/values-it/strings.xml b/res/values-it/strings.xml
+index 248d80a..2cc560c 100644
+--- a/res/values-it/strings.xml
++++ b/res/values-it/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Ultima verifica: <xliff:g id="date" example="1 Gennaio 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="Luglio 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="Luglio 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> di <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> di <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifica aggiornamento</string>
+diff --git a/res/values-iw/strings.xml b/res/values-iw/strings.xml
+index 7e8fc1d..32a0449 100644
+--- a/res/values-iw/strings.xml
++++ b/res/values-iw/strings.xml
+@@ -57,8 +57,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">אנדרואיד <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">בדיקה אחרונה: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> מתוך <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> מתוך <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">מאמת עדכון</string>
+diff --git a/res/values-ja/strings.xml b/res/values-ja/strings.xml
+index f5b88d7..514b08f 100644
+--- a/res/values-ja/strings.xml
++++ b/res/values-ja/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">最終確認: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">アップデートを確認</string>
+diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
+index 44ed306..a709796 100644
+--- a/res/values-ko/strings.xml
++++ b/res/values-ko/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">마지막 확인: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">업데이트 검증 중</string>
+diff --git a/res/values-nb/strings.xml b/res/values-nb/strings.xml
+index 01b2738..0fc8d53 100644
+--- a/res/values-nb/strings.xml
++++ b/res/values-nb/strings.xml
+@@ -53,8 +53,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Sist sjekket: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> av <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Bekrefter oppdatering</string>
+     <string name="list_no_updates">Ingen nye programvareoppdateringer funnet. For å se etter oppdateringer manuelt, bruk Oppdater-knappen.</string>
+diff --git a/res/values-night/colors.xml b/res/values-night/colors.xml
+index 907f254..20c0efa 100644
+--- a/res/values-night/colors.xml
++++ b/res/values-night/colors.xml
+@@ -1,7 +1,8 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <color name="theme_primary">#212121</color>
+-    <color name="theme_primary_dark">#1c1c1c</color>
++    <color name="theme_primary">#1A1C18</color>
++    <color name="theme_primary_dark">#1A1C18</color>
++    <color name="theme_accent">@*android:color/accent_device_default_dark</color>
+ 
+     <color name="inverted">#f5f5f5</color>
+ </resources>
+diff --git a/res/values-nl/strings.xml b/res/values-nl/strings.xml
+index b9bdca0..99e08a3 100644
+--- a/res/values-nl/strings.xml
++++ b/res/values-nl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Laatst gecontroleerd: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> van <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> van <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Update verifiëren</string>
+diff --git a/res/values-pl/strings.xml b/res/values-pl/strings.xml
+index b60f4a6..34fd05d 100644
+--- a/res/values-pl/strings.xml
++++ b/res/values-pl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Ostatnio sprawdzane: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Sprawdzanie aktualizacji</string>
+diff --git a/res/values-pt-rBR/strings.xml b/res/values-pt-rBR/strings.xml
+index c8c1ce0..fdf2bb5 100644
+--- a/res/values-pt-rBR/strings.xml
++++ b/res/values-pt-rBR/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última verificação: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> às <xliff:g id="time" example="01:23">%2$s</xliff:g></string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verificando atualização</string>
+diff --git a/res/values-pt-rPT/strings.xml b/res/values-pt-rPT/strings.xml
+index b748747..5c2ff27 100644
+--- a/res/values-pt-rPT/strings.xml
++++ b/res/values-pt-rPT/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última verificação: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">A verificar atualização</string>
+diff --git a/res/values-ro/strings.xml b/res/values-ro/strings.xml
+index 843a6de..67ea77a 100644
+--- a/res/values-ro/strings.xml
++++ b/res/values-ro/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Ultima verificare: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> din <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> din <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verificare actualizare</string>
+diff --git a/res/values-ru/strings.xml b/res/values-ru/strings.xml
+index 29b94ee..a66d1db 100644
+--- a/res/values-ru/strings.xml
++++ b/res/values-ru/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Поиск обновлений выполнялся <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> в <xliff:g id="time" example="01:23">%2$s</xliff:g></string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> из <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> из <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Проверка обновлений</string>
+diff --git a/res/values-sk/strings.xml b/res/values-sk/strings.xml
+index 86251be..11faeda 100644
+--- a/res/values-sk/strings.xml
++++ b/res/values-sk/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Posledná kontrola: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> из <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Overujem aktualizáciu</string>
+diff --git a/res/values-sl/strings.xml b/res/values-sl/strings.xml
+index 415574a..d2daab6 100644
+--- a/res/values-sl/strings.xml
++++ b/res/values-sl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Zadnje preverjanje: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> od <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> od <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Preverjanje posodobitve</string>
+diff --git a/res/values-sq/strings.xml b/res/values-sq/strings.xml
+index 77a6646..f425101 100644
+--- a/res/values-sq/strings.xml
++++ b/res/values-sq/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Kontrolli i fundit: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> e <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> e <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Duke verifikuar përditësimin</string>
+diff --git a/res/values-sr/strings.xml b/res/values-sr/strings.xml
+index 5529209..9888dc4 100644
+--- a/res/values-sr/strings.xml
++++ b/res/values-sr/strings.xml
+@@ -57,7 +57,7 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="верзија" example="7.1.2">%1$s </xliff:g></string>
+     <string name="header_last_updates_check">Последњи пут проверено: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
+     <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s </xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s </xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> од <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> од <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+diff --git a/res/values-sv/strings.xml b/res/values-sv/strings.xml
+index d41665f..3892399 100644
+--- a/res/values-sv/strings.xml
++++ b/res/values-sv/strings.xml
+@@ -45,8 +45,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Senaste kontrollen utfördes: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> av <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Verifierar uppdateringen</string>
+     <string name="action_download">Ladda ner</string>
+diff --git a/res/values-tr/strings.xml b/res/values-tr/strings.xml
+index e7bcae9..07e4ec9 100644
+--- a/res/values-tr/strings.xml
++++ b/res/values-tr/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Son kontrol zamanı: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Güncelleme doğrulanıyor</string>
+diff --git a/res/values-uk/strings.xml b/res/values-uk/strings.xml
+index 5f4b51f..302f527 100644
+--- a/res/values-uk/strings.xml
++++ b/res/values-uk/strings.xml
+@@ -51,8 +51,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Остання перевірка: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_verifying_update">Перевірка оновлення</string>
+     <string name="list_no_updates">Оновлень не знайдено. Щоб вручну перевірити наявність оновлень, натисніть кнопку Оновити.</string>
+     <string name="action_download">Завантажити</string>
+diff --git a/res/values-vi/strings.xml b/res/values-vi/strings.xml
+index 0869eb6..f8fcd51 100644
+--- a/res/values-vi/strings.xml
++++ b/res/values-vi/strings.xml
+@@ -57,8 +57,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Lần kiểm tra cuối: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> của <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Đang xác thực bản cập nhật</string>
+diff --git a/res/values-zh-rCN/strings.xml b/res/values-zh-rCN/strings.xml
+index aa212a3..0e54425 100644
+--- a/res/values-zh-rCN/strings.xml
++++ b/res/values-zh-rCN/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">最后检查： <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">正在验证更新</string>
+diff --git a/res/values-zh-rTW/strings.xml b/res/values-zh-rTW/strings.xml
+index 43a407b..d8a2e39 100644
+--- a/res/values-zh-rTW/strings.xml
++++ b/res/values-zh-rTW/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">上次檢查：<xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>-<xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)-<xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> 的 <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> 的 <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">正在驗證更新</string>
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index 539b386..db1467c 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -1,8 +1,8 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <color name="theme_primary">#f5f5f5</color>
+-    <color name="theme_primary_dark">#e0e0e0</color>
+-    <color name="theme_accent">#167c80</color>
++    <color name="theme_primary">#F6F8F3</color>
++    <color name="theme_primary_dark">#F6F8F3</color>
++    <color name="theme_accent">@*android:color/accent_device_default_light</color>
+ 
+     <color name="inverted">#212121</color>
+     <color name="ic_background">#333333</color>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 34f2fd3..860d448 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -92,8 +92,8 @@
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+ 
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/src/org/lineageos/updater/UpdatesActivity.java b/src/org/lineageos/updater/UpdatesActivity.java
+index efea969..4e46de5 100644
+--- a/src/org/lineageos/updater/UpdatesActivity.java
++++ b/src/org/lineageos/updater/UpdatesActivity.java
+@@ -115,8 +115,11 @@ public class UpdatesActivity extends UpdatesListActivity {
+         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+ 
+         TextView headerTitle = (TextView) findViewById(R.id.header_title);
+-        headerTitle.setText(getString(R.string.header_title_text,
+-                BuildInfoUtils.getBuildVersion()));
++        // ON-FireLOS: this project's name and version (from the build's display id).
++        final java.util.regex.Matcher onfirelos = java.util.regex.Pattern
++                .compile("ON-FireLOS-([0-9.]+)-").matcher(android.os.Build.DISPLAY);
++        headerTitle.setText(onfirelos.find() ? "ON-FireLOS\n" + onfirelos.group(1)
++                : getString(R.string.header_title_text, BuildInfoUtils.getBuildVersion()));
+ 
+         updateLastCheckedString();
+ 
+diff --git a/src/org/lineageos/updater/controller/UpdateInstaller.java b/src/org/lineageos/updater/controller/UpdateInstaller.java
+index a4eff38..57ed9b4 100644
+--- a/src/org/lineageos/updater/controller/UpdateInstaller.java
++++ b/src/org/lineageos/updater/controller/UpdateInstaller.java
+@@ -99,6 +99,9 @@ class UpdateInstaller {
+         try {
+             android.os.RecoverySystem.installPackage(mContext, update);
+         } catch (IOException e) {
++            if (installThroughCommandFile(update)) {
++                return;
++            }
+             Log.e(TAG, "Could not install update", e);
+             mUpdaterController.getActualUpdate(downloadId)
+                     .setStatus(UpdateStatus.INSTALLATION_FAILED);
+@@ -106,6 +109,28 @@ class UpdateInstaller {
+         }
+     }
+ 
++    /**
++     * ON-FireLOS: this device has no /misc for the bootloader message RecoverySystem writes
++     * ("Setup BCB failed"); TWRP takes the same command from /cache/recovery/command. It
++     * cannot mount /data (f2fs), so it reads the package through the block map that the
++     * shutdown's uncrypt writes for a "recovery-update" reboot, as RecoverySystem does.
++     */
++    private boolean installThroughCommandFile(File update) {
++        final File command = new File("/cache/recovery/command");
++        final String path = update.getAbsolutePath().startsWith("/data/")
++                ? "@/cache/recovery/block.map" : update.getAbsolutePath();
++        try (java.io.FileWriter writer = new java.io.FileWriter(command)) {
++            writer.write("--update_package=" + path + "\n");
++            writer.write("--locale=" + java.util.Locale.getDefault().toLanguageTag() + "\n");
++        } catch (IOException e) {
++            Log.e(TAG, "Could not write " + command, e);
++            return false;
++        }
++        mContext.getSystemService(android.os.PowerManager.class)
++                .reboot(android.os.PowerManager.REBOOT_RECOVERY_UPDATE);
++        return true;
++    }
++
+     private synchronized void prepareForUncryptAndInstall(UpdateInfo update) {
+         String uncryptFilePath = update.getFile().getAbsolutePath() + Constants.UNCRYPT_FILE_EXT;
+         File uncryptFile = new File(uncryptFilePath);

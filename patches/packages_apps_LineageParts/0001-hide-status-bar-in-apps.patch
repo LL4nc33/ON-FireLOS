@@ -1,0 +1,1627 @@
+diff --git a/res/anim-ldrtl/onfirelos_page_close_enter.xml b/res/anim-ldrtl/onfirelos_page_close_enter.xml
+new file mode 100644
+index 0000000..26fbefb
+--- /dev/null
++++ b/res/anim-ldrtl/onfirelos_page_close_enter.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. Back: the page below comes back from the left. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="normal">
++    <translate
++        android:fromXDelta="20%"
++        android:toXDelta="0" />
++    <alpha
++        android:fromAlpha="0.6"
++        android:toAlpha="1.0" />
++</set>
+diff --git a/res/anim-ldrtl/onfirelos_page_close_exit.xml b/res/anim-ldrtl/onfirelos_page_close_exit.xml
+new file mode 100644
+index 0000000..6e1510d
+--- /dev/null
++++ b/res/anim-ldrtl/onfirelos_page_close_exit.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. Back: the page on top slides out to the right. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="top">
++    <translate
++        android:fromXDelta="0"
++        android:toXDelta="-100%" />
++    <alpha
++        android:fromAlpha="1.0"
++        android:toAlpha="1.0" />
++</set>
+diff --git a/res/anim-ldrtl/onfirelos_page_open_enter.xml b/res/anim-ldrtl/onfirelos_page_open_enter.xml
+new file mode 100644
+index 0000000..e0f3949
+--- /dev/null
++++ b/res/anim-ldrtl/onfirelos_page_open_enter.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. A new page slides in from the right. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="top">
++    <translate
++        android:fromXDelta="-100%"
++        android:toXDelta="0" />
++    <alpha
++        android:fromAlpha="1.0"
++        android:toAlpha="1.0" />
++</set>
+diff --git a/res/anim-ldrtl/onfirelos_page_open_exit.xml b/res/anim-ldrtl/onfirelos_page_open_exit.xml
+new file mode 100644
+index 0000000..0a98181
+--- /dev/null
++++ b/res/anim-ldrtl/onfirelos_page_open_exit.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. The page left behind moves a little to the left and darkens. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="normal">
++    <translate
++        android:fromXDelta="0"
++        android:toXDelta="20%" />
++    <alpha
++        android:fromAlpha="1.0"
++        android:toAlpha="0.6" />
++</set>
+diff --git a/res/anim/onfirelos_page_close_enter.xml b/res/anim/onfirelos_page_close_enter.xml
+new file mode 100644
+index 0000000..b511878
+--- /dev/null
++++ b/res/anim/onfirelos_page_close_enter.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. Back: the page below comes back from the left. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="normal">
++    <translate
++        android:fromXDelta="-20%"
++        android:toXDelta="0" />
++    <alpha
++        android:fromAlpha="0.6"
++        android:toAlpha="1.0" />
++</set>
+diff --git a/res/anim/onfirelos_page_close_exit.xml b/res/anim/onfirelos_page_close_exit.xml
+new file mode 100644
+index 0000000..45685cd
+--- /dev/null
++++ b/res/anim/onfirelos_page_close_exit.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. Back: the page on top slides out to the right. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="top">
++    <translate
++        android:fromXDelta="0"
++        android:toXDelta="100%" />
++    <alpha
++        android:fromAlpha="1.0"
++        android:toAlpha="1.0" />
++</set>
+diff --git a/res/anim/onfirelos_page_open_enter.xml b/res/anim/onfirelos_page_open_enter.xml
+new file mode 100644
+index 0000000..d3aa823
+--- /dev/null
++++ b/res/anim/onfirelos_page_open_enter.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. A new page slides in from the right. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="top">
++    <translate
++        android:fromXDelta="100%"
++        android:toXDelta="0" />
++    <alpha
++        android:fromAlpha="1.0"
++        android:toAlpha="1.0" />
++</set>
+diff --git a/res/anim/onfirelos_page_open_exit.xml b/res/anim/onfirelos_page_open_exit.xml
+new file mode 100644
+index 0000000..d961a4c
+--- /dev/null
++++ b/res/anim/onfirelos_page_open_exit.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. The page left behind moves a little to the left and darkens. -->
++<set xmlns:android="http://schemas.android.com/apk/res/android"
++    android:duration="300"
++    android:interpolator="@android:interpolator/fast_out_slow_in"
++    android:shareInterpolator="true"
++    android:zAdjustment="normal">
++    <translate
++        android:fromXDelta="0"
++        android:toXDelta="-20%" />
++    <alpha
++        android:fromAlpha="1.0"
++        android:toAlpha="0.6" />
++</set>
+diff --git a/res/values-af/onfirelos_strings.xml b/res/values-af/onfirelos_strings.xml
+new file mode 100644
+index 0000000..48739e2
+--- /dev/null
++++ b/res/values-af/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Meer plek vir programme. Swiep van die boonste rand ondertoe om dit te wys; op die tuisskerm bly dit sigbaar</string>
++    <string name="status_bar_auto_hide_title">Versteek in programme</string>
++</resources>
+diff --git a/res/values-am/onfirelos_strings.xml b/res/values-am/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fa48d43
+--- /dev/null
++++ b/res/values-am/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ለመተግበሪያዎች ተጨማሪ ቦታ። ለማሳየት ከላይኛው ጠርዝ ወደ ታች ያንሸራትቱ፤ በመነሻ ማያ ገጹ ላይ እንደሚታይ ይቆያል</string>
++    <string name="status_bar_auto_hide_title">በመተግበሪያዎች ውስጥ ደብቅ</string>
++</resources>
+diff --git a/res/values-ar/onfirelos_strings.xml b/res/values-ar/onfirelos_strings.xml
+new file mode 100644
+index 0000000..544d327
+--- /dev/null
++++ b/res/values-ar/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">مساحة أكبر للتطبيقات. مرّر سريعًا للأسفل من الحافة العلوية لإظهار الشريط، ويظل ظاهرًا على الشاشة الرئيسية</string>
++    <string name="status_bar_auto_hide_title">إخفاء في التطبيقات</string>
++</resources>
+diff --git a/res/values-as/onfirelos_strings.xml b/res/values-as/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7c2f42c
+--- /dev/null
++++ b/res/values-as/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">এপৰ বাবে অধিক ঠাই। দেখুৱাবলৈ ওপৰৰ কাষৰ পৰা তললৈ ছোৱাইপ কৰক; গৃহ স্ক্ৰীনত ই দেখা পোৱা হৈ থাকে</string>
++    <string name="status_bar_auto_hide_title">এপত লুকুৱাওক</string>
++</resources>
+diff --git a/res/values-az/onfirelos_strings.xml b/res/values-az/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f7c8fca
+--- /dev/null
++++ b/res/values-az/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Tətbiqlər üçün daha çox yer. Göstərmək üçün yuxarı kənardan aşağı sürüşdürün; əsas ekranda görünən qalır</string>
++    <string name="status_bar_auto_hide_title">Tətbiqlərdə gizlədin</string>
++</resources>
+diff --git a/res/values-be/onfirelos_strings.xml b/res/values-be/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2678b97
+--- /dev/null
++++ b/res/values-be/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Больш месца для праграм. Каб паказаць радок стану, правядзіце пальцам уніз ад верхняга краю; на галоўным экране ён застаецца бачным</string>
++    <string name="status_bar_auto_hide_title">Хаваць у праграмах</string>
++</resources>
+diff --git a/res/values-bg/onfirelos_strings.xml b/res/values-bg/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7ddd44f
+--- /dev/null
++++ b/res/values-bg/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Повече място за приложенията. Прекарайте пръст надолу от горния край, за да я покажете; на началния екран тя остава видима</string>
++    <string name="status_bar_auto_hide_title">Скриване в приложенията</string>
++</resources>
+diff --git a/res/values-bn/onfirelos_strings.xml b/res/values-bn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..aa1fe4a
+--- /dev/null
++++ b/res/values-bn/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">অ্যাপের জন্য আরও জায়গা। স্ট্যাটাস বার দেখাতে উপরের প্রান্ত থেকে নিচের দিকে সোয়াইপ করুন; হোম স্ক্রিনে এটি সবসময় দেখা যায়</string>
++    <string name="status_bar_auto_hide_title">অ্যাপে লুকান</string>
++</resources>
+diff --git a/res/values-bs/onfirelos_strings.xml b/res/values-bs/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c20d055
+--- /dev/null
++++ b/res/values-bs/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Više prostora za aplikacije. Prevucite prema dolje s gornjeg ruba da je prikažete; na početnom ekranu ostaje vidljiva</string>
++    <string name="status_bar_auto_hide_title">Sakrij u aplikacijama</string>
++</resources>
+diff --git a/res/values-ca/onfirelos_strings.xml b/res/values-ca/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d5a5a7a
+--- /dev/null
++++ b/res/values-ca/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Més espai per a les aplicacions. Llisca cap avall des de la vora superior per mostrar-la; a la pantalla d\'inici continua visible</string>
++    <string name="status_bar_auto_hide_title">Amaga a les aplicacions</string>
++</resources>
+diff --git a/res/values-cs/onfirelos_strings.xml b/res/values-cs/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f04afbd
+--- /dev/null
++++ b/res/values-cs/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Více místa pro aplikace. Zobrazíte ho přejetím prstem dolů od horního okraje; na ploše zůstává viditelný</string>
++    <string name="status_bar_auto_hide_title">Skrýt v aplikacích</string>
++</resources>
+diff --git a/res/values-da/onfirelos_strings.xml b/res/values-da/onfirelos_strings.xml
+new file mode 100644
+index 0000000..13387d4
+--- /dev/null
++++ b/res/values-da/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mere plads til apps. Stryg nedad fra den øverste kant for at vise den. På startskærmen forbliver den synlig</string>
++    <string name="status_bar_auto_hide_title">Skjul i apps</string>
++</resources>
+diff --git a/res/values-de/strings.xml b/res/values-de/strings.xml
+index 4247ced..9044d7d 100644
+--- a/res/values-de/strings.xml
++++ b/res/values-de/strings.xml
+@@ -349,6 +349,8 @@
+     <string name="doze_title">Inaktivitätsdisplay</string>
+     <string name="status_bar_title">Statusleiste</string>
+     <string name="status_bar_quick_qs_pulldown_title">Schnelles Öffnen</string>
++    <string name="status_bar_auto_hide_title">In Apps ausblenden</string>
++    <string name="status_bar_auto_hide_summary">Mehr Platz für Apps. Vom oberen Rand nach unten wischen zeigt sie an; auf dem Startbildschirm bleibt sie sichtbar</string>
+     <string name="status_bar_quick_qs_pulldown_summary">Herunterziehen der Benachrichtigungsleiste am %1$s Rand öffnet die Schnelleinstellungen</string>
+     <string name="status_bar_quick_qs_pulldown_summary_left">linken</string>
+     <string name="status_bar_quick_qs_pulldown_summary_right">rechten</string>
+diff --git a/res/values-el/onfirelos_strings.xml b/res/values-el/onfirelos_strings.xml
+new file mode 100644
+index 0000000..099eec5
+--- /dev/null
++++ b/res/values-el/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Περισσότερος χώρος για εφαρμογές. Σύρετε προς τα κάτω από το επάνω άκρο για να εμφανιστεί. Στην αρχική οθόνη παραμένει ορατή</string>
++    <string name="status_bar_auto_hide_title">Απόκρυψη σε εφαρμογές</string>
++</resources>
+diff --git a/res/values-es-rUS/onfirelos_strings.xml b/res/values-es-rUS/onfirelos_strings.xml
+new file mode 100644
+index 0000000..536c57c
+--- /dev/null
++++ b/res/values-es-rUS/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Más espacio para las apps. Desliza hacia abajo desde el borde superior para mostrarla; en la pantalla principal permanece visible</string>
++    <string name="status_bar_auto_hide_title">Ocultar en apps</string>
++</resources>
+diff --git a/res/values-es/onfirelos_strings.xml b/res/values-es/onfirelos_strings.xml
+new file mode 100644
+index 0000000..131f1ca
+--- /dev/null
++++ b/res/values-es/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Más espacio para las aplicaciones. Desliza hacia abajo desde el borde superior para mostrarla; en la pantalla de inicio sigue visible</string>
++    <string name="status_bar_auto_hide_title">Ocultar en aplicaciones</string>
++</resources>
+diff --git a/res/values-et/onfirelos_strings.xml b/res/values-et/onfirelos_strings.xml
+new file mode 100644
+index 0000000..4dc8672
+--- /dev/null
++++ b/res/values-et/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Rohkem ruumi rakendustele. Kuvamiseks pühkige ülaservast alla; avakuval jääb olekuriba nähtavaks</string>
++    <string name="status_bar_auto_hide_title">Peida rakendustes</string>
++</resources>
+diff --git a/res/values-eu/onfirelos_strings.xml b/res/values-eu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2fc5df7
+--- /dev/null
++++ b/res/values-eu/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Leku gehiago aplikazioentzat. Egoera-barra bistaratzeko, pasatu hatza goiko ertzetik behera; hasierako pantailan ikusgai geratzen da</string>
++    <string name="status_bar_auto_hide_title">Ezkutatu aplikazioetan</string>
++</resources>
+diff --git a/res/values-fa/onfirelos_strings.xml b/res/values-fa/onfirelos_strings.xml
+new file mode 100644
+index 0000000..abd76b6
+--- /dev/null
++++ b/res/values-fa/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">فضای بیشتر برای برنامه‌ها. برای نمایش نوار وضعیت، از لبه بالا به پایین تند بکشید؛ در صفحه اصلی نمایان می‌ماند</string>
++    <string name="status_bar_auto_hide_title">پنهان کردن در برنامه‌ها</string>
++</resources>
+diff --git a/res/values-fi/onfirelos_strings.xml b/res/values-fi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c85286b
+--- /dev/null
++++ b/res/values-fi/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Enemmän tilaa sovelluksille. Tuo tilapalkki näkyviin pyyhkäisemällä alas yläreunasta; aloitusnäytöllä se pysyy näkyvissä</string>
++    <string name="status_bar_auto_hide_title">Piilota sovelluksissa</string>
++</resources>
+diff --git a/res/values-fr-rCA/onfirelos_strings.xml b/res/values-fr-rCA/onfirelos_strings.xml
+new file mode 100644
+index 0000000..14e589c
+--- /dev/null
++++ b/res/values-fr-rCA/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Plus d\'espace pour les applis. Balayez l\'écran vers le bas à partir du bord supérieur pour l\'afficher. Elle reste visible sur l\'écran d\'accueil</string>
++    <string name="status_bar_auto_hide_title">Masquer dans les applis</string>
++</resources>
+diff --git a/res/values-fr/onfirelos_strings.xml b/res/values-fr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6cbf44e
+--- /dev/null
++++ b/res/values-fr/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Plus d\'espace pour les applications. Balayez l\'écran vers le bas depuis le bord supérieur pour l\'afficher. Elle reste visible sur l\'écran d\'accueil</string>
++    <string name="status_bar_auto_hide_title">Masquer dans les applications</string>
++</resources>
+diff --git a/res/values-gl/onfirelos_strings.xml b/res/values-gl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..72d4498
+--- /dev/null
++++ b/res/values-gl/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Máis espazo para as aplicacións. Pasa o dedo cara abaixo desde o bordo superior para mostrala; na pantalla de inicio permanece visible</string>
++    <string name="status_bar_auto_hide_title">Ocultar nas aplicacións</string>
++</resources>
+diff --git a/res/values-gu/onfirelos_strings.xml b/res/values-gu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..58330f0
+--- /dev/null
++++ b/res/values-gu/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ઍપ માટે વધુ જગ્યા. તેને બતાવવા માટે ઉપરની કિનારીથી નીચે સ્વાઇપ કરો; હોમ સ્ક્રીન પર તે દેખાતો રહે છે</string>
++    <string name="status_bar_auto_hide_title">ઍપમાં છુપાવો</string>
++</resources>
+diff --git a/res/values-hi/onfirelos_strings.xml b/res/values-hi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..a86ed8e
+--- /dev/null
++++ b/res/values-hi/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ऐप्लिकेशन के लिए ज़्यादा जगह. इसे दिखाने के लिए ऊपरी किनारे से नीचे की ओर स्वाइप करें; होम स्क्रीन पर यह दिखता रहता है</string>
++    <string name="status_bar_auto_hide_title">ऐप्लिकेशन में छिपाएं</string>
++</resources>
+diff --git a/res/values-hr/onfirelos_strings.xml b/res/values-hr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..4ad0024
+--- /dev/null
++++ b/res/values-hr/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Više prostora za aplikacije. Prijeđite prstom prema dolje od gornjeg ruba da bi se prikazala; na početnom zaslonu ostaje vidljiva</string>
++    <string name="status_bar_auto_hide_title">Sakrij u aplikacijama</string>
++</resources>
+diff --git a/res/values-hu/onfirelos_strings.xml b/res/values-hu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b7e47f9
+--- /dev/null
++++ b/res/values-hu/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Több hely az alkalmazásoknak. A megjelenítéshez csúsztassa lefelé az ujját a felső szélről; a kezdőképernyőn látható marad</string>
++    <string name="status_bar_auto_hide_title">Elrejtés alkalmazásokban</string>
++</resources>
+diff --git a/res/values-hy/onfirelos_strings.xml b/res/values-hy/onfirelos_strings.xml
+new file mode 100644
+index 0000000..654db9e
+--- /dev/null
++++ b/res/values-hy/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Ավելի շատ տեղ հավելվածների համար։ Այն ցուցադրելու համար մատը սահեցրեք վերևի եզրից ներքև։ Հիմնական էկրանին այն միշտ տեսանելի է</string>
++    <string name="status_bar_auto_hide_title">Թաքցնել հավելվածներում</string>
++</resources>
+diff --git a/res/values-in/onfirelos_strings.xml b/res/values-in/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b0471d4
+--- /dev/null
++++ b/res/values-in/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Lebih banyak ruang untuk aplikasi. Geser ke bawah dari tepi atas untuk menampilkannya; status bar tetap terlihat di layar utama</string>
++    <string name="status_bar_auto_hide_title">Sembunyikan di aplikasi</string>
++</resources>
+diff --git a/res/values-is/onfirelos_strings.xml b/res/values-is/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0218504
+--- /dev/null
++++ b/res/values-is/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Meira pláss fyrir forrit. Strjúktu niður frá efri brúninni til að birta hana; hún er áfram sýnileg á heimaskjánum</string>
++    <string name="status_bar_auto_hide_title">Fela í forritum</string>
++</resources>
+diff --git a/res/values-it/onfirelos_strings.xml b/res/values-it/onfirelos_strings.xml
+new file mode 100644
+index 0000000..bfbc017
+--- /dev/null
++++ b/res/values-it/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Più spazio per le app. Scorri verso il basso dal bordo superiore per mostrarla; nella schermata Home rimane visibile</string>
++    <string name="status_bar_auto_hide_title">Nascondi nelle app</string>
++</resources>
+diff --git a/res/values-iw/onfirelos_strings.xml b/res/values-iw/onfirelos_strings.xml
+new file mode 100644
+index 0000000..58e568a
+--- /dev/null
++++ b/res/values-iw/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">יותר מקום לאפליקציות. כדי להציג אותה, מחליקים למטה מהקצה העליון. במסך הבית היא נשארת גלויה</string>
++    <string name="status_bar_auto_hide_title">הסתרה באפליקציות</string>
++</resources>
+diff --git a/res/values-ja/onfirelos_strings.xml b/res/values-ja/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0a24d06
+--- /dev/null
++++ b/res/values-ja/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">アプリの表示領域が広くなります。上端から下にスワイプすると表示されます。ホーム画面では常に表示されます</string>
++    <string name="status_bar_auto_hide_title">アプリ内で非表示</string>
++</resources>
+diff --git a/res/values-ka/onfirelos_strings.xml b/res/values-ka/onfirelos_strings.xml
+new file mode 100644
+index 0000000..04f8a5b
+--- /dev/null
++++ b/res/values-ka/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">მეტი სივრცე აპებისთვის. მის საჩვენებლად გადაფურცლეთ ქვემოთ ზედა კიდიდან; მთავარ ეკრანზე ის ხილული რჩება</string>
++    <string name="status_bar_auto_hide_title">აპებში დამალვა</string>
++</resources>
+diff --git a/res/values-kk/onfirelos_strings.xml b/res/values-kk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2aba637
+--- /dev/null
++++ b/res/values-kk/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Қолданбаларға көбірек орын. Оны көрсету үшін жоғарғы жиектен төмен сырғытыңыз; негізгі экранда ол көрініп тұрады</string>
++    <string name="status_bar_auto_hide_title">Қолданбаларда жасыру</string>
++</resources>
+diff --git a/res/values-km/onfirelos_strings.xml b/res/values-km/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ee47311
+--- /dev/null
++++ b/res/values-km/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">មានកន្លែងច្រើនជាងមុនសម្រាប់កម្មវិធី។ អូសចុះពីគែមខាងលើ ដើម្បីបង្ហាញវា។ វានៅតែបង្ហាញនៅលើអេក្រង់ដើម</string>
++    <string name="status_bar_auto_hide_title">លាក់នៅក្នុងកម្មវិធី</string>
++</resources>
+diff --git a/res/values-kn/onfirelos_strings.xml b/res/values-kn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..20998bb
+--- /dev/null
++++ b/res/values-kn/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ಆ್ಯಪ್‌ಗಳಿಗೆ ಹೆಚ್ಚಿನ ಸ್ಥಳಾವಕಾಶ. ಅದನ್ನು ತೋರಿಸಲು ಮೇಲಿನ ಅಂಚಿನಿಂದ ಕೆಳಗೆ ಸ್ವೈಪ್ ಮಾಡಿ; ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ ಅದು ಗೋಚರಿಸುತ್ತಲೇ ಇರುತ್ತದೆ</string>
++    <string name="status_bar_auto_hide_title">ಆ್ಯಪ್‌ಗಳಲ್ಲಿ ಮರೆಮಾಡಿ</string>
++</resources>
+diff --git a/res/values-ko/onfirelos_strings.xml b/res/values-ko/onfirelos_strings.xml
+new file mode 100644
+index 0000000..c7a3859
+--- /dev/null
++++ b/res/values-ko/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">앱을 위한 공간이 넓어집니다. 상단 가장자리에서 아래로 스와이프하면 표시되며, 홈 화면에서는 계속 표시됩니다</string>
++    <string name="status_bar_auto_hide_title">앱에서 숨기기</string>
++</resources>
+diff --git a/res/values-ky/onfirelos_strings.xml b/res/values-ky/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8c2b1a0
+--- /dev/null
++++ b/res/values-ky/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Колдонмолор үчүн көбүрөөк орун. Аны көрсөтүү үчүн үстүңкү четинен ылдый сүрүңүз; башкы экранда ал көрүнүп турат</string>
++    <string name="status_bar_auto_hide_title">Колдонмолордо жашыруу</string>
++</resources>
+diff --git a/res/values-lo/onfirelos_strings.xml b/res/values-lo/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7c63780
+--- /dev/null
++++ b/res/values-lo/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ມີພື້ນທີ່ສຳລັບແອັບຫຼາຍຂຶ້ນ. ປັດລົງຈາກຂອບເທິງເພື່ອສະແດງແຖບສະຖານະ; ຢູ່ໜ້າຈໍຫຼັກມັນຈະຍັງສະແດງຢູ່</string>
++    <string name="status_bar_auto_hide_title">ເຊື່ອງໃນແອັບ</string>
++</resources>
+diff --git a/res/values-lt/onfirelos_strings.xml b/res/values-lt/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f627232
+--- /dev/null
++++ b/res/values-lt/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Daugiau vietos programoms. Perbraukite žemyn nuo viršutinio krašto, kad ji būtų parodyta; pagrindiniame ekrane ji lieka matoma</string>
++    <string name="status_bar_auto_hide_title">Slėpti programose</string>
++</resources>
+diff --git a/res/values-lv/onfirelos_strings.xml b/res/values-lv/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d9a34c6
+--- /dev/null
++++ b/res/values-lv/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Vairāk vietas lietotnēm. Lai to parādītu, velciet lejup no augšējās malas; sākuma ekrānā tā paliek redzama</string>
++    <string name="status_bar_auto_hide_title">Paslēpt lietotnēs</string>
++</resources>
+diff --git a/res/values-mk/onfirelos_strings.xml b/res/values-mk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..dc8f916
+--- /dev/null
++++ b/res/values-mk/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Повеќе простор за апликациите. Повлечете надолу од горниот раб за да се прикаже; на почетниот екран останува видлива</string>
++    <string name="status_bar_auto_hide_title">Сокриј во апликации</string>
++</resources>
+diff --git a/res/values-ml/onfirelos_strings.xml b/res/values-ml/onfirelos_strings.xml
+new file mode 100644
+index 0000000..35ebb9f
+--- /dev/null
++++ b/res/values-ml/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ആപ്പുകൾക്ക് കൂടുതൽ ഇടം. കാണിക്കാൻ മുകളിലെ അരികിൽ നിന്ന് താഴേക്ക് സ്വൈപ്പ് ചെയ്യുക; ഹോം സ്ക്രീനിൽ ഇത് ദൃശ്യമായി തുടരും</string>
++    <string name="status_bar_auto_hide_title">ആപ്പുകളിൽ മറയ്ക്കുക</string>
++</resources>
+diff --git a/res/values-mn/onfirelos_strings.xml b/res/values-mn/onfirelos_strings.xml
+new file mode 100644
+index 0000000..9e28e97
+--- /dev/null
++++ b/res/values-mn/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Аппуудад илүү их зай. Харуулахын тулд дээд ирмэгээс доош шударна уу; үндсэн нүүрэнд харагдсаар байна</string>
++    <string name="status_bar_auto_hide_title">Аппуудад нуух</string>
++</resources>
+diff --git a/res/values-mr/onfirelos_strings.xml b/res/values-mr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..7301213
+--- /dev/null
++++ b/res/values-mr/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ॲप्ससाठी अधिक जागा. दाखवण्यासाठी वरच्या कडेपासून खाली स्वाइप करा; होम स्क्रीनवर तो दिसत राहतो</string>
++    <string name="status_bar_auto_hide_title">ॲप्समध्ये लपवा</string>
++</resources>
+diff --git a/res/values-ms/onfirelos_strings.xml b/res/values-ms/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f672f0e
+--- /dev/null
++++ b/res/values-ms/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Lebih banyak ruang untuk apl. Leret ke bawah dari tepi atas untuk menunjukkannya; bar kekal kelihatan pada skrin utama</string>
++    <string name="status_bar_auto_hide_title">Sembunyikan dalam apl</string>
++</resources>
+diff --git a/res/values-my/onfirelos_strings.xml b/res/values-my/onfirelos_strings.xml
+new file mode 100644
+index 0000000..b460a5d
+--- /dev/null
++++ b/res/values-my/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">အက်ပ်များအတွက် နေရာပိုရသည်။ ပြသရန် အပေါ်အစွန်းမှ အောက်သို့ ပွတ်ဆွဲပါ၊ ပင်မစာမျက်နှာတွင်မူ ဆက်ပြနေမည်</string>
++    <string name="status_bar_auto_hide_title">အက်ပ်များတွင် ဖျောက်ရန်</string>
++</resources>
+diff --git a/res/values-nb/onfirelos_strings.xml b/res/values-nb/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ffadef2
+--- /dev/null
++++ b/res/values-nb/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mer plass til apper. Sveip ned fra øvre kant for å vise det. På startskjermen forblir det synlig</string>
++    <string name="status_bar_auto_hide_title">Skjul i apper</string>
++</resources>
+diff --git a/res/values-ne/onfirelos_strings.xml b/res/values-ne/onfirelos_strings.xml
+new file mode 100644
+index 0000000..3ca97a6
+--- /dev/null
++++ b/res/values-ne/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">एपहरूका लागि थप ठाउँ। देखाउन माथिल्लो किनाराबाट तलतिर स्वाइप गर्नुहोस्; होम स्क्रिनमा यो देखिइरहन्छ</string>
++    <string name="status_bar_auto_hide_title">एपहरूमा लुकाउनुहोस्</string>
++</resources>
+diff --git a/res/values-night/colors.xml b/res/values-night/colors.xml
+new file mode 100644
+index 0000000..fe51069
+--- /dev/null
++++ b/res/values-night/colors.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS: accent of the Trust onboarding screen at night: the
++     framework's accent for dark backgrounds (olive by default). -->
++<resources>
++    <color name="onboarding_accent">@*android:color/accent_device_default_dark</color>
++</resources>
+diff --git a/res/values-nl/onfirelos_strings.xml b/res/values-nl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..72645d7
+--- /dev/null
++++ b/res/values-nl/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Meer ruimte voor apps. Veeg omlaag vanaf de bovenrand om de balk te tonen. Op het startscherm blijft hij zichtbaar</string>
++    <string name="status_bar_auto_hide_title">Verbergen in apps</string>
++</resources>
+diff --git a/res/values-or/onfirelos_strings.xml b/res/values-or/onfirelos_strings.xml
+new file mode 100644
+index 0000000..2346952
+--- /dev/null
++++ b/res/values-or/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ଆପ୍ସ ପାଇଁ ଅଧିକ ସ୍ଥାନ। ଦେଖାଇବା ପାଇଁ ଉପର ଧାରରୁ ତଳକୁ ସ୍ୱାଇପ୍ କରନ୍ତୁ; ହୋମ୍ ସ୍କ୍ରିନରେ ଏହା ଦୃଶ୍ୟମାନ ରହେ</string>
++    <string name="status_bar_auto_hide_title">ଆପ୍ସରେ ଲୁଚାନ୍ତୁ</string>
++</resources>
+diff --git a/res/values-pa/onfirelos_strings.xml b/res/values-pa/onfirelos_strings.xml
+new file mode 100644
+index 0000000..58b1a5a
+--- /dev/null
++++ b/res/values-pa/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ਐਪਾਂ ਲਈ ਵਧੇਰੇ ਜਗ੍ਹਾ। ਦਿਖਾਉਣ ਲਈ ਉੱਪਰਲੇ ਕਿਨਾਰੇ ਤੋਂ ਹੇਠਾਂ ਵੱਲ ਸਵਾਈਪ ਕਰੋ; ਹੋਮ ਸਕ੍ਰੀਨ \'ਤੇ ਇਹ ਦਿਖਾਈ ਦਿੰਦੀ ਰਹਿੰਦੀ ਹੈ</string>
++    <string name="status_bar_auto_hide_title">ਐਪਾਂ ਵਿੱਚ ਲੁਕਾਓ</string>
++</resources>
+diff --git a/res/values-pl/onfirelos_strings.xml b/res/values-pl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0205c12
+--- /dev/null
++++ b/res/values-pl/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Więcej miejsca dla aplikacji. Przesuń palcem w dół od górnej krawędzi, aby go pokazać. Na ekranie głównym pozostaje widoczny</string>
++    <string name="status_bar_auto_hide_title">Ukrywaj w aplikacjach</string>
++</resources>
+diff --git a/res/values-pt-rBR/onfirelos_strings.xml b/res/values-pt-rBR/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6e6a21c
+--- /dev/null
++++ b/res/values-pt-rBR/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mais espaço para os apps. Deslize para baixo a partir da borda superior para mostrá-la. Na tela inicial, ela continua visível</string>
++    <string name="status_bar_auto_hide_title">Ocultar nos apps</string>
++</resources>
+diff --git a/res/values-pt-rPT/onfirelos_strings.xml b/res/values-pt-rPT/onfirelos_strings.xml
+new file mode 100644
+index 0000000..e940b08
+--- /dev/null
++++ b/res/values-pt-rPT/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mais espaço para as apps. Deslize para baixo a partir da extremidade superior para a mostrar. No ecrã principal, continua visível</string>
++    <string name="status_bar_auto_hide_title">Ocultar nas apps</string>
++</resources>
+diff --git a/res/values-pt/onfirelos_strings.xml b/res/values-pt/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6e6a21c
+--- /dev/null
++++ b/res/values-pt/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mais espaço para os apps. Deslize para baixo a partir da borda superior para mostrá-la. Na tela inicial, ela continua visível</string>
++    <string name="status_bar_auto_hide_title">Ocultar nos apps</string>
++</resources>
+diff --git a/res/values-ro/onfirelos_strings.xml b/res/values-ro/onfirelos_strings.xml
+new file mode 100644
+index 0000000..f235477
+--- /dev/null
++++ b/res/values-ro/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mai mult spațiu pentru aplicații. Glisați în jos de la marginea de sus pentru a o afișa. Pe ecranul de pornire rămâne vizibilă</string>
++    <string name="status_bar_auto_hide_title">Ascundeți în aplicații</string>
++</resources>
+diff --git a/res/values-ru/onfirelos_strings.xml b/res/values-ru/onfirelos_strings.xml
+new file mode 100644
+index 0000000..623a68b
+--- /dev/null
++++ b/res/values-ru/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Больше места для приложений. Чтобы показать строку состояния, проведите вниз от верхнего края экрана. На главном экране она отображается всегда</string>
++    <string name="status_bar_auto_hide_title">Скрывать в приложениях</string>
++</resources>
+diff --git a/res/values-si/onfirelos_strings.xml b/res/values-si/onfirelos_strings.xml
+new file mode 100644
+index 0000000..d29de13
+--- /dev/null
++++ b/res/values-si/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">යෙදුම් සඳහා වැඩි ඉඩක්. එය පෙන්වීමට ඉහළ දාරයේ සිට පහළට ස්වයිප් කරන්න; මුල් තිරයේ එය දිගටම පෙනේ</string>
++    <string name="status_bar_auto_hide_title">යෙදුම්වල සඟවන්න</string>
++</resources>
+diff --git a/res/values-sk/onfirelos_strings.xml b/res/values-sk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..82383ea
+--- /dev/null
++++ b/res/values-sk/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Viac miesta pre aplikácie. Zobrazíte ho potiahnutím nadol od horného okraja; na ploche zostáva zobrazený</string>
++    <string name="status_bar_auto_hide_title">Skryť v aplikáciách</string>
++</resources>
+diff --git a/res/values-sl/onfirelos_strings.xml b/res/values-sl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..20192b4
+--- /dev/null
++++ b/res/values-sl/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Več prostora za aplikacije. Prikažete jo tako, da z zgornjega roba povlečete navzdol; na začetnem zaslonu ostane prikazana</string>
++    <string name="status_bar_auto_hide_title">Skrij v aplikacijah</string>
++</resources>
+diff --git a/res/values-sq/onfirelos_strings.xml b/res/values-sq/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0cf5601
+--- /dev/null
++++ b/res/values-sq/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Më shumë hapësirë për aplikacionet. Rrëshqit poshtë nga skaji i sipërm për ta shfaqur; në ekranin bazë mbetet e dukshme</string>
++    <string name="status_bar_auto_hide_title">Fshih në aplikacione</string>
++</resources>
+diff --git a/res/values-sr/onfirelos_strings.xml b/res/values-sr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..0684aea
+--- /dev/null
++++ b/res/values-sr/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Више простора за апликације. Превуците надоле од горње ивице да бисте је приказали; на почетном екрану остаје видљива</string>
++    <string name="status_bar_auto_hide_title">Сакриј у апликацијама</string>
++</resources>
+diff --git a/res/values-sv/onfirelos_strings.xml b/res/values-sv/onfirelos_strings.xml
+new file mode 100644
+index 0000000..6fcf9fc
+--- /dev/null
++++ b/res/values-sv/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mer utrymme för appar. Svep nedåt från överkanten för att visa den. På startskärmen visas den alltid</string>
++    <string name="status_bar_auto_hide_title">Dölj i appar</string>
++</resources>
+diff --git a/res/values-sw/onfirelos_strings.xml b/res/values-sw/onfirelos_strings.xml
+new file mode 100644
+index 0000000..41655c5
+--- /dev/null
++++ b/res/values-sw/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Nafasi zaidi kwa programu. Telezesha kidole chini kutoka ukingo wa juu ili kuionyesha; kwenye skrini ya kwanza inaendelea kuonekana</string>
++    <string name="status_bar_auto_hide_title">Ficha ukiwa ndani ya programu</string>
++</resources>
+diff --git a/res/values-ta/onfirelos_strings.xml b/res/values-ta/onfirelos_strings.xml
+new file mode 100644
+index 0000000..88b1ddc
+--- /dev/null
++++ b/res/values-ta/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ஆப்ஸுக்குக் கூடுதல் இடம். அதைக் காட்ட மேல் விளிம்பிலிருந்து கீழே ஸ்வைப் செய்யவும்; முகப்புத் திரையில் அது தொடர்ந்து காட்டப்படும்</string>
++    <string name="status_bar_auto_hide_title">ஆப்ஸில் மறை</string>
++</resources>
+diff --git a/res/values-te/onfirelos_strings.xml b/res/values-te/onfirelos_strings.xml
+new file mode 100644
+index 0000000..dcc149a
+--- /dev/null
++++ b/res/values-te/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">యాప్‌లకు ఎక్కువ స్థలం. దీనిని చూపడానికి పై అంచు నుండి కిందికి స్వైప్ చేయండి; హోమ్ స్క్రీన్‌పై ఇది కనిపిస్తూనే ఉంటుంది</string>
++    <string name="status_bar_auto_hide_title">యాప్‌లలో దాచు</string>
++</resources>
+diff --git a/res/values-th/onfirelos_strings.xml b/res/values-th/onfirelos_strings.xml
+new file mode 100644
+index 0000000..1b7f2b2
+--- /dev/null
++++ b/res/values-th/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">มีพื้นที่สำหรับแอปมากขึ้น ปัดลงจากขอบด้านบนเพื่อแสดงแถบสถานะ โดยแถบสถานะจะยังแสดงอยู่บนหน้าจอหลัก</string>
++    <string name="status_bar_auto_hide_title">ซ่อนในแอป</string>
++</resources>
+diff --git a/res/values-tl/onfirelos_strings.xml b/res/values-tl/onfirelos_strings.xml
+new file mode 100644
+index 0000000..5a8d31a
+--- /dev/null
++++ b/res/values-tl/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Mas maraming espasyo para sa mga app. Mag-swipe pababa mula sa itaas na gilid para ipakita ito; nananatili itong nakikita sa home screen</string>
++    <string name="status_bar_auto_hide_title">Itago sa mga app</string>
++</resources>
+diff --git a/res/values-tr/onfirelos_strings.xml b/res/values-tr/onfirelos_strings.xml
+new file mode 100644
+index 0000000..61fe71f
+--- /dev/null
++++ b/res/values-tr/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Uygulamalar için daha fazla alan. Göstermek için üst kenardan aşağı kaydırın; ana ekranda görünür kalır</string>
++    <string name="status_bar_auto_hide_title">Uygulamalarda gizle</string>
++</resources>
+diff --git a/res/values-uk/onfirelos_strings.xml b/res/values-uk/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8d6d7df
+--- /dev/null
++++ b/res/values-uk/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Більше місця для додатків. Щоб показати рядок стану, проведіть пальцем униз від верхнього краю. На головному екрані він видимий завжди</string>
++    <string name="status_bar_auto_hide_title">Приховувати в додатках</string>
++</resources>
+diff --git a/res/values-ur/onfirelos_strings.xml b/res/values-ur/onfirelos_strings.xml
+new file mode 100644
+index 0000000..44225ca
+--- /dev/null
++++ b/res/values-ur/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">ایپس کے لیے زیادہ جگہ۔ اسے دکھانے کے لیے اوپری کنارے سے نیچے سوائپ کریں؛ ہوم اسکرین پر یہ نظر آتی رہتی ہے</string>
++    <string name="status_bar_auto_hide_title">ایپس میں چھپائیں</string>
++</resources>
+diff --git a/res/values-uz/onfirelos_strings.xml b/res/values-uz/onfirelos_strings.xml
+new file mode 100644
+index 0000000..3e13f9d
+--- /dev/null
++++ b/res/values-uz/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Ilovalar uchun ko‘proq joy. Uni chiqarish uchun yuqori chetdan pastga suring; bosh ekranda u doim ko‘rinib turadi</string>
++    <string name="status_bar_auto_hide_title">Ilovalarda berkitish</string>
++</resources>
+diff --git a/res/values-vi/onfirelos_strings.xml b/res/values-vi/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8c62686
+--- /dev/null
++++ b/res/values-vi/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Thêm không gian cho ứng dụng. Vuốt xuống từ cạnh trên để hiển thị thanh trạng thái; trên màn hình chính, thanh này luôn hiển thị</string>
++    <string name="status_bar_auto_hide_title">Ẩn trong ứng dụng</string>
++</resources>
+diff --git a/res/values-zh-rCN/onfirelos_strings.xml b/res/values-zh-rCN/onfirelos_strings.xml
+new file mode 100644
+index 0000000..fdc6cd5
+--- /dev/null
++++ b/res/values-zh-rCN/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">为应用留出更多空间。从顶部边缘向下滑动即可显示状态栏；在主屏幕上会始终显示</string>
++    <string name="status_bar_auto_hide_title">在应用中隐藏</string>
++</resources>
+diff --git a/res/values-zh-rHK/onfirelos_strings.xml b/res/values-zh-rHK/onfirelos_strings.xml
+new file mode 100644
+index 0000000..54ec216
+--- /dev/null
++++ b/res/values-zh-rHK/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">為應用程式提供更多空間。從頂部邊緣向下滑動即可顯示狀態列；在主畫面上會一直顯示</string>
++    <string name="status_bar_auto_hide_title">在應用程式中隱藏</string>
++</resources>
+diff --git a/res/values-zh-rTW/onfirelos_strings.xml b/res/values-zh-rTW/onfirelos_strings.xml
+new file mode 100644
+index 0000000..ca3436d
+--- /dev/null
++++ b/res/values-zh-rTW/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">為應用程式騰出更多空間。從頂端邊緣向下滑動即可顯示狀態列；在主畫面上會持續顯示</string>
++    <string name="status_bar_auto_hide_title">在應用程式中隱藏</string>
++</resources>
+diff --git a/res/values-zu/onfirelos_strings.xml b/res/values-zu/onfirelos_strings.xml
+new file mode 100644
+index 0000000..8dfb162
+--- /dev/null
++++ b/res/values-zu/onfirelos_strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="status_bar_auto_hide_summary">Isikhala esengeziwe sezinhlelo zokusebenza. Swayiphela phansi usuka onqenqemeni olungaphezulu ukuze uyibonise; esikrinini sasekhaya ihlala ibonakala</string>
++    <string name="status_bar_auto_hide_title">Fihla ezinhlelweni zokusebenza</string>
++</resources>
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index 582abea..a4b1aa7 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -32,4 +32,10 @@
+     <color name="trust_status_good">#36B37E</color>
+     <color name="trust_status_poor">#FFAB00</color>
+     <color name="trust_status_bad">#FF5630</color>
++
++    <!-- ON-FireLOS: accent of the Trust onboarding screen (DayNight theme),
++         pointing at the framework accent instead of a fixed teal, so it
++         follows Settings > Display > Style; olive at night, see
++         values-night. -->
++    <color name="onboarding_accent">@*android:color/accent_device_default_light</color>
+ </resources>
+diff --git a/res/values/onfirelos_motion.xml b/res/values/onfirelos_motion.xml
+new file mode 100644
+index 0000000..78007a3
+--- /dev/null
++++ b/res/values/onfirelos_motion.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. Moving between settings pages (settings-page-motion.py). -->
++<resources>
++    <style name="Animation.OnFireLOS.Page" parent="@android:style/Animation.Activity">
++        <item name="android:activityOpenEnterAnimation">@anim/onfirelos_page_open_enter</item>
++        <item name="android:activityOpenExitAnimation">@anim/onfirelos_page_open_exit</item>
++        <item name="android:activityCloseEnterAnimation">@anim/onfirelos_page_close_enter</item>
++        <item name="android:activityCloseExitAnimation">@anim/onfirelos_page_close_exit</item>
++    </style>
++</resources>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 6ea63bf..5bbe639 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -448,6 +448,8 @@
+     <!-- Status bar -->
+     <string name="status_bar_title">Status bar</string>
+     <string name="status_bar_quick_qs_pulldown_title">Quick pulldown</string>
++    <string name="status_bar_auto_hide_title">Hide in apps</string>
++    <string name="status_bar_auto_hide_summary">More room for apps. Swipe down from the top edge to show it; it stays on the home screen</string>
+     <string name="status_bar_quick_qs_pulldown_summary">%1$s edge of the status bar pulls down Quick Settings</string>
+     <string name="status_bar_quick_qs_pulldown_summary_left">Left</string>
+     <string name="status_bar_quick_qs_pulldown_summary_right">Right</string>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index 55d1ac0..bb5f30d 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -137,7 +137,7 @@
+     </style>
+ 
+     <style name="OnBoardingStyle" parent="Theme.AppCompat.DayNight">
+-        <item name="colorAccent">#167c80</item>
++        <item name="colorAccent">@color/onboarding_accent</item>
+         <item name="windowActionBar">false</item>
+         <item name="windowNoTitle">true</item>
+     </style>
+diff --git a/res/values/themes.xml b/res/values/themes.xml
+index 6929fb7..928c0ff 100644
+--- a/res/values/themes.xml
++++ b/res/values/themes.xml
+@@ -22,7 +22,10 @@
+          layouts against a remote context using our local theme colors. Due to the implementation
+          details of Theme, we can't reference any local resources and MUST instead use the values
+          directly. So use #ff263238 instead of @color/theme_primary and so on. -->
+-    <style name="Theme.SettingsBase" parent="@android:style/Theme.DeviceDefault.Settings" />
++    <!-- ON-FireLOS: pages slide in and out sideways (settings-page-motion.py). -->
++    <style name="Theme.SettingsBase" parent="@android:style/Theme.DeviceDefault.Settings">
++        <item name="android:windowAnimationStyle">@style/Animation.OnFireLOS.Page</item>
++    </style>
+ 
+     <style name="Theme.Settings" parent="Theme.SettingsBase">
+         <item name="dialogPreferenceStyle">@style/DialogPreferenceStyle</item>
+diff --git a/res/xml/display_rotation.xml b/res/xml/display_rotation.xml
+index c7106e7..ca3de10 100644
+--- a/res/xml/display_rotation.xml
++++ b/res/xml/display_rotation.xml
+@@ -24,11 +24,14 @@
+         android:key="accelerometer"
+         android:title="@string/accelerometer_title" />
+ 
++    <!-- ON-FireLOS: on by default, like SystemUI's own default for an unset
++         value; with "false" the switch showed Off while the lock screen
++         rotated. -->
+     <lineageos.preference.LineageSystemSettingSwitchPreference
+         android:key="lockscreen_rotation"
+         android:title="@string/display_lockscreen_rotation_title"
+         android:dependency="accelerometer"
+-        android:defaultValue="false"
++        android:defaultValue="true"
+         lineage:requiresConfig="@*android:bool/config_enableLockScreenRotation" />
+ 
+     <PreferenceCategory
+diff --git a/res/xml/status_bar_settings.xml b/res/xml/status_bar_settings.xml
+index 5364075..664409b 100644
+--- a/res/xml/status_bar_settings.xml
++++ b/res/xml/status_bar_settings.xml
+@@ -28,6 +28,12 @@
+         android:entryValues="@array/status_bar_quick_qs_pulldown_values"
+         android:defaultValue="0" />
+ 
++    <SwitchPreference
++        android:key="status_bar_auto_hide"
++        android:title="@string/status_bar_auto_hide_title"
++        android:summary="@string/status_bar_auto_hide_summary"
++        android:persistent="false" />
++
+     <PreferenceScreen
+         android:fragment="org.lineageos.lineageparts.statusbar.NetworkTrafficSettings"
+         android:key="network_traffic_settings"
+diff --git a/src/org/lineageos/lineageparts/SettingsPreferenceFragment.java b/src/org/lineageos/lineageparts/SettingsPreferenceFragment.java
+index 0946f68..4e4d5c1 100644
+--- a/src/org/lineageos/lineageparts/SettingsPreferenceFragment.java
++++ b/src/org/lineageos/lineageparts/SettingsPreferenceFragment.java
+@@ -45,6 +45,7 @@ import android.view.ViewGroup;
+ import android.widget.Button;
+ import android.view.animation.*;
+ 
++import org.lineageos.lineageparts.widget.CardGroupDecoration;
+ import org.lineageos.lineageparts.widget.CustomDialogPreference;
+ import org.lineageos.lineageparts.widget.DialogCreatable;
+ import org.lineageos.lineageparts.widget.FloatingActionButton;
+@@ -127,6 +128,10 @@ public abstract class SettingsPreferenceFragment extends PreferenceFragment
+         mPinnedHeaderFrameLayout = (ViewGroup) root.findViewById(R.id.pinned_header);
+         mFloatingActionButton = (FloatingActionButton) root.findViewById(R.id.fab);
+         mButtonBar = (ViewGroup) root.findViewById(R.id.button_bar);
++        // ON-FireLOS: the settings on cards, as in Settings, and in its column - these pages
++        // open from Settings and line up with its own.
++        setDivider(null);
++        getListView().addItemDecoration(new CardGroupDecoration(getContext()));
+         return root;
+     }
+ 
+diff --git a/src/org/lineageos/lineageparts/statusbar/StatusBarSettings.java b/src/org/lineageos/lineageparts/statusbar/StatusBarSettings.java
+index fc8adc8..12d8e47 100644
+--- a/src/org/lineageos/lineageparts/statusbar/StatusBarSettings.java
++++ b/src/org/lineageos/lineageparts/statusbar/StatusBarSettings.java
+@@ -22,6 +22,7 @@ import android.provider.Settings;
+ import android.support.v7.preference.Preference;
+ import android.support.v7.preference.PreferenceCategory;
+ import android.support.v7.preference.PreferenceScreen;
++import android.support.v7.preference.TwoStatePreference;
+ import android.support.v7.preference.Preference.OnPreferenceChangeListener;
+ import android.text.format.DateFormat;
+ import android.text.TextUtils;
+@@ -37,6 +38,8 @@ import org.lineageos.lineageparts.search.BaseSearchIndexProvider;
+ import org.lineageos.lineageparts.search.Searchable;
+ import org.lineageos.lineageparts.utils.DeviceUtils;
+ 
++import java.util.ArrayList;
++import java.util.List;
+ import java.util.Set;
+ 
+ public class StatusBarSettings extends SettingsPreferenceFragment
+@@ -61,6 +64,17 @@ public class StatusBarSettings extends SettingsPreferenceFragment
+ 
+     private static final String NETWORK_TRAFFIC_SETTINGS = "network_traffic_settings";
+ 
++    // Hides the status bar in every app but the home screen; a swipe from the
++    // top edge shows it for a moment. The same policy setting the "Expanded
++    // desktop" page writes per app - this is the one switch for all of them
++    // that page lacks: its own global mode also hides the bar on the home
++    // screen, and it cannot show this value at all.
++    private static final String STATUS_BAR_AUTO_HIDE = "status_bar_auto_hide";
++    private static final String STATUS_FILTER = "immersive.status";
++    private static final String TOKEN_APPS = "apps";
++    private static final String TOKEN_NOT_LAUNCHER = "-com.android.launcher3";
++    private TwoStatePreference mAutoHide;
++
+     private LineageSystemSettingListPreference mQuickPulldown;
+     private LineageSystemSettingListPreference mStatusBarClock;
+     private LineageSystemSettingListPreference mStatusBarAmPm;
+@@ -78,6 +92,12 @@ public class StatusBarSettings extends SettingsPreferenceFragment
+         super.onCreate(savedInstanceState);
+         addPreferencesFromResource(R.xml.status_bar_settings);
+ 
++        mAutoHide = (TwoStatePreference) findPreference(STATUS_BAR_AUTO_HIDE);
++        mAutoHide.setOnPreferenceChangeListener((preference, value) -> {
++            setAutoHide((Boolean) value);
++            return true;
++        });
++
+         mNetworkTrafficPref = (PreferenceScreen) findPreference(NETWORK_TRAFFIC_SETTINGS);
+ 
+         mHasNotch = DeviceUtils.hasNotch(getActivity());
+@@ -114,6 +134,9 @@ public class StatusBarSettings extends SettingsPreferenceFragment
+     public void onResume() {
+         super.onResume();
+ 
++        // Read back every time: the Expanded desktop page writes it too.
++        mAutoHide.setChecked(statusTokens().contains(TOKEN_APPS));
++
+         final String curIconBlacklist = Settings.Secure.getString(getContext().getContentResolver(),
+                 ICON_BLACKLIST);
+ 
+@@ -177,6 +200,60 @@ public class StatusBarSettings extends SettingsPreferenceFragment
+         return true;
+     }
+ 
++    private String[] policyParts() {
++        String policy = Settings.Global.getString(getContext().getContentResolver(),
++                Settings.Global.POLICY_CONTROL);
++        return policy != null ? policy.split(":") : new String[0];
++    }
++
++    /** Tokens of the immersive.status filter, e.g. [apps, com.x, -com.y]. */
++    private List<String> statusTokens() {
++        List<String> tokens = new ArrayList<>();
++        for (String part : policyParts()) {
++            if (part.startsWith(STATUS_FILTER + "=")) {
++                for (String token : part.substring(STATUS_FILTER.length() + 1).split(",")) {
++                    if (!token.trim().isEmpty()) {
++                        tokens.add(token.trim());
++                    }
++                }
++            }
++        }
++        return tokens;
++    }
++
++    /**
++     * Adds or removes this switch's two tokens in the immersive.status
++     * filter. Expanded desktop writes single apps into the same filter;
++     * those stay as they are.
++     */
++    private void setAutoHide(boolean hide) {
++        List<String> tokens = statusTokens();
++        tokens.remove(TOKEN_APPS);
++        tokens.remove(TOKEN_NOT_LAUNCHER);
++        if (hide) {
++            tokens.add(0, TOKEN_APPS);
++            tokens.add(TOKEN_NOT_LAUNCHER);
++        }
++        StringBuilder policy = new StringBuilder();
++        for (String part : policyParts()) {
++            if (!part.isEmpty() && !part.startsWith(STATUS_FILTER + "=")) {
++                policy.append(policy.length() > 0 ? ":" : "").append(part);
++            }
++        }
++        if (!tokens.isEmpty()) {
++            policy.append(policy.length() > 0 ? ":" : "")
++                    .append(STATUS_FILTER).append('=').append(TextUtils.join(",", tokens));
++        }
++        Settings.Global.putString(getContext().getContentResolver(),
++                Settings.Global.POLICY_CONTROL, policy.toString());
++        if (hide) {
++            // The first hidden bar in each app shows a "swipe down" hint; with
++            // the switch just turned on it only gets in the way.
++            Settings.Secure.putString(getContext().getContentResolver(),
++                    "immersive_mode_confirmations", "confirmed");
++        }
++    }
++
+     private void enableStatusBarBatteryDependents(int batteryIconStyle) {
+         mStatusBarBatteryShowPercent.setEnabled(batteryIconStyle != STATUS_BAR_BATTERY_STYLE_TEXT);
+     }
+diff --git a/src/org/lineageos/lineageparts/style/util/AccentUtils.java b/src/org/lineageos/lineageparts/style/util/AccentUtils.java
+index 0e47490..4ee0fc5 100644
+--- a/src/org/lineageos/lineageparts/style/util/AccentUtils.java
++++ b/src/org/lineageos/lineageparts/style/util/AccentUtils.java
+@@ -97,8 +97,15 @@ public final class AccentUtils {
+ 
+     @NonNull
+     private static Accent getDefaultAccent(Context context) {
++        // ON-FireLOS: the default accent is the logo green, not LineageOS teal.
++        // Same values as accent_device_default_dark/_light in the framework
++        // overlay; the swatch shows the one the current mode uses.
++        boolean night = (context.getResources().getConfiguration().uiMode
++                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
++                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+         return new Accent(context.getString(R.string.style_accent_default_name),
+-                StyleInterface.ACCENT_DEFAULT, Color.parseColor("#167C80"), StyleStatus.DYNAMIC);
++                StyleInterface.ACCENT_DEFAULT,
++                Color.parseColor(night ? "#8AA366" : "#2E521D"), StyleStatus.DYNAMIC);
+     }
+ 
+     public static boolean isCompatible(StyleStatus currentStatus, Accent accent) {
+diff --git a/src/org/lineageos/lineageparts/widget/CardGroupDecoration.java b/src/org/lineageos/lineageparts/widget/CardGroupDecoration.java
+new file mode 100644
+index 0000000..4aa32dc
+--- /dev/null
++++ b/src/org/lineageos/lineageparts/widget/CardGroupDecoration.java
+@@ -0,0 +1,301 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.lineageos.lineageparts.widget;
++
++import android.content.Context;
++import android.content.res.TypedArray;
++import android.graphics.Canvas;
++import android.graphics.Color;
++import android.graphics.Outline;
++import android.graphics.Paint;
++import android.graphics.Rect;
++import android.graphics.RectF;
++import android.support.v7.preference.Preference;
++import android.support.v7.preference.PreferenceCategory;
++import android.support.v7.preference.PreferenceGroupAdapter;
++import android.support.v7.widget.RecyclerView;
++import android.view.View;
++import android.view.ViewOutlineProvider;
++
++import java.util.WeakHashMap;
++
++/**
++ * ON-FireLOS: lays a preference list on rounded cards (docs/DESIGN.md), as in Settings - one
++ * card for each run of items between category titles. The cards are painted behind the items,
++ * so their layouts, ripples and click areas stay as they are; only the first and last item of a
++ * card are clipped to its corners, so that a ripple does not spill over them.
++ */
++public class CardGroupDecoration extends RecyclerView.ItemDecoration {
++
++    private static final int TYPE_CARD = 0;
++    private static final int TYPE_HEADER = 1;
++    private static final int TYPE_OTHER = 2;
++
++    // The card corners an item carries; NOT_ON_CARD for the items beside the cards.
++    private static final int NOT_ON_CARD = -1;
++    private static final int CORNER_TOP = 1;
++    private static final int CORNER_BOTTOM = 2;
++
++    private final float mDensity;
++    private final int mGap;
++    private final int mRadius;
++    private final int mColor;
++    private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final RectF mRect = new RectF();
++    private final ViewOutlineProvider[] mOutlines = {
++            null,
++            new CornerOutline(CORNER_TOP),
++            new CornerOutline(CORNER_BOTTOM),
++            new CornerOutline(CORNER_TOP | CORNER_BOTTOM)};
++    // What an item had before it was clipped to a card corner.
++    private final WeakHashMap<View, Saved> mSaved = new WeakHashMap<>();
++
++    private RecyclerView mParent;
++    private RecyclerView.Adapter<?> mAdapter;
++    private int mWidth = -1;
++
++    // The gaps depend on the neighbours, and RecyclerView does not recompute the offsets of the
++    // items next to an insertion or removal; so every structural change recomputes them all.
++    private final RecyclerView.AdapterDataObserver mObserver =
++            new RecyclerView.AdapterDataObserver() {
++                @Override
++                public void onChanged() {
++                    invalidate();
++                }
++
++                @Override
++                public void onItemRangeInserted(int positionStart, int itemCount) {
++                    invalidate();
++                }
++
++                @Override
++                public void onItemRangeRemoved(int positionStart, int itemCount) {
++                    invalidate();
++                }
++
++                @Override
++                public void onItemRangeMoved(int fromPosition, int toPosition, int itemCount) {
++                    invalidate();
++                }
++            };
++
++    public CardGroupDecoration(Context context) {
++        final float density = context.getResources().getDisplayMetrics().density;
++        mDensity = density;
++        mGap = Math.round(16 * density);
++        mRadius = Math.round(20 * density);
++        final TypedArray a = context.obtainStyledAttributes(
++                new int[] { android.R.attr.colorBackgroundFloating });
++        mColor = a.getColor(0, Color.WHITE);
++        a.recycle();
++        mPaint.setColor(mColor);
++        // The line: the text colour faintly over the card, in either mode.
++        final TypedArray line = context.obtainStyledAttributes(
++                new int[] { android.R.attr.textColorPrimary });
++        mLineColor = blend(mColor, line.getColor(0, Color.BLACK), 0.1f);
++        line.recycle();
++        mLinePaint.setColor(mLineColor);
++        mLineInset = Math.round(20 * context.getResources().getDisplayMetrics().density);
++    }
++
++    @Override
++    public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
++            RecyclerView.State state) {
++        watch(parent);
++        // Every item is indented, so that the category titles stay in line with the items - by
++        // the list's width, as Settings' column on a tablet.
++        final float width = parent.getWidth() / mDensity;
++        final int margin = Math.round((width >= 1100 ? 160 : width >= 760 ? 80 : 16) * mDensity);
++        outRect.set(margin, 0, margin, 0);
++        final int position = parent.getChildAdapterPosition(view);
++        if (position == RecyclerView.NO_POSITION || type(position) != TYPE_CARD) {
++            return;
++        }
++        // A category title keeps its own distance to the card below it.
++        final int previous = type(position - 1);
++        if (previous != TYPE_CARD && previous != TYPE_HEADER) {
++            outRect.top = mGap;
++        }
++        if (type(position + 1) != TYPE_CARD) {
++            outRect.bottom = mGap;
++        }
++    }
++
++    @Override
++    public void onDraw(Canvas c, RecyclerView parent, RecyclerView.State state) {
++        watch(parent);
++        if (parent.getWidth() != mWidth) {
++            if (mWidth >= 0) {
++                parent.post(parent::invalidateItemDecorations);
++            }
++            mWidth = parent.getWidth();
++        }
++        final int count = parent.getChildCount();
++        for (int i = 0; i < count; i++) {
++            final View child = parent.getChildAt(i);
++            final int corners = corners(parent.getChildAdapterPosition(child));
++            if (corners != NOT_ON_CARD) {
++                drawCard(c, child, corners);
++                if (mLines && (corners & CORNER_BOTTOM) == 0) {
++                    drawLine(c, child);
++                }
++            }
++            clip(child, corners);
++        }
++    }
++
++    // ON-FireLOS: a fine line between two items of a card, inset from its edges.
++    private final Paint mLinePaint = new Paint();
++    private int mLineColor;
++    private int mLineInset;
++    private boolean mLines = true;
++
++    private void drawLine(Canvas c, View child) {
++        final float left = child.getLeft() + child.getTranslationX() + mLineInset;
++        final float right = child.getRight() + child.getTranslationX() - mLineInset;
++        final float bottom = child.getBottom() + child.getTranslationY();
++        mLinePaint.setAlpha(Math.round(Color.alpha(mLineColor) * child.getAlpha()));
++        c.drawRect(left, bottom - 1, right, bottom, mLinePaint);
++    }
++
++    private static int blend(int base, int over, float fraction) {
++        return Color.rgb(
++                Math.round(Color.red(base) * (1 - fraction) + Color.red(over) * fraction),
++                Math.round(Color.green(base) * (1 - fraction) + Color.green(over) * fraction),
++                Math.round(Color.blue(base) * (1 - fraction) + Color.blue(over) * fraction));
++    }
++
++    private int corners(int position) {
++        if (position == RecyclerView.NO_POSITION || type(position) != TYPE_CARD) {
++            return NOT_ON_CARD;
++        }
++        int corners = 0;
++        if (type(position - 1) != TYPE_CARD) {
++            corners |= CORNER_TOP;
++        }
++        if (type(position + 1) != TYPE_CARD) {
++            corners |= CORNER_BOTTOM;
++        }
++        return corners;
++    }
++
++    private int type(int position) {
++        final RecyclerView.Adapter<?> adapter = mAdapter;
++        if (!(adapter instanceof PreferenceGroupAdapter) || position < 0
++                || position >= adapter.getItemCount()) {
++            return TYPE_OTHER;
++        }
++        final Preference preference = ((PreferenceGroupAdapter) adapter).getItem(position);
++        if (preference instanceof PreferenceCategory) {
++            return TYPE_HEADER;
++        }
++        return preference == null ? TYPE_OTHER : TYPE_CARD;
++    }
++
++    // The item's slice of its card. The rectangle reaches past the item's edges that are no
++    // card corners and is clipped there, so only the corners the item carries are round.
++    private void drawCard(Canvas c, View child, int corners) {
++        final float left = child.getLeft() + child.getTranslationX();
++        final float top = child.getTop() + child.getTranslationY();
++        final float right = child.getRight() + child.getTranslationX();
++        final float bottom = child.getBottom() + child.getTranslationY();
++        mRect.set(left, (corners & CORNER_TOP) != 0 ? top : top - mRadius, right,
++                (corners & CORNER_BOTTOM) != 0 ? bottom : bottom + mRadius);
++        mPaint.setAlpha(Math.round(Color.alpha(mColor) * child.getAlpha()));
++        c.save();
++        c.clipRect(left, top, right, bottom);
++        c.drawRoundRect(mRect, mRadius, mRadius, mPaint);
++        c.restore();
++    }
++
++    // Clips the first and last item of a card to its corners; items in the middle of a card or
++    // beside the cards get back the outline they had, also when a recycled view moves there.
++    private void clip(View child, int corners) {
++        Saved saved = mSaved.get(child);
++        if (corners <= 0) {
++            if (saved != null) {
++                child.setOutlineProvider(saved.mProvider);
++                child.setClipToOutline(saved.mClip);
++                mSaved.remove(child);
++            }
++            return;
++        }
++        if (saved == null) {
++            saved = new Saved(child.getOutlineProvider(), child.getClipToOutline());
++            mSaved.put(child, saved);
++        } else if (saved.mCorners == corners) {
++            return;
++        }
++        saved.mCorners = corners;
++        child.setOutlineProvider(mOutlines[corners]);
++        child.setClipToOutline(true);
++    }
++
++    private void watch(RecyclerView parent) {
++        mParent = parent;
++        final RecyclerView.Adapter<?> adapter = parent.getAdapter();
++        if (adapter == mAdapter) {
++            return;
++        }
++        if (mAdapter != null) {
++            mAdapter.unregisterAdapterDataObserver(mObserver);
++        }
++        mAdapter = adapter;
++        if (adapter != null) {
++            adapter.registerAdapterDataObserver(mObserver);
++        }
++    }
++
++    private void invalidate() {
++        final RecyclerView parent = mParent;
++        if (parent == null) {
++            return;
++        }
++        if (parent.isComputingLayout()) {
++            parent.post(parent::invalidateItemDecorations);
++        } else {
++            parent.invalidateItemDecorations();
++        }
++    }
++
++    private static final class Saved {
++        final ViewOutlineProvider mProvider;
++        final boolean mClip;
++        int mCorners;
++
++        Saved(ViewOutlineProvider provider, boolean clip) {
++            mProvider = provider;
++            mClip = clip;
++        }
++    }
++
++    // A round rectangle that reaches past the edges without a card corner.
++    private final class CornerOutline extends ViewOutlineProvider {
++        private final int mCorners;
++
++        CornerOutline(int corners) {
++            mCorners = corners;
++        }
++
++        @Override
++        public void getOutline(View view, Outline outline) {
++            final int top = (mCorners & CORNER_TOP) != 0 ? 0 : -mRadius;
++            final int bottom = view.getHeight() + ((mCorners & CORNER_BOTTOM) != 0 ? 0 : mRadius);
++            outline.setRoundRect(0, top, view.getWidth(), bottom, mRadius);
++        }
++    }
++}

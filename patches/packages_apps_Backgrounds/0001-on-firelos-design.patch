@@ -1,0 +1,363 @@
+diff --git a/app/src/main/java/org/lineageos/backgrounds/factory/BuiltInWallpaperFactory.java b/app/src/main/java/org/lineageos/backgrounds/factory/BuiltInWallpaperFactory.java
+index 7508d3c..9178fdc 100644
+--- a/app/src/main/java/org/lineageos/backgrounds/factory/BuiltInWallpaperFactory.java
++++ b/app/src/main/java/org/lineageos/backgrounds/factory/BuiltInWallpaperFactory.java
+@@ -17,10 +17,14 @@ package org.lineageos.backgrounds.factory;
+ 
+ import android.app.WallpaperManager;
+ import android.content.res.Resources;
++import android.graphics.Bitmap;
++import android.graphics.BitmapFactory;
++import android.graphics.drawable.BitmapDrawable;
+ import android.graphics.drawable.Drawable;
+ 
+ import androidx.annotation.DrawableRes;
+ import androidx.annotation.NonNull;
++import androidx.annotation.Nullable;
+ 
+ import org.lineageos.backgrounds.R;
+ import org.lineageos.backgrounds.bundle.WallpaperBundle;
+@@ -31,17 +35,81 @@ public final class BuiltInWallpaperFactory {
+     private BuiltInWallpaperFactory() {
+     }
+ 
++    // ON-FireLOS: the list shows thumbnails at least this wide (a tile is at most a quarter of
++    // 1920 px); the preview loads the picture itself, at full size.
++    private static final int THUMBNAIL_WIDTH = 480;
++
+     public static WallpaperBundle build(@NonNull final String name,
+                                         @NonNull final Resources res,
+                                         @DrawableRes final int drawableRes) {
+-        Drawable drawable = res.getDrawable(drawableRes, res.newTheme());
++        Drawable drawable = thumbnail(res, drawableRes);
++        if (drawable == null) {
++            drawable = res.getDrawable(drawableRes, res.newTheme());
++        }
+         return new WallpaperBundle(name, drawable, drawableRes, WallpaperType.BUILT_IN);
+     }
+ 
++    // A bitmap resource decoded at a power-of-two fraction; null for anything else.
++    private static Drawable thumbnail(@NonNull final Resources res,
++                                      @DrawableRes final int drawableRes) {
++        BitmapFactory.Options options = new BitmapFactory.Options();
++        options.inJustDecodeBounds = true;
++        BitmapFactory.decodeResource(res, drawableRes, options);
++        if (options.outWidth <= 0) {
++            return null;
++        }
++        int sample = 1;
++        while (options.outWidth / (sample * 2) >= THUMBNAIL_WIDTH) {
++            sample *= 2;
++        }
++        options.inJustDecodeBounds = false;
++        options.inSampleSize = sample;
++        Bitmap bitmap = BitmapFactory.decodeResource(res, drawableRes, options);
++        return bitmap == null ? null : new BitmapDrawable(res, bitmap);
++    }
++
++    // The system's own wallpaper at thumbnail size, decoded so; else scaled from the full one.
++    private static Drawable builtInThumbnail(@NonNull final Resources res,
++                                             @NonNull final WallpaperManager manager) {
++        final Resources system = Resources.getSystem();
++        final int id = system.getIdentifier("default_wallpaper", "drawable", "android");
++        if (id != 0) {
++            BitmapFactory.Options options = new BitmapFactory.Options();
++            options.inJustDecodeBounds = true;
++            options.inScaled = false;
++            BitmapFactory.decodeResource(system, id, options);
++            if (options.outWidth > THUMBNAIL_WIDTH && options.outHeight > 0) {
++                Drawable small = manager.getBuiltInDrawable(THUMBNAIL_WIDTH,
++                        Math.max(1, options.outHeight * THUMBNAIL_WIDTH / options.outWidth),
++                        true, 0.5f, 0.5f);
++                if (small != null) {
++                    return small;
++                }
++            }
++        }
++        return thumbnail(res, manager.getBuiltInDrawable());
++    }
++
++    // The system's own wallpaper comes as a full bitmap; the list keeps a scaled copy.
++    private static Drawable thumbnail(@NonNull final Resources res,
++                                      @Nullable final Drawable drawable) {
++        if (!(drawable instanceof BitmapDrawable)) {
++            return drawable;
++        }
++        Bitmap full = ((BitmapDrawable) drawable).getBitmap();
++        if (full == null || full.getWidth() <= THUMBNAIL_WIDTH) {
++            return drawable;
++        }
++        int height = Math.max(1, full.getHeight() * THUMBNAIL_WIDTH / full.getWidth());
++        Bitmap small = Bitmap.createScaledBitmap(full, THUMBNAIL_WIDTH, height, true);
++        full.recycle();
++        return new BitmapDrawable(res, small);
++    }
++
+     public static WallpaperBundle buildDefault(@NonNull Resources res,
+                                                @NonNull WallpaperManager manager) {
+         final String name = res.getString(R.string.wallpaper_built_in_system);
+-        final Drawable drawable = manager.getBuiltInDrawable();
++        final Drawable drawable = builtInThumbnail(res, manager);
+ 
+         return new WallpaperBundle(name, drawable,
+                 WallpaperBundle.DESCRIPTOR_EMPTY, WallpaperType.DEFAULT);
+diff --git a/app/src/main/java/org/lineageos/backgrounds/holders/WallpaperHolder.java b/app/src/main/java/org/lineageos/backgrounds/holders/WallpaperHolder.java
+index 55e7554..6276299 100644
+--- a/app/src/main/java/org/lineageos/backgrounds/holders/WallpaperHolder.java
++++ b/app/src/main/java/org/lineageos/backgrounds/holders/WallpaperHolder.java
+@@ -51,9 +51,7 @@ public class WallpaperHolder extends RecyclerView.ViewHolder {
+         if (drawable != null) {
+             previewView.setImageDrawable(drawable);
+ 
+-            // Tint title for contrast
+-            final int color = ColorUtils.extractContrastColor(ColorUtils.extractPaletteFromBottom(drawable));
+-            nameView.setTextColor(color);
++            // ON-FireLOS: the name is white on a dark fade (item_wallpaper.xml), no palette.
+         }
+ 
+         String name = bundle.getName();
+diff --git a/app/src/main/java/org/lineageos/backgrounds/ui/MainActivity.java b/app/src/main/java/org/lineageos/backgrounds/ui/MainActivity.java
+index 246b502..47b5ff5 100644
+--- a/app/src/main/java/org/lineageos/backgrounds/ui/MainActivity.java
++++ b/app/src/main/java/org/lineageos/backgrounds/ui/MainActivity.java
+@@ -48,7 +48,9 @@ public final class MainActivity extends AppCompatActivity implements SelectionIn
+     private static final int APPLY_WALLPAPER = 619;
+ 
+     private ProgressBar mLoadingProgressBar;
+-    private TextView mLoadingTextView;
++    // ON-FireLOS: the ring shows only if the list is not there after this long.
++    private static final long LOADING_DELAY_MS = 300;
++    private final Runnable mShowLoading = () -> mLoadingProgressBar.setVisibility(View.VISIBLE);
+     private NestedScrollView mContentLayout;
+     private TextView mTitleView;
+     private RecyclerView mContentRecyclerView;
+@@ -65,7 +67,7 @@ public final class MainActivity extends AppCompatActivity implements SelectionIn
+         setContentView(R.layout.activity_main);
+ 
+         mLoadingProgressBar = findViewById(R.id.main_loading_bar);
+-        mLoadingTextView = findViewById(R.id.main_loading_text);
++        mLoadingProgressBar.postDelayed(mShowLoading, LOADING_DELAY_MS);
+         mContentLayout = findViewById(R.id.main_contents);
+         mTitleView = findViewById(R.id.main_title);
+         mContentRecyclerView = findViewById(R.id.main_recyclerview);
+@@ -156,9 +158,11 @@ public final class MainActivity extends AppCompatActivity implements SelectionIn
+     }
+ 
+     private void postContentLoaded() {
+-        mLoadingTextView.setVisibility(View.GONE);
++        mLoadingProgressBar.removeCallbacks(mShowLoading);
+         mLoadingProgressBar.setVisibility(View.GONE);
++        mContentLayout.setAlpha(0f);
+         mContentLayout.setVisibility(View.VISIBLE);
++        mContentLayout.animate().alpha(1f).setDuration(150);
+     }
+ 
+     private void pickWallpaperFromExternalStorage() {
+diff --git a/app/src/main/res/drawable/bg_apply_button.xml b/app/src/main/res/drawable/bg_apply_button.xml
+index e41b328..61c7450 100644
+--- a/app/src/main/res/drawable/bg_apply_button.xml
++++ b/app/src/main/res/drawable/bg_apply_button.xml
+@@ -19,6 +19,6 @@
+     <solid android:color="@color/colorPrimary" />
+ 
+     <corners
+-        android:topLeftRadius="16dp"
+-        android:topRightRadius="16dp" />
++        android:topLeftRadius="28dp"
++        android:topRightRadius="28dp" />
+ </shape>
+diff --git a/app/src/main/res/drawable/bg_wallpaper_item.xml b/app/src/main/res/drawable/bg_wallpaper_item.xml
+index 6f1fc56..ea1c6c0 100644
+--- a/app/src/main/res/drawable/bg_wallpaper_item.xml
++++ b/app/src/main/res/drawable/bg_wallpaper_item.xml
+@@ -15,6 +15,6 @@
+   -->
+ <shape xmlns:android="http://schemas.android.com/apk/res/android"
+     android:shape="rectangle">
+-    <corners android:radius="4dp"/>
++    <corners android:radius="12dp"/>
+     <solid android:color="@color/colorPrimary"/>
+ </shape>
+diff --git a/app/src/main/res/drawable/onfirelos_label_scrim.xml b/app/src/main/res/drawable/onfirelos_label_scrim.xml
+new file mode 100644
+index 0000000..422ee55
+--- /dev/null
++++ b/app/src/main/res/drawable/onfirelos_label_scrim.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS, Apache-2.0. Under a tile's name: dark at the
++     foot, clear above, so white text reads on any picture (design-apps/backgrounds.py). -->
++<shape xmlns:android="http://schemas.android.com/apk/res/android"
++    android:shape="rectangle">
++    <gradient
++        android:angle="90"
++        android:startColor="#99000000"
++        android:centerColor="#40000000"
++        android:endColor="#00000000" />
++</shape>
+diff --git a/app/src/main/res/layout/activity_main.xml b/app/src/main/res/layout/activity_main.xml
+index 2db88c3..2dbf3ac 100644
+--- a/app/src/main/res/layout/activity_main.xml
++++ b/app/src/main/res/layout/activity_main.xml
+@@ -19,23 +19,16 @@
+     android:layout_width="match_parent"
+     android:layout_height="match_parent">
+ 
++    <!-- ON-FireLOS: a small ring, only if loading takes a moment (MainActivity). -->
+     <ProgressBar
+         android:id="@+id/main_loading_bar"
+-        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+-        android:layout_width="196dp"
+-        android:layout_height="wrap_content"
++        style="@style/Widget.AppCompat.ProgressBar"
++        android:layout_width="40dp"
++        android:layout_height="40dp"
+         android:layout_gravity="center"
+-        android:layout_marginTop="40dp"
+-        android:indeterminate="true" />
+-
+-    <TextView
+-        android:id="@+id/main_loading_text"
+-        android:layout_width="wrap_content"
+-        android:layout_height="32dp"
+-        android:layout_gravity="center"
+-        android:text="@string/main_loading"
+-        android:textColor="?android:attr/textColorPrimary"
+-        android:textSize="24sp" />
++        android:contentDescription="@string/main_loading"
++        android:indeterminate="true"
++        android:visibility="invisible" />
+ 
+     <androidx.core.widget.NestedScrollView
+         android:id="@+id/main_contents"
+@@ -53,9 +46,9 @@
+                 android:id="@+id/main_title"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+-                android:paddingHorizontal="16dp"
+-                android:paddingTop="72dp"
+-                android:paddingBottom="36dp"
++                android:paddingHorizontal="12dp"
++                android:paddingTop="48dp"
++                android:paddingBottom="20dp"
+                 android:text="@string/app_name"
+                 android:textAppearance="@style/AppTheme.AppTitle"
+                 android:textColor="?android:attr/textColorPrimary" />
+diff --git a/app/src/main/res/layout/item_wallpaper.xml b/app/src/main/res/layout/item_wallpaper.xml
+index 595a9c7..4f5c2d4 100644
+--- a/app/src/main/res/layout/item_wallpaper.xml
++++ b/app/src/main/res/layout/item_wallpaper.xml
+@@ -21,7 +21,7 @@
+     android:layout_marginVertical="@dimen/item_margin_vertical"
+     android:background="@drawable/bg_wallpaper_item"
+     android:clickable="true"
+-    android:elevation="4dp"
++    android:elevation="0dp"
+     android:focusable="true"
+     android:foreground="?android:attr/selectableItemBackground">
+ 
+@@ -41,9 +41,12 @@
+         android:layout_gravity="bottom"
+         android:ellipsize="end"
+         android:maxLines="1"
+-        android:paddingHorizontal="8dp"
+-        android:paddingBottom="8dp"
+-        android:textSize="18sp"
++        android:background="@drawable/onfirelos_label_scrim"
++        android:paddingHorizontal="12dp"
++        android:paddingTop="28dp"
++        android:paddingBottom="10dp"
++        android:textColor="#FFFFFF"
++        android:textSize="16sp"
+         tools:text="@string/main_wallpaper_pick" />
+ 
+ </FrameLayout>
+diff --git a/app/src/main/res/values-night/colors.xml b/app/src/main/res/values-night/colors.xml
+index 15d8a35..50365b5 100644
+--- a/app/src/main/res/values-night/colors.xml
++++ b/app/src/main/res/values-night/colors.xml
+@@ -15,6 +15,8 @@
+   -->
+ <resources>
+ 
+-    <color name="colorPrimary">#212121</color>
+-    <color name="colorPrimaryDark">#000000</color>
++    <!-- ON-FireLOS: the design tokens (docs/DESIGN.md). -->
++    <color name="colorPrimary">#24271F</color>
++    <color name="colorPrimaryDark">#1A1C18</color>
++    <color name="colorAccent">#8AA366</color>
+ </resources>
+\ No newline at end of file
+diff --git a/app/src/main/res/values/colors.xml b/app/src/main/res/values/colors.xml
+index 3263e96..4bc79ee 100644
+--- a/app/src/main/res/values/colors.xml
++++ b/app/src/main/res/values/colors.xml
+@@ -16,9 +16,10 @@
+   -->
+ <resources>
+ 
+-    <color name="colorPrimary">#fefefe</color>
+-    <color name="colorPrimaryDark">#e0e0e0</color>
+-    <color name="colorAccent">#167c80</color>
++    <!-- ON-FireLOS: the design tokens (docs/DESIGN.md). -->
++    <color name="colorPrimary">#FFFFFF</color>
++    <color name="colorPrimaryDark">#E8ECE3</color>
++    <color name="colorAccent">#2E521D</color>
+ 
+     <color name="ic_launcher_background">#70AE98</color>
+ 
+diff --git a/app/src/main/res/values/dimens.xml b/app/src/main/res/values/dimens.xml
+index 0bee454..0547f08 100644
+--- a/app/src/main/res/values/dimens.xml
++++ b/app/src/main/res/values/dimens.xml
+@@ -14,7 +14,7 @@
+   limitations under the License.
+   -->
+ <resources>
+-    <dimen name="item_margin_vertical">8dp</dimen>
++    <dimen name="item_margin_vertical">4dp</dimen>
+     <dimen name="item_margin_horizontal">4dp</dimen>
+ 
+     <dimen name="main_list_margin_left">0dp</dimen>
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index 4c590b9..b562aa1 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -56,7 +56,7 @@
+     <string translatable="false" name="wallpaper_built_in_riseup">Rise up</string>
+     <string translatable="false" name="wallpaper_built_in_dayroad">Day road</string>
+     <string translatable="false" name="wallpaper_built_in_nightroad">Night road</string>
+-    <string translatable="false" name="wallpaper_built_in_system">Default</string>
++    <string translatable="false" name="wallpaper_built_in_system">ON-FireLOS</string>
+ 
+     <!-- Gradient wallpaper names -->
+     <eat-comment />
+diff --git a/app/src/main/res/values/styles.xml b/app/src/main/res/values/styles.xml
+index af1bab4..ed8e61d 100644
+--- a/app/src/main/res/values/styles.xml
++++ b/app/src/main/res/values/styles.xml
+@@ -25,9 +25,12 @@
+         <item name="android:windowLightNavigationBar">@bool/isLight</item>
+     </style>
+ 
++    <!-- ON-FireLOS: the bars in the page colour, not Android 9's grey scrim. -->
+     <style name="AppTheme.TranslucentNav">
+-        <item name="android:windowTranslucentNavigation">true</item>
++        <item name="android:windowTranslucentNavigation">false</item>
+         <item name="android:windowTranslucentStatus">false</item>
++        <item name="android:statusBarColor">?android:attr/colorBackground</item>
++        <item name="android:navigationBarColor">?android:attr/colorBackground</item>
+     </style>
+ 
+     <style name="AppTheme.PrimaryNav">
+@@ -49,6 +52,9 @@
+     </style>
+ 
+     <style name="AppTheme.AppTitle" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
+-        <item name="android:textSize">48sp</item>
++        <!-- ON-FireLOS: the large title of Settings and the gallery. -->
++        <item name="android:textSize">34sp</item>
++        <item name="android:fontFamily">sans-serif</item>
++        <item name="android:textStyle">normal</item>
+     </style>
+ </resources>

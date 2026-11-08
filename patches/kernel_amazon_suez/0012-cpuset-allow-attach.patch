@@ -1,0 +1,26 @@
+From: ON-FireLOS
+Subject: [PATCH] cpuset: let system_server sort apps into groups
+
+Android moves every app into a different cpuset group whenever it
+switches between foreground and background (top-app, foreground,
+background). system_server does that by writing to the group's tasks
+file - for processes with a different uid. cgroup v1 only allows that
+for root or the same uid, unless the group offers an allow_attach hook.
+cpuctl had it, cpuset did not: every one of these moves failed with
+EACCES ("add_tid_to_cgroup failed"), background apps kept running on all
+four cores, and the foreground app never got into top-app.
+
+cpuset gets the same hook as cpuctl: whoever has CAP_SYS_NICE may.
+Corresponds to Android Common "ANDROID: cpuset: Add allow_attach hook for cpusets
+on android".
+---
+--- a/kernel/cpuset.c	2026-10-29 14:22:03.292071188 +0000
++++ b/kernel/cpuset.c	2026-10-29 14:22:03.299406045 +0000
+@@ -2078,6 +2078,7 @@
+ 	.can_attach	= cpuset_can_attach,
+ 	.cancel_attach	= cpuset_cancel_attach,
+ 	.attach		= cpuset_attach,
++	.allow_attach	= subsys_cgroup_allow_attach,
+ 	.bind		= cpuset_bind,
+ 	.fork		= cpuset_fork,
+ 	.legacy_cftypes	= files,

@@ -1,0 +1,133 @@
+diff --git a/Android.mk b/Android.mk
+index 656f384..b54bac1 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -46,6 +46,9 @@ LOCAL_AAPT_FLAGS += --extra-packages com.android.colorpicker
+ LOCAL_AAPT_FLAGS += --extra-packages com.android.datetimepicker
+ LOCAL_AAPT_FLAGS += --extra-packages com.android.timezonepicker
+ 
++# ON-FireLOS: reworked for the ROM; the version says so after its own.
++LOCAL_AAPT_FLAGS += --version-name "$(PLATFORM_VERSION) · $(ONFIRELOS_APP_VERSION)"
++
+ include $(BUILD_PACKAGE)
+ 
+ # Use the following include to make our test apk.
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index b43361d..b417f74 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -140,7 +140,7 @@
+             android:theme="@android:style/Theme.Holo.Light"/>
+ 
+         <activity android:name="CalendarSettingsActivity" android:label="@string/preferences_title"
+-            android:theme="@android:style/Theme.Holo.Light"/>
++            android:theme="@android:style/Theme.DeviceDefault.Settings"/>
+ 
+         <!-- Declarations for search -->
+         <!-- Make all activities a searchable context -->
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index b24c3c3..99317bc 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -172,12 +172,22 @@
+         <item name="android:windowActionBar">true</item>
+         <item name="android:windowBackground">@color/background_color</item>
+         <item name="android:actionBarStyle">@style/CalendarActionBarStyle</item>
++        <!-- ON-FireLOS: no Holo shadow under the bar; the status bar in the
++             bar's colour (Holo leaves it black), dark icons in light mode. -->
++        <item name="android:windowContentOverlay">@null</item>
++        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
++        <item name="android:statusBarColor">@color/background_color</item>
++        <item name="android:windowLightStatusBar">true</item>
++        <item name="android:navigationBarColor">@color/background_color</item>
++        <item name="android:windowLightNavigationBar">true</item>
+         <item name="android:endYear">2036</item>
+         <item name="android:startYear">1970</item>
+     </style>
+ 
+     <style name="CalendarActionBarStyle" parent="android:style/Widget.Holo.Light.ActionBar.Solid">
+         <item name="android:displayOptions">showCustom</item>
++        <!-- ON-FireLOS: flat on the window background, no bottom line. -->
++        <item name="android:background">@color/background_color</item>
+     </style>
+ 
+     <style name="CalendarTheme.WithActionBarWallpaper" parent="CalendarTheme.WithActionBar">
+diff --git a/src/com/android/calendar/AbstractCalendarActivity.java b/src/com/android/calendar/AbstractCalendarActivity.java
+index a80787d..9a9219a 100644
+--- a/src/com/android/calendar/AbstractCalendarActivity.java
++++ b/src/com/android/calendar/AbstractCalendarActivity.java
+@@ -21,6 +21,14 @@ import android.app.Activity;
+ public abstract class AbstractCalendarActivity extends Activity {
+     protected AsyncQueryService mService;
+ 
++    @Override
++    protected void onCreate(android.os.Bundle icicle) {
++        super.onCreate(icicle);
++        // ON-FireLOS: the app targets API 18, for which the window leaves the
++        // system bars black; with this flag it draws them in the theme's colours.
++        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
++    }
++
+     public synchronized AsyncQueryService getAsyncQueryService() {
+         if (mService == null) {
+             mService = new AsyncQueryService(this);
+diff --git a/src/com/android/calendar/CalendarSettingsActivity.java b/src/com/android/calendar/CalendarSettingsActivity.java
+index a864b53..e7cc161 100644
+--- a/src/com/android/calendar/CalendarSettingsActivity.java
++++ b/src/com/android/calendar/CalendarSettingsActivity.java
+@@ -35,6 +35,27 @@ import java.util.List;
+ 
+ public class CalendarSettingsActivity extends PreferenceActivity {
+     private static final int CHECK_ACCOUNTS_DELAY = 3000;
++
++    @Override
++    public void onCreate(android.os.Bundle icicle) {
++        super.onCreate(icicle);
++        colourNavigationBar();
++    }
++
++    // ON-FireLOS: the navigation bar in the page's colour, with dark buttons on a light one.
++    private void colourNavigationBar() {
++        final android.util.TypedValue background = new android.util.TypedValue();
++        getTheme().resolveAttribute(android.R.attr.colorBackground, background, true);
++        final android.view.Window window = getWindow();
++        window.addFlags(
++                android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
++        window.setNavigationBarColor(background.data);
++        if (android.graphics.Color.luminance(background.data) > 0.5f) {
++            final android.view.View decor = window.getDecorView();
++            decor.setSystemUiVisibility(decor.getSystemUiVisibility()
++                    | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
++        }
++    }
+     private Account[] mAccounts;
+     private Handler mHandler = new Handler();
+     private boolean mHideMenuButtons = false;
+diff --git a/src/com/android/calendar/EventInfoActivity.java b/src/com/android/calendar/EventInfoActivity.java
+index 9b136bd..3347286 100644
+--- a/src/com/android/calendar/EventInfoActivity.java
++++ b/src/com/android/calendar/EventInfoActivity.java
+@@ -68,6 +68,9 @@ public class EventInfoActivity extends Activity {
+     @Override
+     protected void onCreate(Bundle icicle) {
+         super.onCreate(icicle);
++        // ON-FireLOS: the app targets API 18, for which the window leaves the
++        // system bars black; with this flag it draws them in the theme's colours.
++        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+ 
+         // Get the info needed for the fragment
+         Intent intent = getIntent();
+diff --git a/src/com/android/calendar/SearchActivity.java b/src/com/android/calendar/SearchActivity.java
+index 929e4a6..f7f6913 100644
+--- a/src/com/android/calendar/SearchActivity.java
++++ b/src/com/android/calendar/SearchActivity.java
+@@ -105,6 +105,9 @@ public class SearchActivity extends Activity implements CalendarController.Event
+     @Override
+     protected void onCreate(Bundle icicle) {
+         super.onCreate(icicle);
++        // ON-FireLOS: the app targets API 18, for which the window leaves the
++        // system bars black; with this flag it draws them in the theme's colours.
++        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+         // This needs to be created before setContentView
+         mController = CalendarController.getInstance(this);
+         mHandler = new Handler();

@@ -1,0 +1,90 @@
+diff --git a/arch/arm64/configs/suez_defconfig b/arch/arm64/configs/suez_defconfig
+index 9dea41c5..534e1b83 100644
+--- a/arch/arm64/configs/suez_defconfig
++++ b/arch/arm64/configs/suez_defconfig
+@@ -14,6 +14,7 @@
+ # CONFIG_INPUT_MOUSE is not set
+ # CONFIG_INPUT_MOUSEDEV is not set
+ # CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_LOCALVERSION="-ONFire-1.0"
+ # CONFIG_MTK_ATF_LOGGER is not set
+ # CONFIG_MTK_CCCI_DEVICES is not set
+ # CONFIG_MTK_COMBO_GPS is not set
+@@ -95,7 +96,7 @@ CONFIG_CUSTOM_KERNEL_ALSPS=y
+ CONFIG_CUSTOM_KERNEL_FLASHLIGHT="dummy_flashlight"
+ CONFIG_CUSTOM_KERNEL_IMGSENSOR="gc2355_mipi_raw gc0312_mipi_raw"
+ CONFIG_CUSTOM_KERNEL_LCM="nt51021_wuxga_dsi_vdo"
+-CONFIG_DEBUG_INFO=y
++# CONFIG_DEBUG_INFO is not set
+ CONFIG_DEFAULT_WESTWOOD=y
+ CONFIG_DEFAULT_TCP_CONG="westwood"
+ CONFIG_DISABLE_AUDIT_LOGGING=y
+@@ -109,6 +110,11 @@ CONFIG_EMBEDDED=y
+ CONFIG_ENABLE_DEFAULT_TRACERS=y
+ CONFIG_EXT4_FS_SECURITY=y
+ CONFIG_EXT4_FS=y
++CONFIG_F2FS_FS=y
++CONFIG_F2FS_STAT_FS=y
++CONFIG_F2FS_FS_XATTR=y
++CONFIG_F2FS_FS_POSIX_ACL=y
++CONFIG_F2FS_FS_SECURITY=y
+ CONFIG_FAULT_INJECTION=y
+ CONFIG_FB_MODE_HELPERS=y
+ CONFIG_FB_TILEBLITTING=y
+@@ -173,7 +179,7 @@ CONFIG_HIGH_BATTERY_VOLTAGE_SUPPORT=y
+ CONFIG_HIGH_RES_TIMERS=y
+ CONFIG_HMP_FREQUENCY_INVARIANT_SCALE=y
+ CONFIG_HMP_PACK_SMALL_TASK=y
+-CONFIG_HMP_TRACER=y
++# CONFIG_HMP_TRACER is not set
+ CONFIG_I2C_CHARDEV=y
+ CONFIG_I2C_MT65XX=y
+ CONFIG_IDME=y
+@@ -505,7 +511,7 @@ CONFIG_SCHED_HMP_PLUS=y
+ CONFIG_SCHED_HMP_PRIO_FILTER=y
+ CONFIG_SCHED_HMP=y
+ CONFIG_SCHED_MC=y
+-CONFIG_SCHEDSTATS=y
++# CONFIG_SCHEDSTATS is not set
+ CONFIG_SCSI_SCAN_ASYNC=y
+ CONFIG_SCSI=y
+ CONFIG_SDCARD_FS=y
+@@ -636,6 +642,37 @@ CONFIG_XFRM_MIGRATE=y
+ CONFIG_XFRM_SUB_POLICY=y
+ CONFIG_XFRM_USER=y
+ CONFIG_ZISOFS=y
+-CONFIG_ZRAM_DEBUG=y
++# CONFIG_ZRAM_DEBUG is not set
+ CONFIG_ZRAM=y
+ CONFIG_ZSMALLOC=y
++CONFIG_ZRAM_LZ4_COMPRESS=y
++
++#
++# ON-FireLOS: performance
++#
++# CPUSETS was missing. Consequence: /dev/cpuset cannot be mounted, and in
++# Android 9 the entire foreground/background separation depends on it -
++# system/core/libcutils/sched_policy.cpp writes SP_BACKGROUND to
++# /dev/cpuset/background/tasks and nowhere else. A replacement under
++# /dev/cpuctl no longer exists in Pie.
++#
++# Measured on the device without CPUSETS (threads per core, cpu2/3 = big A72):
++#   com.google.android.gms   12 on cpu2, 8 on cpu3
++#   com.android.vending      12 on cpu2, 8 on cpu3
++#   com.android.systemui      7 on cpu2, 3 on cpu3
++# The background services occupied the fast cores more than the UI did.
++# With only two big cores that takes CPU time directly away from the
++# UI thread.
++#
++# The masks for this are in init.mt8173.rc; without them AOSP only copies
++# the full set into every group and nothing changes.
++CONFIG_CPUSETS=y
++CONFIG_PROC_PID_CPUSET=y
++
++# DEBUG_PREEMPT runs every smp_processor_id() and every preempt change
++# through a check routine. Those are the hottest paths in the kernel.
++# A debugging feature, it does not belong in a release build.
++# CONFIG_DEBUG_PREEMPT is not set
++
++# Extra checks and /proc/sched_debug in the scheduler.
++# CONFIG_SCHED_DEBUG is not set
