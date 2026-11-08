@@ -1,0 +1,2300 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index e39b67c..cf0d9bf 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -39,6 +39,13 @@
+             </intent-filter>
+         </activity>
+ 
++        <!-- ON-FireLOS: the version history (updater-history.py). -->
++        <activity
++            android:name=".HistoryActivity"
++            android:label="@string/onfirelos_history_title"
++            android:parentActivityName=".UpdatesActivity"
++            android:theme="@style/AppTheme.NoActionBar" />
++
+         <service android:name=".controller.UpdaterService" />
+         <service android:name=".ExportUpdateService" />
+ 
+diff --git a/res/color/onfirelos_pill_fill.xml b/res/color/onfirelos_pill_fill.xml
+new file mode 100644
+index 0000000..b3324c6
+--- /dev/null
++++ b/res/color/onfirelos_pill_fill.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:state_enabled="false" android:color="@color/onfirelos_surface_variant" />
++    <item android:color="@color/theme_accent" />
++</selector>
+diff --git a/res/color/onfirelos_pill_text.xml b/res/color/onfirelos_pill_text.xml
+new file mode 100644
+index 0000000..1429043
+--- /dev/null
++++ b/res/color/onfirelos_pill_text.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:state_enabled="false" android:color="@color/onfirelos_text_quiet" />
++    <item android:color="@color/onfirelos_on_accent" />
++</selector>
+diff --git a/res/drawable/onfirelos_chip.xml b/res/drawable/onfirelos_chip.xml
+new file mode 100644
+index 0000000..24bbb18
+--- /dev/null
++++ b/res/drawable/onfirelos_chip.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<shape xmlns:android="http://schemas.android.com/apk/res/android"
++    android:shape="rectangle">
++    <corners android:radius="100dp" />
++    <solid android:color="@color/theme_accent" />
++</shape>
+diff --git a/res/drawable/onfirelos_circle.xml b/res/drawable/onfirelos_circle.xml
+new file mode 100644
+index 0000000..f91d9f4
+--- /dev/null
++++ b/res/drawable/onfirelos_circle.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<shape xmlns:android="http://schemas.android.com/apk/res/android"
++    android:shape="oval">
++    <solid android:color="@color/theme_accent" />
++</shape>
+diff --git a/res/drawable/onfirelos_ic_android.xml b/res/drawable/onfirelos_ic_android.xml
+new file mode 100644
+index 0000000..c6b7087
+--- /dev/null
++++ b/res/drawable/onfirelos_ic_android.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M6,18c0,0.55 0.45,1 1,1h1v3.5c0,0.83 0.67,1.5 1.5,1.5s1.5,-0.67 1.5,-1.5L11,19h2v3.5c0,0.83 0.67,1.5 1.5,1.5s1.5,-0.67 1.5,-1.5L16,19h1c0.55,0 1,-0.45 1,-1L18,8L6,8v10zM3.5,8C2.67,8 2,8.67 2,9.5v7c0,0.83 0.67,1.5 1.5,1.5S5,17.33 5,16.5v-7C5,8.67 4.33,8 3.5,8zM20.5,8c-0.83,0 -1.5,0.67 -1.5,1.5v7c0,0.83 0.67,1.5 1.5,1.5s1.5,-0.67 1.5,-1.5v-7c0,-0.83 -0.67,-1.5 -1.5,-1.5zM15.53,2.16l1.3,-1.3c0.2,-0.2 0.2,-0.51 0,-0.71 -0.2,-0.2 -0.51,-0.2 -0.71,0l-1.48,1.48C13.85,1.23 12.95,1 12,1c-0.96,0 -1.86,0.23 -2.66,0.63L7.85,0.15c-0.2,-0.2 -0.51,-0.2 -0.71,0 -0.2,0.2 -0.2,0.51 0,0.71l1.31,1.31C6.97,3.26 6,5.01 6,7h12c0,-1.99 -0.97,-3.75 -2.47,-4.84zM10,5H9V4h1v1zM15,5h-1V4h1v1z" />
++</vector>
+diff --git a/res/drawable/onfirelos_ic_check.xml b/res/drawable/onfirelos_ic_check.xml
+new file mode 100644
+index 0000000..73cf89d
+--- /dev/null
++++ b/res/drawable/onfirelos_ic_check.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M9,16.17L4.83,12l-1.42,1.41L9,19 21,7l-1.41,-1.41z" />
++</vector>
+diff --git a/res/drawable/onfirelos_ic_download.xml b/res/drawable/onfirelos_ic_download.xml
+new file mode 100644
+index 0000000..c93b30d
+--- /dev/null
++++ b/res/drawable/onfirelos_ic_download.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M5,20h14v-2H5v2zM19,9h-4V3H9v6H5l7,7 7,-7z" />
++</vector>
+diff --git a/res/drawable/onfirelos_ic_event.xml b/res/drawable/onfirelos_ic_event.xml
+new file mode 100644
+index 0000000..b6d7324
+--- /dev/null
++++ b/res/drawable/onfirelos_ic_event.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M19,3h-1V1h-2v2H8V1H6v2H5c-1.11,0 -1.99,0.9 -1.99,2L3,19c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2V5c0,-1.1 -0.9,-2 -2,-2zM19,19H5V8h14v11zM7,10h5v5H7z" />
++</vector>
+diff --git a/res/drawable/onfirelos_ic_expand.xml b/res/drawable/onfirelos_ic_expand.xml
+new file mode 100644
+index 0000000..fd9c8c0
+--- /dev/null
++++ b/res/drawable/onfirelos_ic_expand.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:tint="@color/onfirelos_text_quiet"
++    android:viewportHeight="24"
++    android:viewportWidth="24">
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M7.41,8.59L12,13.17l4.59,-4.58L18,10l-6,6 -6,-6z" />
++</vector>
+diff --git a/res/drawable/onfirelos_ic_tablet.xml b/res/drawable/onfirelos_ic_tablet.xml
+new file mode 100644
+index 0000000..b7b0da6
+--- /dev/null
++++ b/res/drawable/onfirelos_ic_tablet.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M21,4H3c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h18c1.1,0 1.99,-0.9 1.99,-2L23,6c0,-1.1 -0.9,-2 -2,-2zM19,18H5V6h14v12z" />
++</vector>
+diff --git a/res/drawable/onfirelos_pill.xml b/res/drawable/onfirelos_pill.xml
+new file mode 100644
+index 0000000..adc42e3
+--- /dev/null
++++ b/res/drawable/onfirelos_pill.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<ripple xmlns:android="http://schemas.android.com/apk/res/android"
++    android:color="?android:attr/colorControlHighlight">
++    <item>
++        <shape android:shape="rectangle">
++            <corners android:radius="100dp" />
++            <solid android:color="@color/onfirelos_pill_fill" />
++        </shape>
++    </item>
++</ripple>
+diff --git a/res/layout/activity_updates.xml b/res/layout/activity_updates.xml
+index 2671d53..0594e7a 100644
+--- a/res/layout/activity_updates.xml
++++ b/res/layout/activity_updates.xml
+@@ -1,17 +1,22 @@
+ <?xml version="1.0" encoding="utf-8"?>
++<!-- ON-FireLOS (updater-design.py): a large title over a status card, a card for
++     this tablet and the updates as cards, in the column of Settings' pages. -->
+ <android.support.design.widget.CoordinatorLayout
+     xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     android:id="@+id/main_container"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
++    android:background="@color/theme_primary"
+     android:fitsSystemWindows="true">
+ 
+     <android.support.design.widget.AppBarLayout
+         android:id="@+id/app_bar"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
++        android:background="@color/theme_primary"
+         android:fitsSystemWindows="true"
++        app:elevation="0dp"
+         app:layout_behavior="org.lineageos.updater.ui.FlingBehavior">
+ 
+         <android.support.design.widget.CollapsingToolbarLayout
+@@ -20,52 +25,24 @@
+             android:layout_height="match_parent"
+             android:theme="@style/AppTheme.AppBarOverlay"
+             app:collapsedTitleTextAppearance="@style/TextAppearanceInverted"
+-            app:contentScrim="?attr/colorPrimary"
++            app:contentScrim="@color/theme_primary"
+             app:expandedTitleTextAppearance="@style/TextAppearanceTransparent"
+             app:layout_scrollFlags="scroll|exitUntilCollapsed">
+ 
+-            <RelativeLayout
++            <TextView
++                android:id="@+id/onfirelos_large_title"
+                 android:layout_width="match_parent"
+-                android:layout_height="wrap_content"
+-                android:layout_marginTop="86dp"
++                android:layout_height="@dimen/onfirelos_title_height"
++                android:ellipsize="end"
++                android:fontFamily="sans-serif"
++                android:gravity="bottom"
++                android:maxLines="1"
+                 android:paddingBottom="16dp"
+-                android:paddingEnd="16dp"
+-                android:paddingStart="16dp"
+-                app:layout_collapseMode="parallax">
+-
+-                <TextView
+-                    android:id="@+id/header_title"
+-                    android:layout_width="wrap_content"
+-                    android:layout_height="wrap_content"
+-                    android:fontFamily="sans-serif-light"
+-                    android:paddingBottom="16dp"
+-                    android:textColor="?android:attr/textColorPrimary"
+-                    android:textSize="56sp" />
+-
+-                <TextView
+-                    android:id="@+id/header_build_version"
+-                    android:layout_width="wrap_content"
+-                    android:layout_height="wrap_content"
+-                    android:layout_below="@id/header_title"
+-                    android:textColor="?android:attr/textColorPrimary"
+-                    android:textSize="12sp" />
+-
+-                <TextView
+-                    android:id="@+id/header_build_date"
+-                    android:layout_width="wrap_content"
+-                    android:layout_height="wrap_content"
+-                    android:layout_below="@id/header_build_version"
+-                    android:textColor="?android:attr/textColorPrimary"
+-                    android:textSize="12sp" />
+-
+-                <TextView
+-                    android:id="@+id/header_last_check"
+-                    android:layout_width="wrap_content"
+-                    android:layout_height="wrap_content"
+-                    android:layout_below="@id/header_build_date"
+-                    android:textColor="?android:attr/textColorPrimary"
+-                    android:textSize="12sp" />
+-            </RelativeLayout>
++                android:paddingEnd="@dimen/onfirelos_title_start"
++                android:paddingStart="@dimen/onfirelos_title_start"
++                android:textColor="?android:attr/textColorPrimary"
++                android:textSize="34sp"
++                app:layout_collapseMode="parallax" />
+ 
+             <android.support.v7.widget.Toolbar
+                 android:id="@+id/toolbar"
+@@ -77,26 +54,201 @@
+     </android.support.design.widget.AppBarLayout>
+ 
+     <android.support.v4.widget.NestedScrollView
+-        android:id="@+id/no_new_updates_view"
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+-        android:padding="46dp"
+         app:layout_behavior="@string/appbar_scrolling_view_behavior">
+ 
+-        <TextView
++        <LinearLayout
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+-            android:gravity="center"
+-            android:text="@string/list_no_updates"
+-            android:textColor="?android:textColorSecondary" />
+-    </android.support.v4.widget.NestedScrollView>
++            android:orientation="vertical"
++            android:paddingBottom="24dp"
++            android:paddingEnd="@dimen/onfirelos_column_margin"
++            android:paddingStart="@dimen/onfirelos_column_margin">
+ 
+-    <android.support.v7.widget.RecyclerView
+-        android:id="@+id/recycler_view"
+-        android:layout_width="match_parent"
+-        android:layout_height="match_parent"
+-        android:clipToPadding="false"
+-        android:paddingBottom="5dp"
+-        android:scrollbars="vertical"
+-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
++            <!-- Status: what there is, when it last looked, look again. -->
++            <android.support.v7.widget.CardView
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                app:cardBackgroundColor="@color/onfirelos_surface"
++                app:cardCornerRadius="20dp"
++                app:cardElevation="0dp">
++
++                <LinearLayout
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:gravity="center_vertical"
++                    android:orientation="horizontal"
++                    android:padding="20dp">
++
++                    <FrameLayout
++                        android:layout_width="48dp"
++                        android:layout_height="48dp"
++                        android:background="@drawable/onfirelos_circle">
++
++                        <ImageView
++                            android:id="@+id/onfirelos_status_icon"
++                            android:layout_width="24dp"
++                            android:layout_height="24dp"
++                            android:layout_gravity="center"
++                            android:importantForAccessibility="no"
++                            android:tint="@color/onfirelos_on_accent" />
++                    </FrameLayout>
++
++                    <LinearLayout
++                        android:layout_width="0dp"
++                        android:layout_height="wrap_content"
++                        android:layout_marginStart="16dp"
++                        android:layout_weight="1"
++                        android:orientation="vertical">
++
++                        <TextView
++                            android:id="@+id/onfirelos_status_title"
++                            android:layout_width="wrap_content"
++                            android:layout_height="wrap_content"
++                            android:accessibilityLiveRegion="polite"
++                            android:textColor="?android:attr/textColorPrimary"
++                            android:textSize="18sp" />
++
++                        <TextView
++                            android:id="@+id/header_last_check"
++                            android:layout_width="wrap_content"
++                            android:layout_height="wrap_content"
++                            android:layout_marginTop="2dp"
++                            android:textColor="@color/onfirelos_text_quiet"
++                            android:textSize="14sp" />
++                    </LinearLayout>
++
++                    <Button
++                        android:id="@+id/onfirelos_check_button"
++                        style="@style/OnFireLosPill"
++                        android:layout_width="wrap_content"
++                        android:layout_height="wrap_content"
++                        android:layout_marginStart="16dp"
++                        android:text="@string/menu_refresh" />
++                </LinearLayout>
++            </android.support.v7.widget.CardView>
++
++            <!-- This tablet. -->
++            <android.support.v7.widget.CardView
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:layout_marginTop="12dp"
++                app:cardBackgroundColor="@color/onfirelos_surface"
++                app:cardCornerRadius="20dp"
++                app:cardElevation="0dp">
++
++                <LinearLayout
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:orientation="vertical"
++                    android:paddingBottom="4dp"
++                    android:paddingTop="4dp">
++
++                    <LinearLayout
++                        android:layout_width="match_parent"
++                        android:layout_height="wrap_content"
++                        android:gravity="center_vertical"
++                        android:minHeight="56dp"
++                        android:orientation="horizontal"
++                        android:paddingEnd="20dp"
++                        android:paddingStart="20dp">
++
++                        <ImageView
++                            android:layout_width="24dp"
++                            android:layout_height="24dp"
++                            android:importantForAccessibility="no"
++                            android:src="@drawable/onfirelos_ic_tablet"
++                            android:tint="@color/onfirelos_text_quiet"
++                            android:tintMode="src_in" />
++
++                        <TextView
++                            android:id="@+id/header_title"
++                            android:layout_width="0dp"
++                            android:layout_height="wrap_content"
++                            android:layout_marginStart="20dp"
++                            android:layout_weight="1"
++                            android:textColor="?android:attr/textColorPrimary"
++                            android:textSize="16sp" />
++                    </LinearLayout>
++
++                    <View
++                        android:layout_width="match_parent"
++                        android:layout_height="1dp"
++                        android:layout_marginEnd="20dp"
++                        android:layout_marginStart="20dp"
++                        android:background="@color/onfirelos_divider" />
++
++                    <LinearLayout
++                        android:layout_width="match_parent"
++                        android:layout_height="wrap_content"
++                        android:gravity="center_vertical"
++                        android:minHeight="56dp"
++                        android:orientation="horizontal"
++                        android:paddingEnd="20dp"
++                        android:paddingStart="20dp">
++
++                        <ImageView
++                            android:layout_width="24dp"
++                            android:layout_height="24dp"
++                            android:importantForAccessibility="no"
++                            android:src="@drawable/onfirelos_ic_android"
++                            android:tint="@color/onfirelos_text_quiet"
++                            android:tintMode="src_in" />
++
++                        <TextView
++                            android:id="@+id/header_build_version"
++                            android:layout_width="0dp"
++                            android:layout_height="wrap_content"
++                            android:layout_marginStart="20dp"
++                            android:layout_weight="1"
++                            android:textColor="?android:attr/textColorPrimary"
++                            android:textSize="16sp" />
++                    </LinearLayout>
++
++                    <View
++                        android:layout_width="match_parent"
++                        android:layout_height="1dp"
++                        android:layout_marginEnd="20dp"
++                        android:layout_marginStart="20dp"
++                        android:background="@color/onfirelos_divider" />
++
++                    <LinearLayout
++                        android:layout_width="match_parent"
++                        android:layout_height="wrap_content"
++                        android:gravity="center_vertical"
++                        android:minHeight="56dp"
++                        android:orientation="horizontal"
++                        android:paddingEnd="20dp"
++                        android:paddingStart="20dp">
++
++                        <ImageView
++                            android:layout_width="24dp"
++                            android:layout_height="24dp"
++                            android:importantForAccessibility="no"
++                            android:src="@drawable/onfirelos_ic_event"
++                            android:tint="@color/onfirelos_text_quiet"
++                            android:tintMode="src_in" />
++
++                        <TextView
++                            android:id="@+id/header_build_date"
++                            android:layout_width="0dp"
++                            android:layout_height="wrap_content"
++                            android:layout_marginStart="20dp"
++                            android:layout_weight="1"
++                            android:textColor="?android:attr/textColorPrimary"
++                            android:textSize="16sp" />
++                    </LinearLayout>
++                </LinearLayout>
++            </android.support.v7.widget.CardView>
++
++            <!-- The updates, each on a card (update_item_view). -->
++            <android.support.v7.widget.RecyclerView
++                android:id="@+id/recycler_view"
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:nestedScrollingEnabled="false"
++                android:visibility="gone" />
++        </LinearLayout>
++    </android.support.v4.widget.NestedScrollView>
+ </android.support.design.widget.CoordinatorLayout>
+diff --git a/res/layout/onfirelos_history.xml b/res/layout/onfirelos_history.xml
+new file mode 100644
+index 0000000..cd2d376
+--- /dev/null
++++ b/res/layout/onfirelos_history.xml
+@@ -0,0 +1,60 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:background="@color/theme_primary"
++    android:fitsSystemWindows="true"
++    android:orientation="vertical">
++
++    <android.support.v7.widget.Toolbar
++        android:id="@+id/toolbar"
++        android:layout_width="match_parent"
++        android:layout_height="?attr/actionBarSize"
++        android:theme="@style/AppTheme.AppBarOverlay" />
++
++    <ScrollView
++        android:layout_width="match_parent"
++        android:layout_height="0dp"
++        android:layout_weight="1">
++
++        <LinearLayout
++            android:id="@+id/onfirelos_history_list"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:orientation="vertical"
++            android:paddingBottom="24dp"
++            android:paddingEnd="@dimen/onfirelos_column_margin"
++            android:paddingStart="@dimen/onfirelos_column_margin">
++
++            <TextView
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:fontFamily="sans-serif"
++                android:paddingBottom="16dp"
++                android:paddingStart="4dp"
++                android:paddingTop="40dp"
++                android:text="@string/onfirelos_history_title"
++                android:textColor="?android:attr/textColorPrimary"
++                android:textSize="34sp" />
++
++            <ProgressBar
++                android:id="@+id/onfirelos_history_progress"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_gravity="center_horizontal"
++                android:layout_marginTop="24dp" />
++
++            <TextView
++                android:id="@+id/onfirelos_history_error"
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:layout_marginTop="24dp"
++                android:gravity="center"
++                android:text="@string/snack_updates_check_failed"
++                android:textColor="@color/onfirelos_text_quiet"
++                android:visibility="gone" />
++        </LinearLayout>
++    </ScrollView>
++</LinearLayout>
+diff --git a/res/layout/onfirelos_history_card.xml b/res/layout/onfirelos_history_card.xml
+new file mode 100644
+index 0000000..77a4d78
+--- /dev/null
++++ b/res/layout/onfirelos_history_card.xml
+@@ -0,0 +1,18 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<android.support.v7.widget.CardView
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content"
++    android:layout_marginBottom="12dp"
++    app:cardBackgroundColor="@color/onfirelos_surface"
++    app:cardCornerRadius="20dp"
++    app:cardElevation="0dp">
++
++    <LinearLayout
++        android:id="@+id/onfirelos_history_card_content"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:orientation="vertical" />
++</android.support.v7.widget.CardView>
+diff --git a/res/layout/onfirelos_history_divider.xml b/res/layout/onfirelos_history_divider.xml
+new file mode 100644
+index 0000000..e17964c
+--- /dev/null
++++ b/res/layout/onfirelos_history_divider.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<View xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="1dp"
++    android:layout_marginEnd="20dp"
++    android:layout_marginStart="20dp"
++    android:background="@color/onfirelos_divider" />
+diff --git a/res/layout/onfirelos_history_item.xml b/res/layout/onfirelos_history_item.xml
+new file mode 100644
+index 0000000..83ad3f6
+--- /dev/null
++++ b/res/layout/onfirelos_history_item.xml
+@@ -0,0 +1,75 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content"
++    android:orientation="vertical"
++    android:paddingBottom="16dp"
++    android:paddingEnd="20dp"
++    android:paddingStart="20dp"
++    android:paddingTop="16dp">
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:gravity="center_vertical"
++        android:orientation="horizontal">
++
++        <LinearLayout
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:orientation="vertical">
++
++            <TextView
++                android:id="@+id/onfirelos_history_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:textColor="?android:attr/textColorPrimary"
++                android:textSize="18sp" />
++
++            <TextView
++                android:id="@+id/onfirelos_history_date"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_marginTop="2dp"
++                android:textColor="@color/onfirelos_text_quiet"
++                android:textSize="14sp" />
++        </LinearLayout>
++
++        <TextView
++            android:id="@+id/onfirelos_history_installed"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_marginStart="12dp"
++            android:background="@drawable/onfirelos_chip"
++            android:fontFamily="sans-serif-medium"
++            android:paddingBottom="3dp"
++            android:paddingEnd="10dp"
++            android:paddingStart="10dp"
++            android:paddingTop="3dp"
++            android:text="@string/onfirelos_history_installed"
++            android:textColor="@color/onfirelos_on_accent"
++            android:textSize="13sp"
++            android:visibility="gone" />
++
++        <ImageView
++            android:id="@+id/onfirelos_history_chevron"
++            android:layout_width="24dp"
++            android:layout_height="24dp"
++            android:layout_marginStart="12dp"
++            android:importantForAccessibility="no"
++            android:src="@drawable/onfirelos_ic_expand" />
++    </LinearLayout>
++
++    <TextView
++        android:id="@+id/onfirelos_history_notes"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:layout_marginTop="12dp"
++        android:lineSpacingExtra="4dp"
++        android:textColor="?android:attr/textColorPrimary"
++        android:textSize="14sp"
++        android:visibility="gone" />
++</LinearLayout>
+diff --git a/res/layout/update_item_view.xml b/res/layout/update_item_view.xml
+index ddcf326..1faef37 100644
+--- a/res/layout/update_item_view.xml
++++ b/res/layout/update_item_view.xml
+@@ -5,15 +5,19 @@
+     xmlns:tools="http://schemas.android.com/tools"
+     android:layout_width="match_parent"
+     android:layout_height="wrap_content"
++    android:layout_marginTop="12dp"
+     android:focusable="true"
+     android:foreground="?attr/selectableItemBackground"
+     android:nextFocusRight="@+id/update_action"
+-    app:cardCornerRadius="0dp"
+-    app:contentPadding="16dp">
++    app:cardBackgroundColor="@color/onfirelos_surface"
++    app:cardCornerRadius="20dp"
++    app:cardElevation="0dp"
++    app:contentPadding="20dp">
+ 
+     <LinearLayout
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
++        android:gravity="center_vertical"
+         android:orientation="horizontal"
+         android:weightSum="1">
+ 
+@@ -40,6 +44,7 @@
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:maxLines="1"
++                android:textColor="@color/onfirelos_text_quiet"
+                 android:textSize="14sp"
+                 tools:text="29 February 2018" />
+ 
+@@ -77,14 +82,25 @@
+                     tools:text="300 MB"
+                     tools:visibility="invisible" />
+             </RelativeLayout>
++
++            <!-- ON-FireLOS: what the update brings (updater-history.py). -->
++            <TextView
++                android:id="@+id/onfirelos_changelog"
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:layout_marginTop="8dp"
++                android:lineSpacingExtra="4dp"
++                android:textColor="?android:attr/textColorPrimary"
++                android:textSize="14sp"
++                android:visibility="gone" />
+         </LinearLayout>
+ 
+         <Button
+             android:id="@id/update_action"
+-            style="@style/Widget.AppCompat.Button.Borderless.Colored"
++            style="@style/OnFireLosPill"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:padding="8dp"
++            android:layout_marginStart="16dp"
+             tools:text="Pause" />
+     </LinearLayout>
+ </android.support.v7.widget.CardView>
+diff --git a/res/menu/menu_toolbar.xml b/res/menu/menu_toolbar.xml
+index 8b9117c..e73624f 100644
+--- a/res/menu/menu_toolbar.xml
++++ b/res/menu/menu_toolbar.xml
+@@ -1,17 +1,13 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <menu xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto">
+-    <item
+-        android:id="@+id/menu_refresh"
+-        android:icon="@drawable/ic_menu_refresh"
+-        android:title="@string/menu_refresh"
+-        app:showAsAction="ifRoom" />
++    <!-- ON-FireLOS: looking for updates is the status card's pill (updater-design.py). -->
+     <item
+         android:id="@+id/menu_preferences"
+         android:title="@string/menu_preferences"
+         app:showAsAction="never" />
+     <item
+         android:id="@+id/menu_show_changelog"
+-        android:title="@string/menu_show_changelog"
++        android:title="@string/onfirelos_history_title"
+         app:showAsAction="never" />
+ </menu>
+diff --git a/res/values-ar/strings.xml b/res/values-ar/strings.xml
+index 00cf397..e451875 100644
+--- a/res/values-ar/strings.xml
++++ b/res/values-ar/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">أندرويد <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">آخر تحقق: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> من <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">جارٍ التحقق من التحديث</string>
+diff --git a/res/values-ast-rES/strings.xml b/res/values-ast-rES/strings.xml
+index 1a9c751..70e2d96 100644
+--- a/res/values-ast-rES/strings.xml
++++ b/res/values-ast-rES/strings.xml
+@@ -39,8 +39,8 @@
+     <string name="snack_update_not_installable">Esti anovamientu nun se pue instalar sobre la versión actual.</string>
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="action_download">Baxar</string>
+diff --git a/res/values-az/strings.xml b/res/values-az/strings.xml
+index 5731ca5..3b482d9 100644
+--- a/res/values-az/strings.xml
++++ b/res/values-az/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Son yoxlama: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Yeniləmə təsdiqlənir</string>
+diff --git a/res/values-bg/strings.xml b/res/values-bg/strings.xml
+index 33e37b1..12058c2 100644
+--- a/res/values-bg/strings.xml
++++ b/res/values-bg/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Последна проверка: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> от <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Проверка на актуализацията</string>
+diff --git a/res/values-ca/strings.xml b/res/values-ca/strings.xml
+index 7a370ac..8eea0f6 100644
+--- a/res/values-ca/strings.xml
++++ b/res/values-ca/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Darrera comprovació: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">S\'està verificant l\'actualització</string>
+diff --git a/res/values-cs/strings.xml b/res/values-cs/strings.xml
+index 6dd6eb2..4ee2bd0 100644
+--- a/res/values-cs/strings.xml
++++ b/res/values-cs/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Poslední kontrola: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Ověření aktualizace</string>
+diff --git a/res/values-cy/strings.xml b/res/values-cy/strings.xml
+index f1a3945..de535d8 100644
+--- a/res/values-cy/strings.xml
++++ b/res/values-cy/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Gwiriwyd diwethaf: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> o <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> o <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Yn dilysu\'r diweddariad</string>
+diff --git a/res/values-da/strings.xml b/res/values-da/strings.xml
+index 190332f..24673d9 100644
+--- a/res/values-da/strings.xml
++++ b/res/values-da/strings.xml
+@@ -56,8 +56,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Sidst tjekket: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> af <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Verificerer opdatering</string>
+     <string name="list_no_updates">Ingen nye opdateringer fundet. Brug Genopfrisk-knappen, for manuel kontrol af nye opdateringer.</string>
+diff --git a/res/values-de/onfirelos_history_strings.xml b/res/values-de/onfirelos_history_strings.xml
+new file mode 100644
+index 0000000..9e5ab17
+--- /dev/null
++++ b/res/values-de/onfirelos_history_strings.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<resources>
++    <string name="onfirelos_history_title">Versionsverlauf</string>
++    <string name="onfirelos_history_installed">Installiert</string>
++</resources>
+diff --git a/res/values-de/strings.xml b/res/values-de/strings.xml
+index 65f901d..47a28ea 100644
+--- a/res/values-de/strings.xml
++++ b/res/values-de/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Zuletzt geprüft: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> von <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> von <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Update wird geprüft</string>
+diff --git a/res/values-el/strings.xml b/res/values-el/strings.xml
+index 3a524fe..a26b820 100644
+--- a/res/values-el/strings.xml
++++ b/res/values-el/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Τελευταίος έλεγχος: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> από <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> από <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Επαλήθευση ενημέρωσης</string>
+diff --git a/res/values-en-rAU/strings.xml b/res/values-en-rAU/strings.xml
+index dc09620..a1bf2ca 100644
+--- a/res/values-en-rAU/strings.xml
++++ b/res/values-en-rAU/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-en-rCA/strings.xml b/res/values-en-rCA/strings.xml
+index c9ac84e..a9931c8 100644
+--- a/res/values-en-rCA/strings.xml
++++ b/res/values-en-rCA/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-en-rGB/strings.xml b/res/values-en-rGB/strings.xml
+index ad3de1c..87c8381 100644
+--- a/res/values-en-rGB/strings.xml
++++ b/res/values-en-rGB/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-en-rIN/strings.xml b/res/values-en-rIN/strings.xml
+index ad3de1c..87c8381 100644
+--- a/res/values-en-rIN/strings.xml
++++ b/res/values-en-rIN/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values-es-rUS/strings.xml b/res/values-es-rUS/strings.xml
+index 2ae8b8f..a414126 100644
+--- a/res/values-es-rUS/strings.xml
++++ b/res/values-es-rUS/strings.xml
+@@ -61,8 +61,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última comprobación: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verificando actualización</string>
+diff --git a/res/values-es/strings.xml b/res/values-es/strings.xml
+index 3f38385..68170cb 100644
+--- a/res/values-es/strings.xml
++++ b/res/values-es/strings.xml
+@@ -54,8 +54,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última comprobación: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Verificando actualización</string>
+     <string name="list_no_updates">Sin nuevas actualizaciones disponibles. Para comprobar manualmente, pulsa el botón «Actualizar».</string>
+diff --git a/res/values-eu/strings.xml b/res/values-eu/strings.xml
+index fd7aa8f..f13cd49 100644
+--- a/res/values-eu/strings.xml
++++ b/res/values-eu/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Azken egiaztaketa: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Eguneraketa egiaztatzen</string>
+diff --git a/res/values-fi/strings.xml b/res/values-fi/strings.xml
+index 3a8d941..c629a16 100644
+--- a/res/values-fi/strings.xml
++++ b/res/values-fi/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Viimeksi tarkistettu: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Todentaa päivitystä</string>
+diff --git a/res/values-fr/strings.xml b/res/values-fr/strings.xml
+index b99ae71..ac61b1c 100644
+--- a/res/values-fr/strings.xml
++++ b/res/values-fr/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Dernière vérification : <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> sur <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> sur <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Vérification de la mise à jour en cours</string>
+diff --git a/res/values-fy-rNL/strings.xml b/res/values-fy-rNL/strings.xml
+index 2d608e3..c206d62 100644
+--- a/res/values-fy-rNL/strings.xml
++++ b/res/values-fy-rNL/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Lêst kontrolearre: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> fan <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> fan <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Fernijing ferifiearje</string>
+diff --git a/res/values-gd/strings.xml b/res/values-gd/strings.xml
+index ae7c66b..0ae4d00 100644
+--- a/res/values-gd/strings.xml
++++ b/res/values-gd/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">An sgrùdadh mu dheireadh: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> à <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">A’ dearbhadh an ùrachaidh</string>
+diff --git a/res/values-gl/strings.xml b/res/values-gl/strings.xml
+index f521e73..eed0f1a 100644
+--- a/res/values-gl/strings.xml
++++ b/res/values-gl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última comprobación: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new">restan <xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Comprobando actualización</string>
+diff --git a/res/values-hr/strings.xml b/res/values-hr/strings.xml
+index 3a572cc..3fcf9b6 100644
+--- a/res/values-hr/strings.xml
++++ b/res/values-hr/strings.xml
+@@ -52,7 +52,7 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Zadnja provjera: <xliff:g id="date" example="1 January 1970">%1$s </xliff:g> (<xliff:g id="time" example="01:23">%2$s </xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="7.1.2">%1$s</xliff:g>)</string>
+     <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s </xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s </xliff:g></string>
+     <string name="list_verifying_update">Provjera ažuriranja</string>
+     <string name="list_no_updates">Nema pronađenih novih ažuriranja. Za ručnu provjeru novih ažuriranja upotrijebite gumb Osvježi.</string>
+diff --git a/res/values-hu/strings.xml b/res/values-hu/strings.xml
+index 5adb3ab..7f9ce70 100644
+--- a/res/values-hu/strings.xml
++++ b/res/values-hu/strings.xml
+@@ -64,8 +64,8 @@ illetve, ha éppen tölt, akkor még <xliff:g id="percent_charging">%2$d</xliff:
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Utolsó ellenőrzés: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> a <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g>-ból - <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> a <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g>-ból (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Frissítésellenőrzés</string>
+diff --git a/res/values-in/strings.xml b/res/values-in/strings.xml
+index 0eeb16a..7b120c6 100644
+--- a/res/values-in/strings.xml
++++ b/res/values-in/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s </xliff:g></string>
+     <string name="header_last_updates_check">Terakhir diperiksa: <xliff:g id="date" example="1 January 1970">%1$s </xliff:g> (<xliff:g id="time" example="01:23">%2$s </xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> dari <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> dari <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="duration" example="3 minutes">%3$s</xliff:g> lagi) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Memverifikasi pembaruan</string>
+diff --git a/res/values-it/strings.xml b/res/values-it/strings.xml
+index 248d80a..2cc560c 100644
+--- a/res/values-it/strings.xml
++++ b/res/values-it/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Ultima verifica: <xliff:g id="date" example="1 Gennaio 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="Luglio 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="Luglio 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> di <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> di <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifica aggiornamento</string>
+diff --git a/res/values-iw/strings.xml b/res/values-iw/strings.xml
+index 7e8fc1d..32a0449 100644
+--- a/res/values-iw/strings.xml
++++ b/res/values-iw/strings.xml
+@@ -57,8 +57,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">אנדרואיד <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">בדיקה אחרונה: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> מתוך <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> מתוך <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">מאמת עדכון</string>
+diff --git a/res/values-ja/strings.xml b/res/values-ja/strings.xml
+index f5b88d7..514b08f 100644
+--- a/res/values-ja/strings.xml
++++ b/res/values-ja/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">最終確認: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">アップデートを確認</string>
+diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
+index 44ed306..a709796 100644
+--- a/res/values-ko/strings.xml
++++ b/res/values-ko/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">마지막 확인: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">업데이트 검증 중</string>
+diff --git a/res/values-land/onfirelos_dimens.xml b/res/values-land/onfirelos_dimens.xml
+new file mode 100644
+index 0000000..07fbc06
+--- /dev/null
++++ b/res/values-land/onfirelos_dimens.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<resources>
++    <dimen name="onfirelos_title_height">104dp</dimen>
++</resources>
+diff --git a/res/values-nb/strings.xml b/res/values-nb/strings.xml
+index 01b2738..0fc8d53 100644
+--- a/res/values-nb/strings.xml
++++ b/res/values-nb/strings.xml
+@@ -53,8 +53,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Sist sjekket: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> av <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Bekrefter oppdatering</string>
+     <string name="list_no_updates">Ingen nye programvareoppdateringer funnet. For å se etter oppdateringer manuelt, bruk Oppdater-knappen.</string>
+diff --git a/res/values-night/colors.xml b/res/values-night/colors.xml
+index 907f254..7f44061 100644
+--- a/res/values-night/colors.xml
++++ b/res/values-night/colors.xml
+@@ -1,7 +1,8 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <color name="theme_primary">#212121</color>
+-    <color name="theme_primary_dark">#1c1c1c</color>
++    <color name="theme_primary">#1A1C18</color>
++    <color name="theme_primary_dark">#1A1C18</color>
++    <color name="theme_accent">@*android:color/accent_device_default_dark</color>
+ 
+-    <color name="inverted">#f5f5f5</color>
++    <color name="inverted">#E4E6DD</color>
+ </resources>
+diff --git a/res/values-night/onfirelos_colors.xml b/res/values-night/onfirelos_colors.xml
+new file mode 100644
+index 0000000..4588b1a
+--- /dev/null
++++ b/res/values-night/onfirelos_colors.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<resources>
++    <!-- The design tokens (docs/DESIGN.md), dark. -->
++    <color name="onfirelos_surface">#24271F</color>
++    <color name="onfirelos_surface_variant">#2F332B</color>
++    <color name="onfirelos_on_accent">#1A1C18</color>
++    <color name="onfirelos_text_quiet">#99E4E6DD</color>
++    <color name="onfirelos_divider">#1AE4E6DD</color>
++</resources>
+diff --git a/res/values-nl/strings.xml b/res/values-nl/strings.xml
+index b9bdca0..99e08a3 100644
+--- a/res/values-nl/strings.xml
++++ b/res/values-nl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Laatst gecontroleerd: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> van <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> van <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Update verifiëren</string>
+diff --git a/res/values-pl/strings.xml b/res/values-pl/strings.xml
+index b60f4a6..34fd05d 100644
+--- a/res/values-pl/strings.xml
++++ b/res/values-pl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Ostatnio sprawdzane: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Sprawdzanie aktualizacji</string>
+diff --git a/res/values-pt-rBR/strings.xml b/res/values-pt-rBR/strings.xml
+index c8c1ce0..fdf2bb5 100644
+--- a/res/values-pt-rBR/strings.xml
++++ b/res/values-pt-rBR/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última verificação: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> às <xliff:g id="time" example="01:23">%2$s</xliff:g></string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verificando atualização</string>
+diff --git a/res/values-pt-rPT/strings.xml b/res/values-pt-rPT/strings.xml
+index b748747..5c2ff27 100644
+--- a/res/values-pt-rPT/strings.xml
++++ b/res/values-pt-rPT/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Última verificação: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> de <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">A verificar atualização</string>
+diff --git a/res/values-ro/strings.xml b/res/values-ro/strings.xml
+index 843a6de..67ea77a 100644
+--- a/res/values-ro/strings.xml
++++ b/res/values-ro/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Ultima verificare: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> din <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> din <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verificare actualizare</string>
+diff --git a/res/values-ru/strings.xml b/res/values-ru/strings.xml
+index 29b94ee..a66d1db 100644
+--- a/res/values-ru/strings.xml
++++ b/res/values-ru/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Поиск обновлений выполнялся <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> в <xliff:g id="time" example="01:23">%2$s</xliff:g></string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> из <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> из <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Проверка обновлений</string>
+diff --git a/res/values-sk/strings.xml b/res/values-sk/strings.xml
+index 86251be..11faeda 100644
+--- a/res/values-sk/strings.xml
++++ b/res/values-sk/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Posledná kontrola: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> из <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> z <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Overujem aktualizáciu</string>
+diff --git a/res/values-sl/strings.xml b/res/values-sl/strings.xml
+index 415574a..d2daab6 100644
+--- a/res/values-sl/strings.xml
++++ b/res/values-sl/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Zadnje preverjanje: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> od <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> od <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Preverjanje posodobitve</string>
+diff --git a/res/values-sq/strings.xml b/res/values-sq/strings.xml
+index 77a6646..f425101 100644
+--- a/res/values-sq/strings.xml
++++ b/res/values-sq/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Kontrolli i fundit: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> e <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> e <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Duke verifikuar përditësimin</string>
+diff --git a/res/values-sr/strings.xml b/res/values-sr/strings.xml
+index 5529209..9888dc4 100644
+--- a/res/values-sr/strings.xml
++++ b/res/values-sr/strings.xml
+@@ -57,7 +57,7 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="верзија" example="7.1.2">%1$s </xliff:g></string>
+     <string name="header_last_updates_check">Последњи пут проверено: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
+     <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s </xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s </xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> од <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> од <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+diff --git a/res/values-sv/strings.xml b/res/values-sv/strings.xml
+index d41665f..3892399 100644
+--- a/res/values-sv/strings.xml
++++ b/res/values-sv/strings.xml
+@@ -45,8 +45,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Senaste kontrollen utfördes: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) – <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> av <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_verifying_update">Verifierar uppdateringen</string>
+     <string name="action_download">Ladda ner</string>
+diff --git a/res/values-sw600dp/onfirelos_dimens.xml b/res/values-sw600dp/onfirelos_dimens.xml
+new file mode 100644
+index 0000000..d8a880b
+--- /dev/null
++++ b/res/values-sw600dp/onfirelos_dimens.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<resources>
++    <!-- The column of Settings' pages on a tablet (settings-page-title.py). -->
++    <dimen name="onfirelos_column_margin">80dp</dimen>
++    <dimen name="onfirelos_title_start">84dp</dimen>
++</resources>
+diff --git a/res/values-tr/strings.xml b/res/values-tr/strings.xml
+index e7bcae9..07e4ec9 100644
+--- a/res/values-tr/strings.xml
++++ b/res/values-tr/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Son kontrol zamanı: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Güncelleme doğrulanıyor</string>
+diff --git a/res/values-uk/strings.xml b/res/values-uk/strings.xml
+index 5f4b51f..302f527 100644
+--- a/res/values-uk/strings.xml
++++ b/res/values-uk/strings.xml
+@@ -51,8 +51,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Остання перевірка: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_verifying_update">Перевірка оновлення</string>
+     <string name="list_no_updates">Оновлень не знайдено. Щоб вручну перевірити наявність оновлень, натисніть кнопку Оновити.</string>
+     <string name="action_download">Завантажити</string>
+diff --git a/res/values-vi/strings.xml b/res/values-vi/strings.xml
+index 0869eb6..f8fcd51 100644
+--- a/res/values-vi/strings.xml
++++ b/res/values-vi/strings.xml
+@@ -57,8 +57,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Lần kiểm tra cuối: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> của <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Đang xác thực bản cập nhật</string>
+diff --git a/res/values-zh-rCN/strings.xml b/res/values-zh-rCN/strings.xml
+index aa212a3..0e54425 100644
+--- a/res/values-zh-rCN/strings.xml
++++ b/res/values-zh-rCN/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">最后检查： <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> / <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">正在验证更新</string>
+diff --git a/res/values-zh-rTW/strings.xml b/res/values-zh-rTW/strings.xml
+index 43a407b..d8a2e39 100644
+--- a/res/values-zh-rTW/strings.xml
++++ b/res/values-zh-rTW/strings.xml
+@@ -63,8 +63,8 @@
+     <string name="header_title_text">LineageOS\n%1$s</string>
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">上次檢查：<xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>-<xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)-<xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> 的 <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> 的 <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">正在驗證更新</string>
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index 539b386..b3a12f5 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -1,9 +1,9 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <color name="theme_primary">#f5f5f5</color>
+-    <color name="theme_primary_dark">#e0e0e0</color>
+-    <color name="theme_accent">#167c80</color>
++    <color name="theme_primary">#F6F8F3</color>
++    <color name="theme_primary_dark">#F6F8F3</color>
++    <color name="theme_accent">@*android:color/accent_device_default_light</color>
+ 
+-    <color name="inverted">#212121</color>
++    <color name="inverted">#DE1B1D19</color>
+     <color name="ic_background">#333333</color>
+ </resources>
+diff --git a/res/values/onfirelos_colors.xml b/res/values/onfirelos_colors.xml
+new file mode 100644
+index 0000000..d9519ff
+--- /dev/null
++++ b/res/values/onfirelos_colors.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<resources>
++    <!-- The design tokens (docs/DESIGN.md), light. -->
++    <color name="onfirelos_surface">#FFFFFF</color>
++    <color name="onfirelos_surface_variant">#E8ECE3</color>
++    <color name="onfirelos_on_accent">#FFFFFF</color>
++    <color name="onfirelos_text_quiet">#851B1D19</color>
++    <color name="onfirelos_divider">#1A1B1D19</color>
++</resources>
+diff --git a/res/values/onfirelos_dimens.xml b/res/values/onfirelos_dimens.xml
+new file mode 100644
+index 0000000..b58e527
+--- /dev/null
++++ b/res/values/onfirelos_dimens.xml
+@@ -0,0 +1,9 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-design.py). -->
++<resources>
++    <!-- The large title's space, as in Settings (settings-large-title.py). -->
++    <dimen name="onfirelos_title_height">168dp</dimen>
++    <!-- The cards' column: its margin, and where the title starts above it. -->
++    <dimen name="onfirelos_column_margin">16dp</dimen>
++    <dimen name="onfirelos_title_start">20dp</dimen>
++</resources>
+diff --git a/res/values/onfirelos_history_strings.xml b/res/values/onfirelos_history_strings.xml
+new file mode 100644
+index 0000000..e8ced90
+--- /dev/null
++++ b/res/values/onfirelos_history_strings.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<resources>
++    <string name="onfirelos_history_title">Version history</string>
++    <string name="onfirelos_history_installed">Installed</string>
++</resources>
+diff --git a/res/values/onfirelos_release_name.xml b/res/values/onfirelos_release_name.xml
+new file mode 100644
+index 0000000..60d4dcd
+--- /dev/null
++++ b/res/values/onfirelos_release_name.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0 (updater-history.py). -->
++<resources>
++    <!-- A release by its own number: "ON-FireLOS 1.02". -->
++    <string name="onfirelos_release_name" translatable="false">ON-FireLOS %1$s</string>
++</resources>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 34f2fd3..860d448 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -92,8 +92,8 @@
+     <string name="header_android_version">Android <xliff:g id="version" example="7.1.2">%1$s</xliff:g></string>
+     <string name="header_last_updates_check">Last checked: <xliff:g id="date" example="1 January 1970">%1$s</xliff:g> (<xliff:g id="time" example="01:23">%2$s</xliff:g>)</string>
+ 
+-    <string name="list_build_version">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g></string>
+-    <string name="list_build_version_date">LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g> - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
++    <string name="list_build_version">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>)</string>
++    <string name="list_build_version_date">ON-FireLOS (LineageOS <xliff:g id="version" example="14.1">%1$s</xliff:g>) - <xliff:g id="date" example="July 11, 2017">%2$s</xliff:g></string>
+     <string name="list_download_progress_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> • <xliff:g id="percentage" example="56">%3$s</xliff:g></string>
+     <string name="list_download_progress_eta_new"><xliff:g id="filesize_without_unit" example="12.2">%1$s</xliff:g> of <xliff:g id="filesize_without_unit" example="310 MB">%2$s</xliff:g> (<xliff:g id="eta" example="3 minutes left">%3$s</xliff:g>) • <xliff:g id="percentage" example="56">%4$s</xliff:g></string>
+     <string name="list_verifying_update">Verifying update</string>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index e87f58c..b73204f 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -26,6 +26,20 @@
+         <item name="android:textColor">@android:color/transparent</item>
+     </style>
+ 
++    <!-- ON-FireLOS: a button as a pill in the accent (updater-design.py). -->
++    <style name="OnFireLosPill" parent="Widget.AppCompat.Button.Borderless">
++        <item name="android:background">@drawable/onfirelos_pill</item>
++        <item name="android:minHeight">40dp</item>
++        <item name="android:minWidth">0dp</item>
++        <item name="android:paddingStart">20dp</item>
++        <item name="android:paddingEnd">20dp</item>
++        <item name="android:textAllCaps">false</item>
++        <item name="android:textColor">@color/onfirelos_pill_text</item>
++        <item name="android:textSize">14sp</item>
++        <item name="android:fontFamily">sans-serif-medium</item>
++        <item name="android:stateListAnimator">@null</item>
++    </style>
++
+     <style name="AppTheme.PopupMenuOverlapAnchor">
+         <item name="android:overlapAnchor">true</item>
+         <item name="android:dropDownVerticalOffset">8dp</item>
+diff --git a/src/org/lineageos/updater/HistoryActivity.java b/src/org/lineageos/updater/HistoryActivity.java
+new file mode 100644
+index 0000000..813425c
+--- /dev/null
++++ b/src/org/lineageos/updater/HistoryActivity.java
+@@ -0,0 +1,288 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.lineageos.updater;
++
++import android.os.Build;
++import android.os.Bundle;
++import android.os.SystemProperties;
++import android.support.v7.app.AppCompatActivity;
++import android.support.v7.widget.Toolbar;
++import android.text.SpannableStringBuilder;
++import android.text.Spanned;
++import android.text.style.StyleSpan;
++import android.transition.TransitionManager;
++import android.util.TypedValue;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.TextView;
++
++import org.json.JSONArray;
++import org.json.JSONException;
++import org.json.JSONObject;
++import org.lineageos.updater.misc.Constants;
++
++import java.io.ByteArrayOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.text.DateFormat;
++import java.text.ParseException;
++import java.text.SimpleDateFormat;
++import java.util.ArrayList;
++import java.util.Date;
++import java.util.List;
++import java.util.Locale;
++import java.util.TimeZone;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
++
++/**
++ * ON-FireLOS: every release of the project with its date and notes, newest first, the one
++ * installed marked. From GitHub's public list of releases of the repository whose update
++ * list this tablet reads (lineage.updater.uri).
++ */
++public class HistoryActivity extends AppCompatActivity {
++
++    private static final int MAX_BYTES = 2 * 1024 * 1024;
++
++    private ViewGroup mList;
++    private View mProgress;
++    private View mError;
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        setContentView(R.layout.onfirelos_history);
++        final Toolbar toolbar = findViewById(R.id.toolbar);
++        setSupportActionBar(toolbar);
++        getSupportActionBar().setDisplayShowTitleEnabled(false);
++        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
++        mList = findViewById(R.id.onfirelos_history_list);
++        mProgress = findViewById(R.id.onfirelos_history_progress);
++        mError = findViewById(R.id.onfirelos_history_error);
++        load();
++    }
++
++    @Override
++    public boolean onSupportNavigateUp() {
++        finish();
++        return true;
++    }
++
++    private void load() {
++        final String url = releasesUrl();
++        new Thread(() -> {
++            String json = null;
++            if (url != null) {
++                try {
++                    json = fetch(url);
++                } catch (IOException e) {
++                    // Shown as the error below.
++                }
++            }
++            final String result = json;
++            runOnUiThread(() -> {
++                if (!isFinishing() && !isDestroyed()) {
++                    show(result);
++                }
++            });
++        }).start();
++    }
++
++    /** github.com/<owner>/<repo>/... in the update list's address gives the API's list. */
++    static String releasesUrl() {
++        final Matcher m = Pattern.compile("github\\.com/([^/]+)/([^/]+)/")
++                .matcher(SystemProperties.get(Constants.PROP_UPDATER_URI, ""));
++        return m.find() ? "https://api.github.com/repos/" + m.group(1) + "/" + m.group(2)
++                + "/releases?per_page=30" : null;
++    }
++
++    private static String fetch(String address) throws IOException {
++        final HttpURLConnection conn = (HttpURLConnection) new URL(address).openConnection();
++        try {
++            conn.setConnectTimeout(10000);
++            conn.setReadTimeout(10000);
++            conn.setRequestProperty("Accept", "application/vnd.github+json");
++            conn.setRequestProperty("User-Agent", "ON-FireLOS-Updater");
++            if (conn.getResponseCode() != 200) {
++                throw new IOException("HTTP " + conn.getResponseCode());
++            }
++            try (InputStream in = conn.getInputStream()) {
++                final ByteArrayOutputStream out = new ByteArrayOutputStream();
++                final byte[] buf = new byte[8192];
++                int n;
++                while ((n = in.read(buf)) > 0) {
++                    out.write(buf, 0, n);
++                    if (out.size() > MAX_BYTES) {
++                        throw new IOException("too large");
++                    }
++                }
++                return out.toString("UTF-8");
++            }
++        } finally {
++            conn.disconnect();
++        }
++    }
++
++    private void show(String json) {
++        mProgress.setVisibility(View.GONE);
++        final JSONArray releases;
++        try {
++            releases = json == null ? null : new JSONArray(json);
++        } catch (JSONException e) {
++            mError.setVisibility(View.VISIBLE);
++            return;
++        }
++        if (releases == null || releases.length() == 0) {
++            mError.setVisibility(View.VISIBLE);
++            return;
++        }
++        // GitHub lists by when the tag was made; newest published first instead.
++        final List<JSONObject> sorted = new ArrayList<>();
++        for (int i = 0; i < releases.length(); i++) {
++            final JSONObject release = releases.optJSONObject(i);
++            if (release != null && !release.optBoolean("draft")) {
++                sorted.add(release);
++            }
++        }
++        sorted.sort((a, b) -> b.optString("published_at").compareTo(a.optString("published_at")));
++        // The installed release (or the newest, on another build) open on a card of its own;
++        // the ones around it as rows that open with a tap, in one card each side.
++        final String installed = installedVersion();
++        int active = 0;
++        for (int i = 0; i < sorted.size(); i++) {
++            if (isInstalled(sorted.get(i), installed)) {
++                active = i;
++                break;
++            }
++        }
++        final LayoutInflater inflater = LayoutInflater.from(this);
++        ViewGroup rows = null;
++        for (int i = 0; i < sorted.size(); i++) {
++            final JSONObject release = sorted.get(i);
++            final ViewGroup parent;
++            if (i == active || rows == null) {
++                parent = card(inflater);
++                rows = i == active ? null : parent;
++            } else {
++                parent = rows;
++                inflater.inflate(R.layout.onfirelos_history_divider, parent, true);
++            }
++            final View item = inflater.inflate(R.layout.onfirelos_history_item, parent, false);
++            ((TextView) item.findViewById(R.id.onfirelos_history_name)).setText(name(release));
++            ((TextView) item.findViewById(R.id.onfirelos_history_date)).setText(
++                    date(release.optString("published_at")));
++            final TextView notes = item.findViewById(R.id.onfirelos_history_notes);
++            notes.setText(notes(release.optString("body")));
++            if (isInstalled(release, installed)) {
++                item.findViewById(R.id.onfirelos_history_installed).setVisibility(View.VISIBLE);
++            }
++            final View chevron = item.findViewById(R.id.onfirelos_history_chevron);
++            if (i == active) {
++                notes.setVisibility(View.VISIBLE);
++                chevron.setVisibility(View.GONE);
++            } else {
++                final TypedValue ripple = new TypedValue();
++                getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
++                item.setBackgroundResource(ripple.resourceId);
++                item.setOnClickListener(v -> {
++                    final boolean open = notes.getVisibility() != View.VISIBLE;
++                    TransitionManager.beginDelayedTransition(mList);
++                    notes.setVisibility(open ? View.VISIBLE : View.GONE);
++                    chevron.animate().rotation(open ? 180f : 0f);
++                });
++            }
++            parent.addView(item);
++        }
++    }
++
++    /** A new card at the end of the list; its column for the entries. */
++    private ViewGroup card(LayoutInflater inflater) {
++        final View card = inflater.inflate(R.layout.onfirelos_history_card, mList, false);
++        // The rows' ripple stays inside the rounded corners.
++        card.setClipToOutline(true);
++        mList.addView(card);
++        return card.findViewById(R.id.onfirelos_history_card_content);
++    }
++
++    private static String name(JSONObject release) {
++        return release.optString("name", release.optString("tag_name"));
++    }
++
++    private static boolean isInstalled(JSONObject release, String installed) {
++        return installed != null && Pattern.compile(
++                "ON-FireLOS " + Pattern.quote(installed) + "(\\D|$)").matcher(name(release)).find();
++    }
++
++    /** "1.02" from the display id ON-FireLOS-1.02-<date>.<time>, null for other builds. */
++    private static String installedVersion() {
++        final Matcher m = Pattern.compile("ON-FireLOS-([0-9.]+)-").matcher(Build.DISPLAY);
++        return m.find() ? m.group(1) : null;
++    }
++
++    private String date(String iso) {
++        final SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'",
++                Locale.ROOT);
++        parser.setTimeZone(TimeZone.getTimeZone("UTC"));
++        try {
++            final Date when = parser.parse(iso);
++            return DateFormat.getDateInstance(DateFormat.LONG).format(when);
++        } catch (ParseException e) {
++            return "";
++        }
++    }
++
++    /**
++     * The release notes as plain text: headings bold, list points as bullets, links and
++     * markup dropped, the checksum line left out.
++     */
++    static CharSequence notes(String markdown) {
++        final SpannableStringBuilder out = new SpannableStringBuilder();
++        boolean blank = false;
++        for (String raw : markdown.replace("\r", "").split("\n")) {
++            String line = raw.trim();
++            if (line.isEmpty()) {
++                blank = out.length() > 0;
++                continue;
++            }
++            // How to update is what this page is for; the hashes are for the download page.
++            if (line.startsWith("SHA-256") || line.contains("suez.json")
++                    || line.replace("**", "").startsWith("Updating:")) {
++                continue;
++            }
++            line = line.replaceAll("\\[([^\\]]*)\\]\\([^)]*\\)", "$1")
++                    .replace("**", "").replace("`", "")
++                    .replaceAll("(^|\\s)\\*(\\S[^*]*?)\\*(?=[\\s.,;:!?)]|$)", "$1$2");
++            if (out.length() > 0) {
++                out.append(blank ? "\n\n" : "\n");
++            }
++            blank = false;
++            if (line.startsWith("#")) {
++                final int start = out.length();
++                out.append(line.replaceFirst("^#+\\s*", ""));
++                out.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, out.length(),
++                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
++            } else if (line.startsWith("- ") || line.startsWith("* ")) {
++                out.append("•  ").append(line.substring(2));
++            } else {
++                out.append(line);
++            }
++        }
++        return out;
++    }
++}
+diff --git a/src/org/lineageos/updater/UpdatesActivity.java b/src/org/lineageos/updater/UpdatesActivity.java
+index efea969..6f5c374 100644
+--- a/src/org/lineageos/updater/UpdatesActivity.java
++++ b/src/org/lineageos/updater/UpdatesActivity.java
+@@ -115,8 +115,20 @@ public class UpdatesActivity extends UpdatesListActivity {
+         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+ 
+         TextView headerTitle = (TextView) findViewById(R.id.header_title);
+-        headerTitle.setText(getString(R.string.header_title_text,
+-                BuildInfoUtils.getBuildVersion()));
++        // ON-FireLOS: this project's name and version (from the build's display id).
++        final java.util.regex.Matcher onfirelos = java.util.regex.Pattern
++                .compile("ON-FireLOS-([0-9.]+)-").matcher(android.os.Build.DISPLAY);
++        headerTitle.setText(onfirelos.find() ? "ON-FireLOS\n" + onfirelos.group(1)
++                : getString(R.string.header_title_text, BuildInfoUtils.getBuildVersion()));
++
++        // ON-FireLOS: the page's name as Settings shows it, as the large title; the version
++        // on one line in the tablet's card; the status card's pill looks again.
++        mPageTitle = pageTitle();
++        ((TextView) findViewById(R.id.onfirelos_large_title)).setText(mPageTitle);
++        headerTitle.setText(headerTitle.getText().toString().replace('\n', ' '));
++        findViewById(R.id.onfirelos_check_button).setOnClickListener(
++                v -> downloadUpdatesList(true));
++        showStatus();
+ 
+         updateLastCheckedString();
+ 
+@@ -138,8 +150,11 @@ public class UpdatesActivity extends UpdatesListActivity {
+             @Override
+             public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                 int scrollRange = appBarLayout.getTotalScrollRange();
++                // ON-FireLOS: the large title fades as it goes.
++                findViewById(R.id.onfirelos_large_title).setAlpha(scrollRange == 0 ? 1f
++                        : Math.max(0f, 1f + 1.5f * verticalOffset / scrollRange));
+                 if (!mIsShown && scrollRange + verticalOffset < 10) {
+-                    collapsingToolbar.setTitle(getString(R.string.display_name));
++                    collapsingToolbar.setTitle(mPageTitle);
+                     mIsShown = true;
+                 } else if (mIsShown && scrollRange + verticalOffset > 100) {
+                     collapsingToolbar.setTitle(null);
+@@ -163,7 +178,11 @@ public class UpdatesActivity extends UpdatesListActivity {
+     public void onStart() {
+         super.onStart();
+         Intent intent = new Intent(this, UpdaterService.class);
+-        startService(intent);
++        try {
++            startService(intent);
++        } catch (IllegalStateException e) {
++            // ON-FireLOS: behind the lock screen; the binding below runs it.
++        }
+         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+ 
+         IntentFilter intentFilter = new IntentFilter();
+@@ -192,18 +211,14 @@ public class UpdatesActivity extends UpdatesListActivity {
+     @Override
+     public boolean onOptionsItemSelected(MenuItem item) {
+         switch (item.getItemId()) {
+-            case R.id.menu_refresh: {
+-                downloadUpdatesList(true);
+-                return true;
+-            }
++            // ON-FireLOS: looking again is the status card's pill.
+             case R.id.menu_preferences: {
+                 showPreferencesDialog();
+                 return true;
+             }
+             case R.id.menu_show_changelog: {
+-                Intent openUrl = new Intent(Intent.ACTION_VIEW,
+-                        Uri.parse(Utils.getChangelogURL(this)));
+-                startActivity(openUrl);
++                // ON-FireLOS: the project's own version history (updater-history.py).
++                startActivity(new Intent(this, HistoryActivity.class));
+                 return true;
+             }
+         }
+@@ -257,11 +272,17 @@ public class UpdatesActivity extends UpdatesListActivity {
+ 
+         List<String> updateIds = new ArrayList<>();
+         List<UpdateInfo> sortedUpdates = controller.getUpdates();
++        // ON-FireLOS: the status card says whether there is something.
++        mHasUpdates = false;
++        for (UpdateInfo update : sortedUpdates) {
++            mHasUpdates |= Utils.canInstall(update);
++        }
++        mKnown = true;
++        mCheckFailed = false;
++        showStatus();
+         if (sortedUpdates.isEmpty()) {
+-            findViewById(R.id.no_new_updates_view).setVisibility(View.VISIBLE);
+             findViewById(R.id.recycler_view).setVisibility(View.GONE);
+         } else {
+-            findViewById(R.id.no_new_updates_view).setVisibility(View.GONE);
+             findViewById(R.id.recycler_view).setVisibility(View.VISIBLE);
+             sortedUpdates.sort((u1, u2) -> Long.compare(u2.getTimestamp(), u1.getTimestamp()));
+             for (UpdateInfo update : sortedUpdates) {
+@@ -319,6 +340,7 @@ public class UpdatesActivity extends UpdatesListActivity {
+                 runOnUiThread(() -> {
+                     if (!cancelled) {
+                         showSnackbar(R.string.snack_updates_check_failed, Snackbar.LENGTH_LONG);
++                        mCheckFailed = true;
+                     }
+                     refreshAnimationStop();
+                 });
+@@ -365,6 +387,50 @@ public class UpdatesActivity extends UpdatesListActivity {
+                 StringGenerator.getTimeLocalized(this, lastCheck));
+         TextView headerLastCheck = (TextView) findViewById(R.id.header_last_check);
+         headerLastCheck.setText(lastCheckString);
++        // ON-FireLOS: not "1 January 1970" before the first look.
++        headerLastCheck.setVisibility(lastCheck > 0 ? View.VISIBLE : View.GONE);
++    }
++
++    // ON-FireLOS: the status card - whether there is something new, or that it looks.
++    private CharSequence mPageTitle;
++    private boolean mHasUpdates;
++    private boolean mChecking;
++    // Whether a list has been read (cached or fresh), and whether the last look failed.
++    private boolean mKnown;
++    private boolean mCheckFailed;
++
++    /** The name Settings gives this page, in its language; the updater's own otherwise. */
++    private CharSequence pageTitle() {
++        try {
++            android.content.res.Resources res = getPackageManager()
++                    .getResourcesForApplication("com.android.settings");
++            int id = res.getIdentifier("system_update_settings_list_item_title", "string",
++                    "com.android.settings");
++            if (id != 0) {
++                return res.getText(id);
++            }
++        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
++            // Without Settings, its own name.
++        }
++        return getString(R.string.display_name);
++    }
++
++    private void showStatus() {
++        // A tick only once a list has been read: before that, or after a failed look with
++        // nothing read, no claim that the system is up to date.
++        ((android.widget.ImageView) findViewById(R.id.onfirelos_status_icon)).setImageResource(
++                mChecking || !mKnown ? R.drawable.ic_menu_refresh : mHasUpdates
++                        ? R.drawable.onfirelos_ic_download : R.drawable.onfirelos_ic_check);
++        final TextView title = (TextView) findViewById(R.id.onfirelos_status_title);
++        if (mKnown) {
++            title.setText(mHasUpdates
++                    ? R.string.snack_updates_found : R.string.snack_no_updates_found);
++        } else if (mCheckFailed) {
++            title.setText(R.string.snack_updates_check_failed);
++        } else {
++            title.setText(null);
++        }
++        findViewById(R.id.onfirelos_check_button).setEnabled(!mChecking);
+     }
+ 
+     private void handleDownloadStatusChange(String downloadId) {
+@@ -388,8 +454,11 @@ public class UpdatesActivity extends UpdatesListActivity {
+     }
+ 
+     private void refreshAnimationStart() {
++        // ON-FireLOS: the status card's icon turns while it looks, its pill waits.
++        mChecking = true;
++        showStatus();
+         if (mRefreshIconView == null) {
+-            mRefreshIconView = findViewById(R.id.menu_refresh);
++            mRefreshIconView = findViewById(R.id.onfirelos_status_icon);
+         }
+         if (mRefreshIconView != null) {
+             mRefreshAnimation.setRepeatCount(Animation.INFINITE);
+@@ -399,6 +468,8 @@ public class UpdatesActivity extends UpdatesListActivity {
+     }
+ 
+     private void refreshAnimationStop() {
++        mChecking = false;
++        showStatus();
+         if (mRefreshIconView != null) {
+             mRefreshAnimation.setRepeatCount(0);
+             mRefreshIconView.setEnabled(true);
+@@ -419,7 +490,7 @@ public class UpdatesActivity extends UpdatesListActivity {
+ 
+         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+         autoCheckInterval.setSelection(Utils.getUpdateCheckSetting(this));
+-        autoDelete.setChecked(prefs.getBoolean(Constants.PREF_AUTO_DELETE_UPDATES, false));
++        autoDelete.setChecked(prefs.getBoolean(Constants.PREF_AUTO_DELETE_UPDATES, true));
+         dataWarning.setChecked(prefs.getBoolean(Constants.PREF_MOBILE_DATA_WARNING, true));
+         abPerfMode.setChecked(prefs.getBoolean(Constants.PREF_AB_PERF_MODE, false));
+ 
+diff --git a/src/org/lineageos/updater/UpdatesListAdapter.java b/src/org/lineageos/updater/UpdatesListAdapter.java
+index a1aa944..c9ccd27 100644
+--- a/src/org/lineageos/updater/UpdatesListAdapter.java
++++ b/src/org/lineageos/updater/UpdatesListAdapter.java
+@@ -181,7 +181,8 @@ public class UpdatesListAdapter extends RecyclerView.Adapter<UpdatesListAdapter.
+                 viewHolder.mBuildDate));
+         viewHolder.mProgressBar.setVisibility(View.VISIBLE);
+         viewHolder.mProgressText.setVisibility(View.VISIBLE);
+-        viewHolder.mBuildSize.setVisibility(View.INVISIBLE);
++        // ON-FireLOS: gone, not invisible - the card keeps no empty room (updater-design.py).
++        viewHolder.mBuildSize.setVisibility(View.GONE);
+     }
+ 
+     private void handleNotActiveStatus(ViewHolder viewHolder, UpdateInfo update) {
+@@ -208,8 +209,8 @@ public class UpdatesListAdapter extends RecyclerView.Adapter<UpdatesListAdapter.
+         String fileSize = Formatter.formatShortFileSize(mActivity, update.getFileSize());
+         viewHolder.mBuildSize.setText(fileSize);
+ 
+-        viewHolder.mProgressBar.setVisibility(View.INVISIBLE);
+-        viewHolder.mProgressText.setVisibility(View.INVISIBLE);
++        viewHolder.mProgressBar.setVisibility(View.GONE);
++        viewHolder.mProgressText.setVisibility(View.GONE);
+         viewHolder.mBuildSize.setVisibility(View.VISIBLE);
+     }
+ 
+@@ -254,6 +255,20 @@ public class UpdatesListAdapter extends RecyclerView.Adapter<UpdatesListAdapter.
+         viewHolder.mBuildVersion.setText(buildVersion);
+         viewHolder.mBuildVersion.setCompoundDrawables(null, null, null, null);
+ 
++        // ON-FireLOS: the release's own name and what it brings (updater-history.py).
++        final org.lineageos.updater.misc.ReleaseInfo.Entry release =
++                org.lineageos.updater.misc.ReleaseInfo.get(downloadId);
++        if (release != null && !release.name.isEmpty()) {
++            viewHolder.mBuildVersion.setText(
++                    mActivity.getString(R.string.onfirelos_release_name, release.name));
++        }
++        final TextView notes = viewHolder.itemView.findViewById(R.id.onfirelos_changelog);
++        if (notes != null) {
++            final boolean known = release != null && !release.changelog.isEmpty();
++            notes.setText(known ? release.changelog : null);
++            notes.setVisibility(known ? View.VISIBLE : View.GONE);
++        }
++
+         if (activeLayout) {
+             handleActiveStatus(viewHolder, update);
+         } else {
+diff --git a/src/org/lineageos/updater/controller/ABUpdateInstaller.java b/src/org/lineageos/updater/controller/ABUpdateInstaller.java
+index b0be201..4f2069b 100644
+--- a/src/org/lineageos/updater/controller/ABUpdateInstaller.java
++++ b/src/org/lineageos/updater/controller/ABUpdateInstaller.java
+@@ -91,7 +91,7 @@ class ABUpdateInstaller {
+                     SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(
+                             mContext);
+                     boolean deleteUpdate = pref.getBoolean(Constants.PREF_AUTO_DELETE_UPDATES,
+-                            false);
++                            true);
+                     if (deleteUpdate) {
+                         mUpdaterController.deleteUpdate(mDownloadId);
+                     }
+diff --git a/src/org/lineageos/updater/controller/UpdateInstaller.java b/src/org/lineageos/updater/controller/UpdateInstaller.java
+index a4eff38..57ed9b4 100644
+--- a/src/org/lineageos/updater/controller/UpdateInstaller.java
++++ b/src/org/lineageos/updater/controller/UpdateInstaller.java
+@@ -99,6 +99,9 @@ class UpdateInstaller {
+         try {
+             android.os.RecoverySystem.installPackage(mContext, update);
+         } catch (IOException e) {
++            if (installThroughCommandFile(update)) {
++                return;
++            }
+             Log.e(TAG, "Could not install update", e);
+             mUpdaterController.getActualUpdate(downloadId)
+                     .setStatus(UpdateStatus.INSTALLATION_FAILED);
+@@ -106,6 +109,28 @@ class UpdateInstaller {
+         }
+     }
+ 
++    /**
++     * ON-FireLOS: this device has no /misc for the bootloader message RecoverySystem writes
++     * ("Setup BCB failed"); TWRP takes the same command from /cache/recovery/command. It
++     * cannot mount /data (f2fs), so it reads the package through the block map that the
++     * shutdown's uncrypt writes for a "recovery-update" reboot, as RecoverySystem does.
++     */
++    private boolean installThroughCommandFile(File update) {
++        final File command = new File("/cache/recovery/command");
++        final String path = update.getAbsolutePath().startsWith("/data/")
++                ? "@/cache/recovery/block.map" : update.getAbsolutePath();
++        try (java.io.FileWriter writer = new java.io.FileWriter(command)) {
++            writer.write("--update_package=" + path + "\n");
++            writer.write("--locale=" + java.util.Locale.getDefault().toLanguageTag() + "\n");
++        } catch (IOException e) {
++            Log.e(TAG, "Could not write " + command, e);
++            return false;
++        }
++        mContext.getSystemService(android.os.PowerManager.class)
++                .reboot(android.os.PowerManager.REBOOT_RECOVERY_UPDATE);
++        return true;
++    }
++
+     private synchronized void prepareForUncryptAndInstall(UpdateInfo update) {
+         String uncryptFilePath = update.getFile().getAbsolutePath() + Constants.UNCRYPT_FILE_EXT;
+         File uncryptFile = new File(uncryptFilePath);
+diff --git a/src/org/lineageos/updater/misc/ReleaseInfo.java b/src/org/lineageos/updater/misc/ReleaseInfo.java
+new file mode 100644
+index 0000000..d11a572
+--- /dev/null
++++ b/src/org/lineageos/updater/misc/ReleaseInfo.java
+@@ -0,0 +1,50 @@
++/*
++ * Copyright (C) 2026 The ON-FireLOS Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.lineageos.updater.misc;
++
++import java.util.HashMap;
++import java.util.Map;
++
++/**
++ * ON-FireLOS: what the update list says about a release beyond the AOSP fields - its own
++ * name ("1.02") and its notes - by download id. Filled while the list is read (Utils).
++ */
++public final class ReleaseInfo {
++
++    public static final class Entry {
++        public final String name;
++        public final String changelog;
++
++        Entry(String name, String changelog) {
++            this.name = name;
++            this.changelog = changelog;
++        }
++    }
++
++    private static final Map<String, Entry> sEntries = new HashMap<>();
++
++    private ReleaseInfo() {
++    }
++
++    static synchronized void put(String downloadId, String name, String changelog) {
++        sEntries.put(downloadId, new Entry(name == null ? "" : name.trim(),
++                changelog == null ? "" : changelog.trim()));
++    }
++
++    public static synchronized Entry get(String downloadId) {
++        return sEntries.get(downloadId);
++    }
++}
+diff --git a/src/org/lineageos/updater/misc/Utils.java b/src/org/lineageos/updater/misc/Utils.java
+index eed4d56..21a1e36 100644
+--- a/src/org/lineageos/updater/misc/Utils.java
++++ b/src/org/lineageos/updater/misc/Utils.java
+@@ -91,6 +91,9 @@ public class Utils {
+         update.setFileSize(object.getLong("size"));
+         update.setDownloadUrl(object.getString("url"));
+         update.setVersion(object.getString("version"));
++        // ON-FireLOS: the release's own name and notes, where the list has them.
++        ReleaseInfo.put(update.getDownloadId(), object.optString("version_name", ""),
++                object.optString("changelog", ""));
+         return update;
+     }
+ 
+@@ -285,7 +288,7 @@ public class Utils {
+         long prevTimestamp = preferences.getLong(Constants.PREF_INSTALL_OLD_TIMESTAMP, 0);
+         String lastUpdatePath = preferences.getString(Constants.PREF_INSTALL_PACKAGE_PATH, null);
+         boolean reinstalling = preferences.getBoolean(Constants.PREF_INSTALL_AGAIN, false);
+-        boolean deleteUpdates = preferences.getBoolean(Constants.PREF_AUTO_DELETE_UPDATES, false);
++        boolean deleteUpdates = preferences.getBoolean(Constants.PREF_AUTO_DELETE_UPDATES, true);
+         if ((buildTimestamp != prevTimestamp || reinstalling) && deleteUpdates &&
+                 lastUpdatePath != null) {
+             File lastUpdate = new File(lastUpdatePath);

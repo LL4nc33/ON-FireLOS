@@ -1,0 +1,364 @@
+diff --git a/Android.mk b/Android.mk
+index ef58cac..5a24fc0 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -38,6 +38,9 @@ else
+     LOCAL_PROGUARD_ENABLED := disabled
+ endif
+ 
++# ON-FireLOS: reworked for the ROM; the version says so after its own.
++LOCAL_AAPT_FLAGS += --version-name "3.0 · $(ONFIRELOS_APP_VERSION)"
++
+ include $(BUILD_PACKAGE)
+ 
+ include $(CLEAR_VARS)
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 2611c3c..f133c0b 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -19,7 +19,6 @@
+     xmlns:tools="http://schemas.android.com/tools"
+     package="org.lineageos.eleven"
+     android:versionCode="3"
+-    android:versionName="3.0"
+     tools:ignore="GradleOverrides">
+ 
+     <uses-sdk
+diff --git a/res/color/tab_text_color.xml b/res/color/tab_text_color.xml
+index ae8d73c..147efd8 100644
+--- a/res/color/tab_text_color.xml
++++ b/res/color/tab_text_color.xml
+@@ -16,6 +16,7 @@
+   -->
+ 
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item android:color="@color/header_action_bar_text_color_active" android:state_selected="true"/>
+-    <item android:color="@color/header_action_bar_text_color" />
++    <!-- ON-FireLOS: text colours of the design tokens. -->
++    <item android:color="@color/onfirelos_on_bar" android:state_selected="true"/>
++    <item android:color="@color/onfirelos_on_bar_quiet" />
+ </selector>
+diff --git a/res/layout/activity_base.xml b/res/layout/activity_base.xml
+index 9356b8d..4c96fdc 100644
+--- a/res/layout/activity_base.xml
++++ b/res/layout/activity_base.xml
+@@ -37,7 +37,7 @@
+             android:layout_height="?android:attr/actionBarSize"
+             android:theme="@style/ToolBarTheme"
+             android:popupTheme="@style/ToolBarPopupTheme"
+-            android:elevation="@dimen/action_bar_elevation" />
++            android:elevation="0dp" />
+ 
+         <FrameLayout
+             android:id="@+id/activity_base_content"
+diff --git a/res/layout/fragment_music_browser_phone.xml b/res/layout/fragment_music_browser_phone.xml
+index 9f69b23..2d20926 100644
+--- a/res/layout/fragment_music_browser_phone.xml
++++ b/res/layout/fragment_music_browser_phone.xml
+@@ -28,7 +28,7 @@
+             android:id="@+id/fragment_home_phone_pager_titles"
+             android:layout_width="match_parent"
+             android:layout_height="@dimen/tpi_height"
+-            android:elevation="@dimen/action_bar_elevation"
++            android:elevation="0dp"
+             style="@style/HeaderTabTextStyle" />
+ 
+         <android.support.v4.view.ViewPager
+diff --git a/res/layout/header_bar.xml b/res/layout/header_bar.xml
+index e46f91d..56c9f2a 100644
+--- a/res/layout/header_bar.xml
++++ b/res/layout/header_bar.xml
+@@ -23,7 +23,7 @@
+     android:paddingStart="@dimen/drag_and_drop_width"
+     android:background="@color/header_action_bar_color"
+     android:elevation="@dimen/action_bar_elevation"
+-    android:theme="@style/ToolBarTheme">
++    android:theme="@android:style/ThemeOverlay.Material.Dark.ActionBar">
+ 
+     <ImageView
+         android:id="@+id/header_bar_up"
+diff --git a/res/menu/search.xml b/res/menu/search.xml
+index d0240a0..85fd49c 100644
+--- a/res/menu/search.xml
++++ b/res/menu/search.xml
+@@ -20,6 +20,7 @@
+         android:id="@+id/menu_search"
+         android:actionViewClass="android.widget.SearchView"
+         android:icon="@drawable/ic_action_search"
++        android:iconTint="@color/onfirelos_on_bar"
+         android:orderInCategory="1"
+         android:showAsAction="ifRoom|collapseActionView"
+         android:title="@string/menu_search"/>
+diff --git a/res/menu/search_btn.xml b/res/menu/search_btn.xml
+index 417ed89..283bacd 100644
+--- a/res/menu/search_btn.xml
++++ b/res/menu/search_btn.xml
+@@ -19,6 +19,7 @@
+     <item
+         android:id="@+id/menu_search"
+         android:icon="@drawable/ic_action_search"
++        android:iconTint="@color/onfirelos_on_bar"
+         android:orderInCategory="1"
+         android:showAsAction="ifRoom"
+         android:title="@string/menu_search"/>
+diff --git a/res/values-night/onfirelos_colors.xml b/res/values-night/onfirelos_colors.xml
+new file mode 100644
+index 0000000..4b292cd
+--- /dev/null
++++ b/res/values-night/onfirelos_colors.xml
+@@ -0,0 +1,24 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS design tokens (docs/DESIGN.md), dark. -->
++    <color name="onfirelos_on_bar">#E4E6DD</color>
++    <color name="onfirelos_on_bar_quiet">#99E4E6DD</color>
++    <color name="onfirelos_accent">#8AA366</color>
++    <color name="onfirelos_ripple">#1FE4E6DD</color>
++    <!-- Dark status bar icons on the light bar. -->
++    <bool name="onfirelos_light_bars">false</bool>
++</resources>
+diff --git a/res/values-night/onfirelos_styles.xml b/res/values-night/onfirelos_styles.xml
+new file mode 100644
+index 0000000..0caccb9
+--- /dev/null
++++ b/res/values-night/onfirelos_styles.xml
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS: night copy of ActionBarWidgetTheme as upstream had it. -->
++    <style name="ActionBarWidgetTheme" parent="@android:style/Theme.Material">
++        <item name="android:textColorHint">@color/search_hint_color</item>
++        <item name="android:popupMenuStyle">@style/PopupMenu</item>
++        <item name="android:dropDownListViewStyle">@style/DropDownListView</item>
++        <item name="android:textAppearanceSmallPopupMenu">@style/SmallPopupMenu</item>
++        <item name="android:textAppearanceLargePopupMenu">@style/LargePopupMenu</item>
++        <!-- Empty icon -->
++        <item name="android:icon">@android:color/transparent</item>
++    </style>
++</resources>
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index a032263..337962e 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -88,9 +88,9 @@
+     <color name="grid_list_item_text_color">#b3212121</color>
+ 
+     <!-- Top title page colors -->
+-    <color name="tab_ripple_color">@color/white</color>
++    <color name="tab_ripple_color">@color/onfirelos_ripple</color>
+     <color name="tab_accent_color">@color/white</color>
+-    <color name="tab_selected_underline_color">@color/white</color>
++    <color name="tab_selected_underline_color">@color/onfirelos_accent</color>
+ 
+     <!-- Search Colors -->
+     <color name="search_hint_color">@color/white</color>
+diff --git a/res/values/onfirelos_colors.xml b/res/values/onfirelos_colors.xml
+new file mode 100644
+index 0000000..4b6f433
+--- /dev/null
++++ b/res/values/onfirelos_colors.xml
+@@ -0,0 +1,26 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS design tokens (docs/DESIGN.md), light. The bars lie
++         on the list background (background_color, #303030 at night). -->
++    <color name="onfirelos_bar">@color/background_color</color>
++    <color name="onfirelos_on_bar">#DE1B1D19</color>
++    <color name="onfirelos_on_bar_quiet">#991B1D19</color>
++    <color name="onfirelos_accent">#2E521D</color>
++    <color name="onfirelos_ripple">#1F1B1D19</color>
++    <!-- Dark status bar icons on the light bar. -->
++    <bool name="onfirelos_light_bars">true</bool>
++</resources>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index b942e5e..dc5e351 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -26,16 +26,21 @@
+         <item name="android:actionBarStyle">@style/ActionBar</item>
+         <item name="android:actionBarWidgetTheme">@style/ActionBarWidgetTheme</item>
+         <item name="android:colorPrimary">@color/primary</item>
+-        <item name="android:colorPrimaryDark">@color/primary_dark</item>
++        <!-- ON-FireLOS: status bar and window action bar flat on the list
++             background, dark icons on it in light mode. -->
++        <item name="android:colorPrimaryDark">@color/onfirelos_bar</item>
++        <item name="android:windowLightStatusBar">true</item>
++        <item name="android:actionBarTheme">@android:style/ThemeOverlay.Material.ActionBar</item>
+         <item name="android:colorAccent">@color/accent</item>
+         <item name="android:windowContentTransitions">true</item>
+         <item name="android:windowAllowEnterTransitionOverlap">false</item>
+         <item name="android:windowAllowReturnTransitionOverlap">false</item>
+     </style>
+ 
+-    <style name="ActionBarWidgetTheme" parent="@android:style/Theme.Material">
++    <!-- ON-FireLOS: light, the bar is light; values-night has the dark one. -->
++    <style name="ActionBarWidgetTheme" parent="@android:style/Theme.Material.Light">
+         <!-- This is the color of the search text hint in the action bar -->
+-        <item name="android:textColorHint">@color/search_hint_color</item>
++        <item name="android:textColorHint">@color/onfirelos_on_bar_quiet</item>
+         <item name="android:popupMenuStyle">@style/PopupMenu</item>
+         <item name="android:dropDownListViewStyle">@style/DropDownListView</item>
+         <item name="android:textAppearanceSmallPopupMenu">@style/SmallPopupMenu</item>
+@@ -74,7 +79,7 @@
+ 
+     <!-- Sets the action bar title text style -->
+     <style name="ActionBar" parent="@android:style/Widget.Material.ActionBar">
+-        <item name="android:background">@color/header_action_bar_color</item>
++        <item name="android:background">@color/onfirelos_bar</item>
+     </style>
+ 
+     <!-- Sets the action bar menu icon -->
+@@ -192,7 +197,9 @@
+         <item name="android:textSize">@dimen/tab_text_size</item>
+     </style>
+ 
+-    <style name="ToolBarTheme" parent="android:style/ThemeOverlay.Material.Dark.ActionBar" />
++    <!-- ON-FireLOS: the plain overlay - dark icons and title on the light
++         bar, light ones at night. The player's queue header has its own. -->
++    <style name="ToolBarTheme" parent="android:style/ThemeOverlay.Material.ActionBar" />
+ 
+     <style name="ToolBarPopupTheme" parent="android:style/Theme.Material.Light" />
+ </resources>
+diff --git a/src/org/lineageos/eleven/ui/activities/BaseActivity.java b/src/org/lineageos/eleven/ui/activities/BaseActivity.java
+index 9c2a2a6..d765fb1 100644
+--- a/src/org/lineageos/eleven/ui/activities/BaseActivity.java
++++ b/src/org/lineageos/eleven/ui/activities/BaseActivity.java
+@@ -281,7 +281,8 @@ public abstract class BaseActivity extends FragmentActivity implements ServiceCo
+         setActionBarTitle(title);
+ 
+         if (mActionBarBackground == null) {
+-            final int actionBarColor = getResources().getColor(R.color.header_action_bar_color);
++            // ON-FireLOS: flat on the list background.
++            final int actionBarColor = getResources().getColor(R.color.onfirelos_bar);
+             mActionBarBackground = new ColorDrawable(actionBarColor);
+             mToolBar.setBackgroundDrawable(mActionBarBackground);
+         }
+@@ -297,8 +298,8 @@ public abstract class BaseActivity extends FragmentActivity implements ServiceCo
+     }
+ 
+     public void setActionBarElevation(boolean isElevated) {
+-        float targetElevation = isElevated
+-                ? getResources().getDimension(R.dimen.action_bar_elevation) : 0;
++        // ON-FireLOS: the bar never casts a shadow.
++        float targetElevation = 0;
+         mToolBar.setElevation(targetElevation);
+     }
+ 
+diff --git a/src/org/lineageos/eleven/ui/activities/HomeActivity.java b/src/org/lineageos/eleven/ui/activities/HomeActivity.java
+index 4ad5a49..a53e9e6 100644
+--- a/src/org/lineageos/eleven/ui/activities/HomeActivity.java
++++ b/src/org/lineageos/eleven/ui/activities/HomeActivity.java
+@@ -243,10 +243,23 @@ public class HomeActivity extends SlidingPanelActivity implements
+     }
+ 
+     private void updateStatusBarColor(int color) {
+-        if (color == Color.TRANSPARENT) {
++        // ON-FireLOS: while browsing, the status bar takes the flat bar's
++        // colour with dark icons in light mode; over the player it stays dark
++        // (artwork colour or primary_dark) with light icons.
++        final boolean bar = color == Color.TRANSPARENT && mBrowsePanelActive;
++        if (bar) {
++            color = getResources().getColor(R.color.onfirelos_bar);
++        } else if (color == Color.TRANSPARENT) {
+             color = getResources().getColor(R.color.primary_dark);
+         }
+         final Window window = getWindow();
++        final android.view.View decor = window.getDecorView();
++        int ui = decor.getSystemUiVisibility()
++                & ~android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
++        if (bar && getResources().getBoolean(R.bool.onfirelos_light_bars)) {
++            ui |= android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
++        }
++        decor.setSystemUiVisibility(ui);
+         ObjectAnimator animator = ObjectAnimator.ofInt(window,
+                 "statusBarColor", window.getStatusBarColor(), color);
+         animator.setEvaluator(new ArgbEvaluator());
+diff --git a/src/org/lineageos/eleven/ui/activities/SettingsActivity.java b/src/org/lineageos/eleven/ui/activities/SettingsActivity.java
+index c1963fb..d5c3ab5 100644
+--- a/src/org/lineageos/eleven/ui/activities/SettingsActivity.java
++++ b/src/org/lineageos/eleven/ui/activities/SettingsActivity.java
+@@ -37,12 +37,28 @@ import org.lineageos.eleven.utils.PreferenceUtils;
+ @SuppressWarnings("deprecation")
+ public class SettingsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener{
+ 
++    // ON-FireLOS: the navigation bar in the page's colour, with dark buttons on a light one.
++    private void colourNavigationBar() {
++        final android.util.TypedValue background = new android.util.TypedValue();
++        getTheme().resolveAttribute(android.R.attr.colorBackground, background, true);
++        final android.view.Window window = getWindow();
++        window.addFlags(
++                android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
++        window.setNavigationBarColor(background.data);
++        if (android.graphics.Color.luminance(background.data) > 0.5f) {
++            final android.view.View decor = window.getDecorView();
++            decor.setSystemUiVisibility(decor.getSystemUiVisibility()
++                    | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
++        }
++    }
++
+     /**
+      * {@inheritDoc}
+      */
+     @Override
+     protected void onCreate(final Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
++        colourNavigationBar();
+ 
+         // UP
+         getActionBar().setDisplayHomeAsUpEnabled(true);
+diff --git a/src/org/lineageos/eleven/widgets/ViewPagerTabStrip.java b/src/org/lineageos/eleven/widgets/ViewPagerTabStrip.java
+index 0c2cc4a..d8e418a 100644
+--- a/src/org/lineageos/eleven/widgets/ViewPagerTabStrip.java
++++ b/src/org/lineageos/eleven/widgets/ViewPagerTabStrip.java
+@@ -45,7 +45,8 @@ public class ViewPagerTabStrip extends LinearLayout {
+         mSelectedUnderlineThickness =
+                 res.getDimensionPixelSize(R.dimen.tab_selected_underline_height);
+         int underlineColor = res.getColor(R.color.tab_selected_underline_color);
+-        int backgroundColor = res.getColor(R.color.header_action_bar_color);
++        // ON-FireLOS: flat on the list background, like the tool bar.
++        int backgroundColor = res.getColor(R.color.onfirelos_bar);
+ 
+         mSelectedUnderlinePaint = new Paint();
+         mSelectedUnderlinePaint.setColor(underlineColor);

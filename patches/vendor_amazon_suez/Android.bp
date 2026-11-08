@@ -1,0 +1,48 @@
+// Soong declaration for libdpframework.
+//
+// Why this file is needed:
+//
+// The patch frameworks/av/0002-mediatek-Port-AV-changes.patch extends
+// ColorConverter.cpp with MediaTek's blit engine:
+//
+//     #include <DpBlitStream.h>
+//     DpBlitStream *blitStream = new DpBlitStream();
+//
+// With that, the Soong module libstagefright needs libdpframework as a link
+// dependency. The header is in the patch
+// (colorconversion/inc/DpBlitStream.h), the library is a blob.
+//
+// The extract_utils of this LineageOS version only generate Android.mk.
+// Soong cannot see Make modules as dependencies, so the build fails with:
+//
+//     module libstagefright missing dependencies: libdpframework
+//     module libstagefright_color_conversion missing dependencies: libdpframework
+//
+// The "-" prefix in proprietary-files.txt (as for libnvram) does not help
+// here: it creates a Make module, and that stays invisible to Soong.
+//
+// Deliberately WITHOUT soc_specific: the bulk copy from suez-vendor.mk already
+// places the blob under system/vendor/lib. A second install target on the
+// same path would be a conflict. This module therefore installs to
+// system/lib. Before Treble the linker searches both directories, so the
+// resolution is correct either way.
+//
+// This Soong version does not know "installable" yet - otherwise suppressing
+// the installation would be the clean way.
+
+cc_prebuilt_library_shared {
+    name: "libdpframework",
+    owner: "amazon",
+    strip: {
+        none: true,
+    },
+    arch: {
+        arm: {
+            srcs: ["proprietary/vendor/lib/libdpframework.so"],
+        },
+        arm64: {
+            srcs: ["proprietary/vendor/lib64/libdpframework.so"],
+        },
+    },
+    compile_multilib: "both",
+}

@@ -1,0 +1,61 @@
+diff --git a/service/java/com/android/server/wifi/WifiCountryCode.java b/service/java/com/android/server/wifi/WifiCountryCode.java
+index ff9ff02..c9f97d4 100644
+--- a/service/java/com/android/server/wifi/WifiCountryCode.java
++++ b/service/java/com/android/server/wifi/WifiCountryCode.java
+@@ -194,6 +194,22 @@ public class WifiCountryCode {
+         if (mDefaultCountryCode != null) {
+             return mDefaultCountryCode;
+         }
++        // ON-FireLOS: a Wi-Fi only tablet has no SIM to tell its country.
++        // The time zone is the best guess left (Europe/Vienna gives AT),
++        // then the region of the system language.
++        String region = null;
++        try {
++            region = android.icu.util.TimeZone.getRegion(
++                    java.util.TimeZone.getDefault().getID());
++        } catch (IllegalArgumentException e) {
++            // unknown zone id
++        }
++        if (region == null || !region.matches("[A-Z]{2}")) {
++            region = java.util.Locale.getDefault().getCountry();
++        }
++        if (region != null && region.matches("[A-Z]{2}")) {
++            return region;
++        }
+         // If there is no candidate country code we will return null.
+         return null;
+     }
+diff --git a/service/java/com/android/server/wifi/WifiStateMachine.java b/service/java/com/android/server/wifi/WifiStateMachine.java
+index b8db19a..4706a3d 100644
+--- a/service/java/com/android/server/wifi/WifiStateMachine.java
++++ b/service/java/com/android/server/wifi/WifiStateMachine.java
+@@ -2375,6 +2375,11 @@ public class WifiStateMachine extends StateMachine {
+                     + " suppState:" + mSupplicantStateTracker.getSupplicantStateName());
+         }
+         enableRssiPolling(screenOn);
++        // ON-FireLOS: power save only while the screen is off. MediaTek's
++        // power save took a round trip to the router from 2 ms to 140 ms.
++        if (mInterfaceName != null) {
++            mWifiNative.setPowerSave(mInterfaceName, !screenOn);
++        }
+         if (mUserWantsSuspendOpt.get()) {
+             int shouldReleaseWakeLock = 0;
+             if (screenOn) {
+@@ -2842,7 +2847,7 @@ public class WifiStateMachine extends StateMachine {
+     void handlePostDhcpSetup() {
+         /* Restore power save and suspend optimizations */
+         setSuspendOptimizationsNative(SUSPEND_DUE_TO_DHCP, true);
+-        mWifiNative.setPowerSave(mInterfaceName, true);
++        mWifiNative.setPowerSave(mInterfaceName, !mScreenOn);
+ 
+         p2pSendMessage(WifiP2pServiceImpl.BLOCK_DISCOVERY, WifiP2pServiceImpl.DISABLED);
+ 
+@@ -3715,7 +3720,7 @@ public class WifiStateMachine extends StateMachine {
+         mWifiNative.setSuspendOptimizations(mInterfaceName, mSuspendOptNeedsDisabled == 0
+                 && mUserWantsSuspendOpt.get());
+ 
+-        mWifiNative.setPowerSave(mInterfaceName, true);
++        mWifiNative.setPowerSave(mInterfaceName, !mScreenOn);
+ 
+         if (mP2pSupported) {
+             p2pSendMessage(WifiStateMachine.CMD_ENABLE_P2P);

@@ -1,0 +1,52 @@
+From: ON-FireLOS
+Subject: [PATCH] epoll: keep a reference on files in the check list (CVE-2020-0466)
+
+During EPOLL_CTL_ADD, files sit on tfile_check_list without anyone
+holding a reference. A parallel close() freed the file, and the
+check then ran on freed memory.
+
+Every file gets a reference when it is added, clear_tfile_check_list()
+drops it again. 3.18 does not have get_file_rcu() yet; in its place
+is the same atomic_long_inc_not_zero().
+Corresponds to upstream a9ed4a6560b8 ("epoll: Keep a reference on files added to
+the check list").
+---
+--- a/fs/eventpoll.c	2026-10-29 14:04:39.888487102 +0000
++++ b/fs/eventpoll.c	2026-10-29 14:13:45.153588982 +0000
+@@ -1724,9 +1724,12 @@
+ 			 * not already there, and calling reverse_path_check()
+ 			 * during ep_insert().
+ 			 */
+-			if (list_empty(&epi->ffd.file->f_tfile_llink))
+-				list_add(&epi->ffd.file->f_tfile_llink,
+-					 &tfile_check_list);
++			if (list_empty(&epi->ffd.file->f_tfile_llink)) {
++				/* get_file_rcu() in later kernels */
++				if (atomic_long_inc_not_zero(&epi->ffd.file->f_count))
++					list_add(&epi->ffd.file->f_tfile_llink,
++						 &tfile_check_list);
++			}
+ 		}
+ 	}
+ 	mutex_unlock(&ep->mtx);
+@@ -1770,6 +1773,7 @@
+ 		file = list_first_entry(&tfile_check_list, struct file,
+ 					f_tfile_llink);
+ 		list_del_init(&file->f_tfile_llink);
++		fput(file);
+ 	}
+ 	INIT_LIST_HEAD(&tfile_check_list);
+ }
+@@ -1911,9 +1915,11 @@
+ 					clear_tfile_check_list();
+ 					goto error_tgt_fput;
+ 				}
+-			} else
++			} else {
++				get_file(tf.file);
+ 				list_add(&tf.file->f_tfile_llink,
+ 							&tfile_check_list);
++			}
+ 			mutex_lock_nested(&ep->mtx, 0);
+ 			if (is_file_epoll(tf.file)) {
+ 				tep = tf.file->private_data;

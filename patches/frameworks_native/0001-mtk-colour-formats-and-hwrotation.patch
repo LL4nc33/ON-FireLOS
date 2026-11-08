@@ -1,0 +1,55 @@
+diff --git a/headers/media_plugin/media/openmax/OMX_IVCommon.h b/headers/media_plugin/media/openmax/OMX_IVCommon.h
+index f83114b..0f952d6 100644
+--- a/headers/media_plugin/media/openmax/OMX_IVCommon.h
++++ b/headers/media_plugin/media/openmax/OMX_IVCommon.h
+@@ -149,6 +149,19 @@ typedef enum OMX_COLOR_FORMATTYPE {
+     OMX_COLOR_Format24BitABGR6666,
+     OMX_COLOR_FormatKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */
+     OMX_COLOR_FormatVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
++
++// MTK
++    OMX_COLOR_FormatVendorMTKYUV = 0x7F000001,
++    OMX_COLOR_FormatVendorMTKYUV_FCM = 0x7F000002,
++    OMX_COLOR_FormatVendorMTKYUV_UFO = 0x7F000003,
++    OMX_COLOR_FormatVendorMTKYUV_10BIT_H = 0x7F000004,
++    OMX_COLOR_FormatVendorMTKYUV_10BIT_V = 0x7F000005,
++    OMX_COLOR_FormatVendorMTKYUV_UFO_10BIT_H = 0x7F000006,
++    OMX_COLOR_FormatVendorMTKYUV_UFO_10BIT_V = 0x7F000007,
++    OMX_MTK_COLOR_FormatYV12 = 0x7F000200,
++    OMX_MTK_COLOR_FormatBitStream = 0x7F000300,
++// end MTK
++
+     /**<Reserved android opaque colorformat. Tells the encoder that
+      * the actual colorformat will be  relayed by the
+      * Gralloc Buffers.
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index f513b9f..f2410e2 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -315,6 +315,26 @@ SurfaceFlinger::SurfaceFlinger() : SurfaceFlinger(SkipInitialization) {
+             SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientationDefault;
+             break;
+     }
++
++    if(primaryDisplayOrientation == V1_1::DisplayOrientation::ORIENTATION_0) {
++        int sfRotation = property_get_int32("ro.sf.hwrotation", -1);
++        switch(sfRotation) {
++            case 0:
++                SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientationDefault;
++                break;
++            case 90:
++                SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientation90;
++                break;
++            case 180:
++                SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientation180;
++                break;
++            case 270:
++                SurfaceFlinger::primaryDisplayOrientation = DisplayState::eOrientation270;
++                break;
++        }
++    }
++
++
+     ALOGV("Primary Display Orientation is set to %2d.", SurfaceFlinger::primaryDisplayOrientation);
+ 
+     mPrimaryDispSync.init(SurfaceFlinger::hasSyncFramework, SurfaceFlinger::dispSyncPresentTimeOffset);

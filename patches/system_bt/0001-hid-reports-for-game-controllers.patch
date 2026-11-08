@@ -1,0 +1,181 @@
+diff --git a/bta/include/bta_hh_co.h b/bta/include/bta_hh_co.h
+index da884bc..c52692a 100644
+--- a/bta/include/bta_hh_co.h
++++ b/bta/include/bta_hh_co.h
+@@ -77,6 +77,10 @@ extern void bta_hh_co_open(uint8_t dev_handle, uint8_t sub_class,
+  ******************************************************************************/
+ extern void bta_hh_co_close(uint8_t dev_handle, uint8_t app_id);
+ 
++/* ON-FireLOS: hands the device's answer to a GET_REPORT back to uhid */
++extern void bta_hh_co_get_rpt_rsp(uint8_t dev_handle, uint8_t status,
++                                  uint8_t* p_rpt, uint16_t len);
++
+ #if (BTA_HH_LE_INCLUDED == TRUE)
+ /*******************************************************************************
+  *
+diff --git a/btif/co/bta_hh_co.cc b/btif/co/bta_hh_co.cc
+index 2f507f9..3a1fa7f 100644
+--- a/btif/co/bta_hh_co.cc
++++ b/btif/co/bta_hh_co.cc
+@@ -124,9 +124,11 @@ static int uhid_read_event(btif_hh_device_t* p_dev) {
+       if (ev.u.output.rtype == UHID_FEATURE_REPORT)
+         btif_hh_setreport(p_dev, BTHH_FEATURE_REPORT, ev.u.output.size,
+                           ev.u.output.data);
++      // ON-FireLOS: output reports on the interrupt channel, as the HID
++      // spec intends and Android 10 does; some devices (PS4 controller)
++      // expect them there, with a CRC over the DATA header.
+       else if (ev.u.output.rtype == UHID_OUTPUT_REPORT)
+-        btif_hh_setreport(p_dev, BTHH_OUTPUT_REPORT, ev.u.output.size,
+-                          ev.u.output.data);
++        btif_hh_senddata(p_dev, ev.u.output.size, ev.u.output.data);
+       else
+         btif_hh_setreport(p_dev, BTHH_INPUT_REPORT, ev.u.output.size,
+                           ev.u.output.data);
+@@ -140,9 +142,50 @@ static int uhid_read_event(btif_hh_device_t* p_dev) {
+       }
+       APPL_TRACE_DEBUG("UHID_OUTPUT_EV from uhid-dev\n");
+       break;
+-    case UHID_FEATURE:
+-      APPL_TRACE_DEBUG("UHID_FEATURE from uhid-dev\n");
++    // ON-FireLOS: Android 9 dropped these two, and a kernel driver that
++    // asks the device for a report waited five seconds for nothing. The
++    // PS4 controller's driver (hid-sony) switches the controller to full
++    // mode with GET_REPORT 0x02 and gave up; light bar and rumble go out
++    // as SET_REPORT. Android 10 forwards both the same way.
++    case UHID_GET_REPORT: {
++      if (ret < (ssize_t)(sizeof(ev.type) + sizeof(ev.u.get_report))) {
++        APPL_TRACE_ERROR("%s: Invalid size read from uhid-dev: %zd < %zu",
++                         __func__, ret,
++                         sizeof(ev.type) + sizeof(ev.u.get_report));
++        return -EFAULT;
++      }
++      tBTA_HH_RPT_TYPE r_type = BTA_HH_RPTT_INPUT;
++      if (ev.u.get_report.rtype == UHID_FEATURE_REPORT)
++        r_type = BTA_HH_RPTT_FEATURE;
++      else if (ev.u.get_report.rtype == UHID_OUTPUT_REPORT)
++        r_type = BTA_HH_RPTT_OUTPUT;
++      p_dev->get_rpt_id = ev.u.get_report.id;
++      p_dev->get_rpt_pending = true;
++      BTA_HhGetReport(p_dev->dev_handle, r_type, ev.u.get_report.rnum, 0);
++      break;
++    }
++    case UHID_SET_REPORT: {
++      if (ret < (ssize_t)(sizeof(ev.type) + sizeof(ev.u.set_report))) {
++        APPL_TRACE_ERROR("%s: Invalid size read from uhid-dev: %zd < %zu",
++                         __func__, ret,
++                         sizeof(ev.type) + sizeof(ev.u.set_report));
++        return -EFAULT;
++      }
++      bthh_report_type_t type = BTHH_INPUT_REPORT;
++      if (ev.u.set_report.rtype == UHID_FEATURE_REPORT)
++        type = BTHH_FEATURE_REPORT;
++      else if (ev.u.set_report.rtype == UHID_OUTPUT_REPORT)
++        type = BTHH_OUTPUT_REPORT;
++      btif_hh_setreport(p_dev, type, ev.u.set_report.size,
++                        ev.u.set_report.data);
++      struct uhid_event reply;
++      memset(&reply, 0, sizeof(reply));
++      reply.type = UHID_SET_REPORT_REPLY;
++      reply.u.set_report_reply.id = ev.u.set_report.id;
++      reply.u.set_report_reply.err = 0;
++      uhid_write(p_dev->fd, &reply);
+       break;
++    }
+     case UHID_FEATURE_ANSWER:
+       APPL_TRACE_DEBUG("UHID_FEATURE_ANSWER from uhid-dev\n");
+       break;
+@@ -154,6 +197,27 @@ static int uhid_read_event(btif_hh_device_t* p_dev) {
+   return 0;
+ }
+ 
++/* ON-FireLOS: the device's answer to the kernel's GET_REPORT; a NULL report
++ * (handshake only) is passed on as the error the kernel waits for. */
++void bta_hh_co_get_rpt_rsp(uint8_t dev_handle, uint8_t status, uint8_t* p_rpt,
++                           uint16_t len) {
++  btif_hh_device_t* p_dev = btif_hh_find_connected_dev_by_handle(dev_handle);
++  if (p_dev == NULL || p_dev->fd < 0 || !p_dev->get_rpt_pending) return;
++  p_dev->get_rpt_pending = false;
++
++  struct uhid_event ev;
++  memset(&ev, 0, sizeof(ev));
++  ev.type = UHID_GET_REPORT_REPLY;
++  ev.u.get_report_reply.id = p_dev->get_rpt_id;
++  ev.u.get_report_reply.err = (p_rpt == NULL && status == 0) ? 1 : status;
++  if (p_rpt != NULL) {
++    if (len > UHID_DATA_MAX) len = UHID_DATA_MAX;
++    ev.u.get_report_reply.size = len;
++    memcpy(ev.u.get_report_reply.data, p_rpt, len);
++  }
++  uhid_write(p_dev->fd, &ev);
++}
++
+ /*******************************************************************************
+  *
+  * Function create_thread
+diff --git a/btif/include/btif_hh.h b/btif/include/btif_hh.h
+index 8c9ead4..1460bce 100644
+--- a/btif/include/btif_hh.h
++++ b/btif/include/btif_hh.h
+@@ -87,6 +87,9 @@ typedef struct {
+   uint8_t hh_keep_polling;
+   alarm_t* vup_timer;
+   bool local_vup;  // Indicated locally initiated VUP
++  // ON-FireLOS: the kernel's GET_REPORT waiting for the device's answer
++  bool get_rpt_pending;
++  uint32_t get_rpt_id;
+ } btif_hh_device_t;
+ 
+ /* Control block to maintain properties of devices */
+@@ -127,6 +130,8 @@ extern void btif_hh_disconnect(RawAddress* bd_addr);
+ extern void btif_hh_setreport(btif_hh_device_t* p_dev,
+                               bthh_report_type_t r_type, uint16_t size,
+                               uint8_t* report);
++extern void btif_hh_senddata(btif_hh_device_t* p_dev, uint16_t size,
++                             uint8_t* report);
+ extern void btif_hh_service_registration(bool enable);
+ 
+ #endif
+diff --git a/btif/src/btif_hh.cc b/btif/src/btif_hh.cc
+index ea6559d..68a96bd 100644
+--- a/btif/src/btif_hh.cc
++++ b/btif/src/btif_hh.cc
+@@ -38,6 +38,7 @@
+ 
+ #include "bt_common.h"
+ #include "bta_api.h"
++#include "bta_hh_co.h"
+ #include "btif_common.h"
+ #include "btif_storage.h"
+ #include "btif_util.h"
+@@ -674,6 +675,19 @@ void btif_hh_setreport(btif_hh_device_t* p_dev, bthh_report_type_t r_type,
+   BTA_HhSetReport(p_dev->dev_handle, r_type, p_buf);
+ }
+ 
++/* ON-FireLOS: an output report on the interrupt channel (DATA), as Android 10 */
++void btif_hh_senddata(btif_hh_device_t* p_dev, uint16_t size,
++                      uint8_t* report) {
++  BT_HDR* p_buf = create_pbuf(size, report);
++  if (p_buf == NULL) {
++    APPL_TRACE_ERROR("%s: Error, failed to allocate RPT buffer, size = %d",
++                     __func__, size);
++    return;
++  }
++  p_buf->layer_specific = BTA_HH_RPTT_OUTPUT;
++  BTA_HhSendData(p_dev->dev_handle, p_dev->bd_addr, p_buf);
++}
++
+ /*******************************************************************************
+  *
+  * Function         btif_hh_service_registration
+@@ -914,7 +928,11 @@ static void btif_hh_upstreams_evt(uint16_t event, char* p_param) {
+           HAL_CBACK(bt_hh_callbacks, get_report_cb,
+                     (RawAddress*)&(p_dev->bd_addr),
+                     (bthh_status_t)p_data->hs_data.status, data, len);
++          bta_hh_co_get_rpt_rsp(p_dev->dev_handle, p_data->hs_data.status,
++                                data, len);
+         } else {
++          bta_hh_co_get_rpt_rsp(p_dev->dev_handle, p_data->hs_data.status,
++                                NULL, 0);
+           HAL_CBACK(bt_hh_callbacks, handshake_cb,
+                     (RawAddress*)&(p_dev->bd_addr),
+                     (bthh_status_t)p_data->hs_data.status);

@@ -1,0 +1,140 @@
+diff --git a/drivers/power/mt81xx/mt_battery_common.c b/drivers/power/mt81xx/mt_battery_common.c
+index eaf6f475..c085c198 100644
+--- a/drivers/power/mt81xx/mt_battery_common.c
++++ b/drivers/power/mt81xx/mt_battery_common.c
+@@ -219,6 +219,13 @@ bool g_charging_full_reset_bat_meter = false;
+ int g_platform_boot_mode = 0;
+ static bool battery_meter_initilized;
+ bool g_cmd_hold_charging = false;
++/*
++ * ON-FireLOS: battery protection. Charge only up to g_charge_limit percent
++ * (0 = off); at the limit charging stops while the charger keeps powering
++ * the tablet, 5 % below it charging resumes. Set through Charge_Limit.
++ */
++static int g_charge_limit;
++bool g_charge_limit_hold;
+ s32 g_custom_charging_current = -1;
+ signed int g_custom_charging_cv = -1;
+ signed int g_custom_fake_full = -1;
+@@ -2059,6 +2066,31 @@ static ssize_t store_Charging_Enable(struct device *dev, struct device_attribute
+ 
+ static DEVICE_ATTR(Charging_Enable, 0664, show_Charging_Enable, store_Charging_Enable);
+ 
++static ssize_t show_Charge_Limit(struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%d\n", g_charge_limit);
++}
++
++static ssize_t store_Charge_Limit(struct device *dev, struct device_attribute *attr,
++				  const char *buf, size_t size)
++{
++	int limit;
++
++	if (kstrtoint(buf, 0, &limit) || limit < 0 || limit > 100)
++		return -EINVAL;
++	/* 0 and 100 switch it off; below 50 it would only wear the battery */
++	if (limit >= 100)
++		limit = 0;
++	else if (limit && limit < 50)
++		limit = 50;
++	g_charge_limit = limit;
++	wake_up_bat_update_meter();
++	battery_log(BAT_LOG_CRTI, "charge limit = %d\n", g_charge_limit);
++	return size;
++}
++
++static DEVICE_ATTR(Charge_Limit, 0664, show_Charge_Limit, store_Charge_Limit);
++
+ #if defined(CONFIG_MTK_PUMP_EXPRESS_PLUS_SUPPORT)
+ static ssize_t show_Pump_Express(struct device *dev, struct device_attribute *attr, char *buf)
+ {
+@@ -2542,7 +2574,12 @@ static void battery_update(struct battery_data *bat_data)
+ 	bat_data->BAT_TEMP = BMT_status.temperature * 10;
+ 	bat_data->BAT_PRESENT = BMT_status.bat_exist;
+ 
+-	if (BMT_status.charger_exist && (BMT_status.bat_charging_state != CHR_ERROR)
++	if (BMT_status.charger_exist && BMT_status.bat_exist && g_charge_limit_hold
++	    && !g_cmd_hold_charging) {
++		/* at the protection limit: plugged in, deliberately not charging */
++		bat_data->BAT_STATUS = POWER_SUPPLY_STATUS_NOT_CHARGING;
++		resetBatteryMeter = mt_battery_nPercent_tracking_check();
++	} else if (BMT_status.charger_exist && (BMT_status.bat_charging_state != CHR_ERROR)
+ 	    && !g_cmd_hold_charging) {
+ 		if (BMT_status.bat_exist) {	/* charging */
+ 			if (BMT_status.bat_vol <= SYSTEM_OFF_VOLTAGE)
+@@ -3118,7 +3155,16 @@ static void mt_battery_CheckBatteryStatus(void)
+ 		return;
+ 	}
+ 
+-	if (g_cmd_hold_charging == true) {
++	if (g_charge_limit && BMT_status.charger_exist) {
++		if (BMT_status.UI_SOC >= g_charge_limit)
++			g_charge_limit_hold = true;
++		else if (BMT_status.UI_SOC <= g_charge_limit - 5)
++			g_charge_limit_hold = false;
++	} else {
++		g_charge_limit_hold = false;
++	}
++
++	if (g_cmd_hold_charging == true || g_charge_limit_hold) {
+ 		BMT_status.bat_charging_state = CHR_CMD_HOLD;
+ 		return;
+ 	} else if (BMT_status.bat_charging_state == CHR_CMD_HOLD) {
+@@ -3872,7 +3918,22 @@ int bat_thread_kthread(void *x)
+ 		/* check usb ready once at boot time */
+ 		mutex_lock(&usb_ready_mutex);
+ 		if (g_bat.usb_connect_ready == false) {
++			int usb_wait = 0;
++
+ 			while (!mt_usb_is_ready()) {
++				/*
++				 * ON-FireLOS: in power-off charging nobody sets up USB,
++				 * so it never gets ready; look at the charger after 2 s
++				 * anyway. Waiting for ever left the charger screen with no
++				 * power source: it shut down, the kernel came back into
++				 * power-off charging, a black loop.
++				 */
++				if ((g_platform_boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT ||
++				     g_platform_boot_mode == LOW_POWER_OFF_CHARGING_BOOT) &&
++				    ++usb_wait > 20) {
++					pr_info("power-off charging: not waiting for usb\n");
++					break;
++				}
+ 				pr_info("wait usb connection ready..\n");
+ 				msleep(100);
+ 			}
+@@ -4479,6 +4540,7 @@ static int battery_probe(struct platform_device *pdev)
+ 		ret_device_file = device_create_file(dev, &dev_attr_FG_SW_CoulombCounter);
+ 		ret_device_file = device_create_file(dev, &dev_attr_Charging_CallState);
+ 		ret_device_file = device_create_file(dev, &dev_attr_Charging_Enable);
++		ret_device_file = device_create_file(dev, &dev_attr_Charge_Limit);
+ 		ret_device_file = device_create_file(dev, &dev_attr_Custom_Charging_Current);
+ 		ret_device_file = device_create_file(dev, &dev_attr_Custom_PlugIn_Time);
+ 		ret_device_file = device_create_file(dev, &dev_attr_Custom_Charging_Mode);
+diff --git a/drivers/power/mt81xx/mt_switch_charging.c b/drivers/power/mt81xx/mt_switch_charging.c
+index 7531f3f2..f1c5bd23 100644
+--- a/drivers/power/mt81xx/mt_switch_charging.c
++++ b/drivers/power/mt81xx/mt_switch_charging.c
+@@ -863,6 +863,9 @@ int BAT_BatteryHoldAction(void)
+ 	return PMU_STATUS_OK;
+ }
+ 
++extern bool g_cmd_hold_charging;
++extern bool g_charge_limit_hold;
++
+ int BAT_BatteryCmdHoldAction(void)
+ {
+ 	battery_log(BAT_LOG_CRTI, "[BATTERY] Cmd Hold mode !!\n\r");
+@@ -877,7 +880,11 @@ int BAT_BatteryCmdHoldAction(void)
+ 
+ 	/*  Disable charger */
+ 	bat_charger_enable(false);
+-	bat_charger_enable_power_path(false);
++	/*
++	 * ON-FireLOS: at the protection limit the charger keeps powering the
++	 * tablet and the battery rests; only a manual hold cuts the input.
++	 */
++	bat_charger_enable_power_path(g_charge_limit_hold && !g_cmd_hold_charging);
+ 
+ 	return PMU_STATUS_OK;
+ }

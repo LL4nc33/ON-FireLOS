@@ -1,0 +1,210 @@
+diff --git a/Android.mk b/Android.mk
+index ba2c9ba..0d2377d 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -25,6 +25,9 @@ LOCAL_PRIVILEGED_MODULE := true
+ 
+ LOCAL_CERTIFICATE := platform
+ 
++# ON-FireLOS: reworked for the ROM; the version says so after its own.
++LOCAL_AAPT_FLAGS += --version-name "2.2.0 · $(ONFIRELOS_APP_VERSION)"
++
+ include $(BUILD_PACKAGE)
+ 
+ # Use the following include to make our test apk.
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index f959b02..0c7885d 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -16,7 +16,6 @@
+ <manifest
+         xmlns:android="http://schemas.android.com/apk/res/android"
+         package="org.lineageos.audiofx"
+-        android:versionName="2.2.0"
+         android:versionCode="20200">
+ 
+     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="27" />
+diff --git a/res/layout-land/controls_generic.xml b/res/layout-land/controls_generic.xml
+index d4524e7..2e1ebb8 100644
+--- a/res/layout-land/controls_generic.xml
++++ b/res/layout-land/controls_generic.xml
+@@ -4,7 +4,7 @@
+     android:layout_width="164dp"
+     android:layout_height="match_parent"
+     android:background="@color/knob_container_background"
+-    android:elevation="8dp"
++    android:elevation="0dp"
+     android:gravity="center"
+     android:orientation="vertical"
+     android:padding="4dp">
+diff --git a/res/layout-land/controls_maxx_audio.xml b/res/layout-land/controls_maxx_audio.xml
+index 4e43432..9b2cc29 100644
+--- a/res/layout-land/controls_maxx_audio.xml
++++ b/res/layout-land/controls_maxx_audio.xml
+@@ -5,7 +5,7 @@
+               android:orientation="vertical"
+               android:layout_width="match_parent"
+               android:layout_height="match_parent"
+-              android:elevation="8dp"
++              android:elevation="0dp"
+               android:paddingLeft="20dp"
+               android:padding="4dp">
+ 
+diff --git a/res/layout/controls_generic.xml b/res/layout/controls_generic.xml
+index d87b5e8..10d6138 100644
+--- a/res/layout/controls_generic.xml
++++ b/res/layout/controls_generic.xml
+@@ -4,7 +4,7 @@
+     android:layout_width="match_parent"
+     android:layout_height="164dp"
+     android:background="@color/knob_container_background"
+-    android:elevation="8dp"
++    android:elevation="0dp"
+     android:gravity="center"
+     android:orientation="vertical"
+     android:padding="4dp">
+diff --git a/res/layout/controls_maxx_audio.xml b/res/layout/controls_maxx_audio.xml
+index 1b17ed2..fe84111 100644
+--- a/res/layout/controls_maxx_audio.xml
++++ b/res/layout/controls_maxx_audio.xml
+@@ -5,7 +5,7 @@
+               android:orientation="vertical"
+               android:layout_width="match_parent"
+               android:layout_height="200dp"
+-              android:elevation="8dp"
++              android:elevation="0dp"
+               android:padding="4dp">
+ 
+     <LinearLayout
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index 2a88cd4..801addd 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -63,21 +63,21 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+     <color name="band_bar_color_1">#FFCCCCCC</color>
+     <color name="band_bar_color_2">#FFDDDDDD</color>
+ 
+-    <color name="preset_custom">#CE5B4C</color>
+-    <color name="preset_normal">#CB6139</color>
+-    <color name="preset_classical">#BE963F</color>
+-    <color name="preset_dance">#BEBD3F</color>
+-    <color name="preset_flat">#84B74E</color>
+-    <color name="preset_folk">#80B74F</color>
+-    <color name="preset_metal">#65B759</color>
+-    <color name="preset_hiphop">#5CB797</color>
+-    <color name="preset_jazz">#5B82B7</color>
+-    <color name="preset_pop">#585DCA</color>
+-    <color name="preset_rock">#9A62CB</color>
+-    <color name="preset_electronic">#C862C5</color>
+-    <color name="preset_small_speakers">#CB629A</color>
+-    <color name="band_bar_color_selected">#ffffffff</color>
+-    <color name="knob_container_background">#323437</color>
++    <color name="preset_custom">@color/onfirelos_accent</color>
++    <color name="preset_normal">@color/onfirelos_accent</color>
++    <color name="preset_classical">@color/onfirelos_accent</color>
++    <color name="preset_dance">@color/onfirelos_accent</color>
++    <color name="preset_flat">@color/onfirelos_accent</color>
++    <color name="preset_folk">@color/onfirelos_accent</color>
++    <color name="preset_metal">@color/onfirelos_accent</color>
++    <color name="preset_hiphop">@color/onfirelos_accent</color>
++    <color name="preset_jazz">@color/onfirelos_accent</color>
++    <color name="preset_pop">@color/onfirelos_accent</color>
++    <color name="preset_rock">@color/onfirelos_accent</color>
++    <color name="preset_electronic">@color/onfirelos_accent</color>
++    <color name="preset_small_speakers">@color/onfirelos_accent</color>
++    <color name="band_bar_color_selected">@color/onfirelos_accent</color>
++    <color name="knob_container_background">@color/onfirelos_surface</color>
+     <color name="disabled_eq">#ff6c6c6c</color>
+     <color name="radial_knob_arc_bg">#4e5052</color>
+     <color name="radial_knob_arc_bg_disabled">#6c6c6c</color>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index 65f2509..cd00cf3 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -21,7 +21,10 @@
+ 
+     <style name="AppThemeV2" parent="android:Theme.Material">
+         <item name="android:actionBarStyle">@style/ActionBar</item>
+-        <item name="android:colorAccent">@color/white</item>
++        <item name="android:colorAccent">@color/onfirelos_accent</item>
++        <!-- ON-FireLOS: see audiofx.py. -->
++        <item name="android:navigationBarColor">@color/onfirelos_background</item>
++        <item name="android:dialogCornerRadius">28dp</item>
+     </style>
+ 
+     <style name="ActionBar" parent="android:Widget.Material.ActionBar.Solid">
+diff --git a/src/org/lineageos/audiofx/eq/EqContainerView.java b/src/org/lineageos/audiofx/eq/EqContainerView.java
+index 5a692d5..e738f40 100644
+--- a/src/org/lineageos/audiofx/eq/EqContainerView.java
++++ b/src/org/lineageos/audiofx/eq/EqContainerView.java
+@@ -73,6 +73,7 @@ public class EqContainerView extends FrameLayout
+     private boolean mUnlockVisible;
+ 
+     private int mSelectedBandColor;
++    private int mBarColor;
+     private boolean mFirstLayout = true;
+ 
+     private Paint mTextPaint;
+@@ -167,6 +168,7 @@ public class EqContainerView extends FrameLayout
+         setWillNotDraw(false);
+ 
+         mSelectedBandColor = r.getColor(R.color.band_bar_color_selected);
++        mBarColor = r.getColor(R.color.onfirelos_text_quiet);
+ 
+         mTextPaint = new Paint();
+         mTextPaint.setAntiAlias(true);
+@@ -281,7 +283,7 @@ public class EqContainerView extends FrameLayout
+                 } else {
+                     bar.setAlpha(0.8f);
+                 }
+-                bar.setBackgroundColor(Color.WHITE);
++                bar.setBackgroundColor(mBarColor);
+                 bar.setElevation(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2,
+                         getResources().getDisplayMetrics()));
+ 
+@@ -437,6 +439,8 @@ public class EqContainerView extends FrameLayout
+             final EqBarView bar = (EqBarView) findViewWithTag(tag);
+             if (bar != null) {
+                 final ViewPropertyAnimator barAnimation = bar.animate().withLayer();
++                // ON-FireLOS: only the band being dragged takes the accent.
++                bar.setBackgroundColor(mSelectedBands.contains(i) ? mSelectedBandColor : mBarColor);
+                 if (mSelectedBands.isEmpty()) {
+                     if (i % 2 == 0) {
+                         barAnimation.alpha(0.6f);
+diff --git a/src/org/lineageos/audiofx/fragment/EqualizerFragment.java b/src/org/lineageos/audiofx/fragment/EqualizerFragment.java
+index d098dc1..3b15baf 100644
+--- a/src/org/lineageos/audiofx/fragment/EqualizerFragment.java
++++ b/src/org/lineageos/audiofx/fragment/EqualizerFragment.java
+@@ -116,7 +116,10 @@ public class EqualizerFragment extends AudioFxBaseFragment
+     @Override
+     public void updateFragmentBackgroundColors(int color) {
+         if (getActivity() != null && getActivity().getWindow() != null) {
+-            getActivity().getWindow().getDecorView().setBackgroundColor(color);
++            // ON-FireLOS: the window keeps the background; the preset colour
++            // (the accent, see colors.xml) only tints knobs and switches.
++            getActivity().getWindow().getDecorView().setBackgroundColor(
++                    getActivity().getColor(R.color.onfirelos_background));
+         }
+     }
+ 
+diff --git a/src/org/lineageos/audiofx/knobs/KnobContainer.java b/src/org/lineageos/audiofx/knobs/KnobContainer.java
+index 669949f..6c964ef 100644
+--- a/src/org/lineageos/audiofx/knobs/KnobContainer.java
++++ b/src/org/lineageos/audiofx/knobs/KnobContainer.java
+@@ -335,11 +335,11 @@ public class KnobContainer extends LinearLayout
+         final boolean speaker = device.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER;
+         final boolean maxxAudio = MasterConfigControl.getInstance(mContext).hasMaxxAudio();
+         final boolean dts = MasterConfigControl.getInstance(mContext).hasDts();
+-        final boolean effectsEnabled = !speaker || maxxAudio || dts;
+-
+-        mKnobCommander.updateTrebleKnob(mTrebleKnob, effectsEnabled);
+-        mKnobCommander.updateBassKnob(mBassKnob, effectsEnabled);
+-        mKnobCommander.updateVirtualizerKnob(mVirtualizerKnob, effectsEnabled);
++        // ON-FireLOS: the effect library keeps bass boost and virtualizer on the
++        // built-in speaker too, so the knobs stay usable everywhere.
++        mKnobCommander.updateTrebleKnob(mTrebleKnob, true);
++        mKnobCommander.updateBassKnob(mBassKnob, true);
++        mKnobCommander.updateVirtualizerKnob(mVirtualizerKnob, true);
+         if (maxxAudio) {
+             // speaker? hide virtualizer
+             setKnobVisible(KnobCommander.KNOB_VIRTUALIZER, !speaker);

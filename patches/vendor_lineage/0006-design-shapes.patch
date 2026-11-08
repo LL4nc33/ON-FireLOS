@@ -1,0 +1,16 @@
+diff --git a/overlay/common/frameworks/base/core/res/res/values/dimens.xml b/overlay/common/frameworks/base/core/res/res/values/dimens.xml
+index fe1baca..b920351 100644
+--- a/overlay/common/frameworks/base/core/res/res/values/dimens.xml
++++ b/overlay/common/frameworks/base/core/res/res/values/dimens.xml
+@@ -16,7 +16,9 @@
+ */
+ -->
+ <resources>
+-    <dimen name="config_dialogCornerRadius">8.0dip</dimen>
+-    <dimen name="config_buttonCornerRadius">4.0dip</dimen>
++    <!-- ON-FireLOS design (docs/DESIGN.md): dialogs and panels 28 dp,
++         buttons fully round. This overlay comes before the device's. -->
++    <dimen name="config_dialogCornerRadius">28.0dip</dimen>
++    <dimen name="config_buttonCornerRadius">24.0dip</dimen>
+     <dimen name="config_progressBarCornerRadius">1000.0dip</dimen>
+ </resources>

@@ -1,0 +1,24 @@
+diff --git a/libs/gui/BufferQueueConsumer.cpp b/libs/gui/BufferQueueConsumer.cpp
+index d70e142..19187bb 100644
+--- a/libs/gui/BufferQueueConsumer.cpp
++++ b/libs/gui/BufferQueueConsumer.cpp
+@@ -526,6 +526,19 @@ status_t BufferQueueConsumer::getReleasedBuffers(uint64_t *outSlotMask) {
+         return BAD_VALUE;
+     }
+ 
++    // Until now only the pointer passed in was checked here, not our
++    // own. MediaTek's libgui_ext.so calls this function on an object
++    // whose mCore is null; guiext-server died from that on every
++    // boot with SIGSEGV at 0x4b0 - that is the offset of mMutex
++    // within BufferQueueCore.
++    //
++    // For regular callers the check can never trigger: mCore is
++    // const and is set in the constructor.
++    if (mCore == nullptr) {
++        BQ_LOGE("getReleasedBuffers: no BufferQueueCore");
++        return NO_INIT;
++    }
++
+     Mutex::Autolock lock(mCore->mMutex);
+ 
+     if (mCore->mIsAbandoned) {
