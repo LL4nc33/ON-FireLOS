@@ -1,0 +1,667 @@
+diff --git a/Android.mk b/Android.mk
+index 4a6a325..1e3754f 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -44,6 +44,9 @@ LOCAL_PROGUARD_FLAG_FILES := proguard.flags
+ LOCAL_SDK_VERSION := current
+ LOCAL_MIN_SDK_VERSION := 21
+ 
++# ON-FireLOS: reworked for the ROM; the version says so after its own.
++LOCAL_AAPT_FLAGS += --version-name "1.7.31 · $(ONFIRELOS_APP_VERSION)"
++
+ include $(BUILD_PACKAGE)
+ 
+ # Use the following include to make our test apk.
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 071c394..fe9c523 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -16,8 +16,7 @@
+ 
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+           package="com.android.contacts"
+-          android:versionCode="10731"
+-          android:versionName="1.7.31">
++          android:versionCode="10731">
+ 
+     <uses-sdk
+         android:minSdkVersion="21"
+diff --git a/res/drawable/onfirelos_search_pill.xml b/res/drawable/onfirelos_search_pill.xml
+new file mode 100644
+index 0000000..71e0ba6
+--- /dev/null
++++ b/res/drawable/onfirelos_search_pill.xml
+@@ -0,0 +1,23 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:top="8dp" android:bottom="8dp" android:end="8dp">
++        <shape android:shape="rectangle">
++            <solid android:color="@color/onfirelos_surface_variant" />
++            <corners android:radius="100dp" />
++        </shape>
++    </item>
++</layer-list>
+diff --git a/res/layout-land/people_activity_toolbar.xml b/res/layout-land/people_activity_toolbar.xml
+index 8fb0dc1..35f6e29 100644
+--- a/res/layout-land/people_activity_toolbar.xml
++++ b/res/layout-land/people_activity_toolbar.xml
+@@ -22,7 +22,7 @@
+     android:orientation="vertical"
+     android:layout_width="match_parent"
+     android:background="#00000000"
+-    android:elevation="@dimen/tab_elevation"
++    android:elevation="0dp"
+     android:layout_height="wrap_content" >
+ 
+     <FrameLayout
+diff --git a/res/layout/contact_editor_activity.xml b/res/layout/contact_editor_activity.xml
+index 36fc64a..b0a80d0 100644
+--- a/res/layout/contact_editor_activity.xml
++++ b/res/layout/contact_editor_activity.xml
+@@ -28,7 +28,7 @@
+         android:layout_width="match_parent"
+         android:layout_height="?android:attr/actionBarSize"
+         android:background="?android:attr/colorPrimary"
+-        android:elevation="4dp"
++        android:elevation="0dp"
+         app:navigationContentDescription="@string/cancel_button_content_description"
+         app:navigationIcon="@drawable/quantum_ic_close_vd_theme_24"
+         app:title="@string/contact_editor_title_existing_contact" />
+diff --git a/res/layout/onfirelos_large_title.xml b/res/layout/onfirelos_large_title.xml
+new file mode 100644
+index 0000000..748fe95
+--- /dev/null
++++ b/res/layout/onfirelos_large_title.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0.
++     The list's large title (docs/DESIGN.md), its first row. -->
++<TextView xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="@dimen/onfirelos_large_title_height"
++    android:gravity="bottom|start"
++    android:paddingStart="@dimen/onfirelos_large_title_padding_start"
++    android:paddingEnd="@dimen/onfirelos_large_title_padding_start"
++    android:paddingBottom="16dp"
++    android:accessibilityHeading="true"
++    android:maxLines="1"
++    android:ellipsize="end"
++    android:textColor="@color/onfirelos_on_background"
++    android:textSize="34sp" />
+diff --git a/res/layout/people_activity_toolbar.xml b/res/layout/people_activity_toolbar.xml
+index 3599f0c..2ede5b3 100644
+--- a/res/layout/people_activity_toolbar.xml
++++ b/res/layout/people_activity_toolbar.xml
+@@ -18,7 +18,7 @@
+     android:id="@+id/toolbar_parent"
+     android:orientation="vertical"
+     android:layout_width="match_parent"
+-    android:elevation="@dimen/tab_elevation"
++    android:elevation="0dp"
+     android:layout_height="wrap_content" >
+ 
+     <FrameLayout
+diff --git a/res/layout/search_bar_expanded.xml b/res/layout/search_bar_expanded.xml
+index 9f90bc7..7223c68 100644
+--- a/res/layout/search_bar_expanded.xml
++++ b/res/layout/search_bar_expanded.xml
+@@ -30,7 +30,7 @@
+         android:src="@drawable/quantum_ic_arrow_back_vd_theme_24"
+         android:background="?attr/selectableItemBackgroundBorderless"
+         android:contentDescription="@string/action_menu_back_from_search"
+-        android:tint="@color/actionbar_background_color" />
++        android:tint="@color/actionbar_icon_color_grey" />
+ 
+     <android.widget.AutoCompleteTextView
+         android:id="@+id/search_view"
+diff --git a/res/layout/selection_bar.xml b/res/layout/selection_bar.xml
+index 272a2fc..4321c7b 100644
+--- a/res/layout/selection_bar.xml
++++ b/res/layout/selection_bar.xml
+@@ -51,7 +51,7 @@
+         android:paddingEnd="16dp"
+         android:paddingStart="16dp"
+         android:text="@string/menu_add_contacts"
+-        android:textColor="@color/primary_color"
++        android:textColor="@color/dialtacts_theme_color"
+         android:textStyle="bold"
+         android:visibility="gone"/>
+ 
+diff --git a/res/values-land/onfirelos_large_title.xml b/res/values-land/onfirelos_large_title.xml
+new file mode 100644
+index 0000000..9654ad1
+--- /dev/null
++++ b/res/values-land/onfirelos_large_title.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0.
++     Landscape has less height to give away. -->
++<resources>
++    <dimen name="onfirelos_large_title_height">96dp</dimen>
++</resources>
+diff --git a/res/values-night/onfirelos_colors.xml b/res/values-night/onfirelos_colors.xml
+new file mode 100644
+index 0000000..5d2db69
+--- /dev/null
++++ b/res/values-night/onfirelos_colors.xml
+@@ -0,0 +1,22 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS design tokens (docs/DESIGN.md), dark. -->
++    <color name="onfirelos_background">#1A1C18</color>
++    <color name="onfirelos_surface">#24271F</color>
++    <color name="onfirelos_surface_variant">#2F332B</color>
++    <color name="onfirelos_on_background">#E4E6DD</color>
++</resources>
+diff --git a/res/values-v27/styles.xml b/res/values-v27/styles.xml
+index ca71d40..93b8ac7 100644
+--- a/res/values-v27/styles.xml
++++ b/res/values-v27/styles.xml
+@@ -12,7 +12,11 @@
+         <item name="android:windowBackground">@color/background_primary</item>
+         <item name="android:colorPrimaryDark">@color/primary_color_dark</item>
+         <item name="android:colorPrimary">@color/primary_color</item>
+-        <item name="android:colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
++        <!-- ON-FireLOS: the bars are flat on the light background, so the
++             status bar icons and the action bar's up arrow turn dark. -->
++        <item name="android:windowLightStatusBar">true</item>
++        <item name="android:actionBarTheme">@android:style/ThemeOverlay.Material.ActionBar</item>
+         <item name="android:alertDialogTheme">@style/ContactsAlertDialogTheme</item>
+         <item name="list_item_height">@dimen/contact_browser_list_item_height</item>
+         <item name="list_section_header_height">24dip</item>
+@@ -83,8 +87,11 @@
+         <item name="colorPrimaryDark">@color/primary_color_dark</item>
+         <item name="android:colorPrimary">@color/primary_color</item>
+         <item name="colorPrimary">@color/primary_color</item>
+-        <item name="android:colorAccent">@color/primary_color</item>
+-        <item name="colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
++        <item name="colorAccent">@color/dialtacts_theme_color</item>
++        <!-- ON-FireLOS: as in PeopleTheme. -->
++        <item name="android:windowLightStatusBar">true</item>
++        <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.ActionBar</item>
+         <item name="android:alertDialogTheme">@style/ContactsAlertDialogThemeAppCompat</item>
+         <item name="alertDialogTheme">@style/ContactsAlertDialogThemeAppCompat</item>
+         <item name="list_item_height">@dimen/contact_browser_list_item_height</item>
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index aeba877..050ea8a 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -32,19 +32,22 @@
+ 
+     <color name="nav_item_selected_background">#0f000000</color>
+ 
+-    <color name="action_bar_button_text_color">#FFFFFF</color>
++    <!-- ON-FireLOS: tool bar texts and icons in the text colour on the flat bar. -->
++    <color name="action_bar_button_text_color">@color/onfirelos_on_background</color>
+ 
+     <color name="actionbar_background_color">@color/primary_color</color>
+ 
+-    <color name="contextual_selection_bar_color">#f6f6f6</color>
++    <!-- ON-FireLOS: selection bar and its status bar flat on the background. -->
++    <color name="contextual_selection_bar_color">@color/onfirelos_background</color>
+     <!-- Color of the status bar above the contextual selection bar. -->
+-    <color name="contextual_selection_bar_status_bar_color">#bababa</color>
++    <color name="contextual_selection_bar_status_bar_color">@color/onfirelos_background</color>
+ 
+     <color name="primary_color_dark">#1c3aa9</color>
+     <color name="primary_color">#2a56c6</color>
+ 
+-    <color name="group_primary_color_dark">#546E7A</color>
+-    <color name="group_primary_color">#607D8B</color>
++    <!-- ON-FireLOS: the group view's bar is flat too, no blue grey. -->
++    <color name="group_primary_color_dark">@color/onfirelos_background</color>
++    <color name="group_primary_color">@color/onfirelos_background</color>
+ 
+     <!-- Color of the selected tab underline -->
+     <color name="contacts_accent_color">#FFFFFF</color>
+@@ -61,7 +64,7 @@
+     <color name="expanding_entry_card_background_color">#ffffff</color>
+ 
+     <!-- Color of the margin for cards -->
+-    <color name="card_margin_color">#f4f4f4</color>
++    <color name="card_margin_color">@color/onfirelos_background</color>
+ 
+     <color name="call_arrow_green">#2aad6f</color>
+     <color name="call_arrow_red">#ff2e58</color>
+@@ -180,10 +183,10 @@
+     <color name="letter_tile_font_color">#ffffff</color>
+ 
+     <!-- Color for icons in the actionbar -->
+-    <color name="actionbar_icon_color">#ffffff</color>
++    <color name="actionbar_icon_color">@color/onfirelos_on_background</color>
+ 
+     <!-- Color of the title to the Frequently Contacted section -->
+-    <color name="frequently_contacted_title_color">@color/actionbar_background_color</color>
++    <color name="frequently_contacted_title_color">@color/dialtacts_theme_color</color>
+ 
+     <!-- Color of action bar text. Ensure this stays in sync with packages/Telephony
+     phone_settings_actionbar_text_color-->
+@@ -205,7 +208,7 @@
+     <color name="search_shortcut_icon_color">@color/dialtacts_theme_color</color>
+ 
+     <!-- Color of the background of the contact detail and editor pages -->
+-    <color name="background_primary">#f9f9f9</color>
++    <color name="background_primary">@color/onfirelos_background</color>
+     <color name="contact_all_list_background_color">#FFFFFF</color>
+ 
+     <!-- Text color used for character counter when the max limit has been exceeded -->
+diff --git a/res/values/onfirelos_colors.xml b/res/values/onfirelos_colors.xml
+new file mode 100644
+index 0000000..d6bedd1
+--- /dev/null
++++ b/res/values/onfirelos_colors.xml
+@@ -0,0 +1,22 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 ON-FireLOS
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<resources>
++    <!-- ON-FireLOS design tokens (docs/DESIGN.md), light. -->
++    <color name="onfirelos_background">#F6F8F3</color>
++    <color name="onfirelos_surface">#FFFFFF</color>
++    <color name="onfirelos_surface_variant">#E8ECE3</color>
++    <color name="onfirelos_on_background">#DE1B1D19</color>
++</resources>
+diff --git a/res/values/onfirelos_large_title.xml b/res/values/onfirelos_large_title.xml
+new file mode 100644
+index 0000000..51d2eb5
+--- /dev/null
++++ b/res/values/onfirelos_large_title.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2026 The ON-FireLOS Project, Apache-2.0. -->
++<resources>
++    <dimen name="onfirelos_large_title_height">152dp</dimen>
++    <!-- In line with the contact photos. -->
++    <dimen name="onfirelos_large_title_padding_start">16dp</dimen>
++</resources>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index dc45bcb..ba2e1a0 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -23,6 +23,10 @@
+     </style>
+ 
+     <style name="Theme.QuickContact" parent="@style/PeopleTheme">
++        <!-- ON-FireLOS: not the flat bar of PeopleTheme - the header and the
++             status bar take the contact's colour, so light icons stay. -->
++        <item name="android:windowLightStatusBar">false</item>
++        <item name="android:actionBarTheme">@android:style/ThemeOverlay.Material.Dark.ActionBar</item>
+         <item name="android:windowBackground">@android:color/transparent</item>
+         <item name="android:colorBackgroundCacheHint">@null</item>
+         <item name="android:windowFrame">@null</item>
+@@ -51,7 +55,11 @@
+         <item name="android:windowBackground">@color/background_primary</item>
+         <item name="android:colorPrimaryDark">@color/primary_color_dark</item>
+         <item name="android:colorPrimary">@color/primary_color</item>
+-        <item name="android:colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
++        <!-- ON-FireLOS: the bars are flat on the light background, so the
++             status bar icons and the action bar's up arrow turn dark. -->
++        <item name="android:windowLightStatusBar">true</item>
++        <item name="android:actionBarTheme">@android:style/ThemeOverlay.Material.ActionBar</item>
+         <item name="android:alertDialogTheme">@style/ContactsAlertDialogTheme</item>
+         <item name="list_item_height">@dimen/contact_browser_list_item_height</item>
+         <item name="list_section_header_height">24dip</item>
+@@ -122,8 +130,11 @@
+         <item name="colorPrimaryDark">@color/primary_color_dark</item>
+         <item name="android:colorPrimary">@color/primary_color</item>
+         <item name="colorPrimary">@color/primary_color</item>
+-        <item name="android:colorAccent">@color/primary_color</item>
+-        <item name="colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
++        <item name="colorAccent">@color/dialtacts_theme_color</item>
++        <!-- ON-FireLOS: as in PeopleTheme. -->
++        <item name="android:windowLightStatusBar">true</item>
++        <item name="actionBarTheme">@style/ThemeOverlay.AppCompat.ActionBar</item>
+         <item name="android:alertDialogTheme">@style/ContactsAlertDialogThemeAppCompat</item>
+         <item name="alertDialogTheme">@style/ContactsAlertDialogThemeAppCompat</item>
+         <item name="list_item_height">@dimen/contact_browser_list_item_height</item>
+@@ -182,8 +193,9 @@
+ 
+     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">
+         <item name="spinBars">false</item>
+-        <item name="color">@android:color/white</item>
+-        <item name="android:color">@android:color/white</item>
++        <!-- ON-FireLOS: the menu icon in the text colour on the flat bar. -->
++        <item name="color">@color/onfirelos_on_background</item>
++        <item name="android:color">@color/onfirelos_on_background</item>
+     </style>
+ 
+     <!-- Use the non-light style so that the up button & icons aren't black. If we use the
+@@ -243,12 +255,12 @@
+     <style name="ContactsActionBarTitleText"
+         parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
+         <item name="android:textSize">20dp</item>
+-        <item name="android:textColor">@color/actionbar_text_color</item>
++        <item name="android:textColor">@color/onfirelos_on_background</item>
+     </style>
+ 
+     <style name="ContactsActionBarTitleTextAppCompat" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+         <item name="android:textSize">20dp</item>
+-        <item name="android:textColor">@color/actionbar_text_color</item>
++        <item name="android:textColor">@color/onfirelos_on_background</item>
+     </style>
+ 
+     <style name="ContactsActionBarTitleTextBlack" parent="@style/ContactsActionBarTitleTextAppCompat">
+@@ -294,7 +306,7 @@
+         <item name="android:textColorPrimary">@color/primary_text_color</item>
+         <item name="android:textColorSecondary">@color/secondary_text_color</item>
+         <item name="android:listViewStyle">@style/ListViewStyle</item>
+-        <item name="android:colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
+     </style>
+ 
+     <style name="SelectableItem" parent="@android:style/Theme.Material.Light">
+@@ -337,12 +349,12 @@
+     <!-- Inherit from Theme.Material.Light.Dialog instead of Theme.Material.Light.Dialog.Alert
+         since the Alert dialog is private. They are identical anyway. -->
+     <style name="ContactsAlertDialogTheme" parent="@android:style/Theme.Material.Light.Dialog">
+-        <item name="android:colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
+     </style>
+ 
+     <style name="ContactsAlertDialogThemeAppCompat" parent="Theme.AppCompat.Light.Dialog.MinWidth">
+-        <item name="android:colorAccent">@color/primary_color</item>
+-        <item name="colorAccent">@color/primary_color</item>
++        <item name="android:colorAccent">@color/dialtacts_theme_color</item>
++        <item name="colorAccent">@color/dialtacts_theme_color</item>
+     </style>
+ 
+     <style name="EditKindIconStyle">
+@@ -394,7 +406,7 @@
+     <!-- Button style for main contacts no account empty view. -->
+     <style name="NoAccountViewButtonStyle" parent="@style/Widget.AppCompat.Button.Borderless">
+         <item name="android:textSize">14sp</item>
+-        <item name="android:textColor">@color/primary_color</item>
++        <item name="android:textColor">@color/dialtacts_theme_color</item>
+         <item name="android:fontFamily">sans-serif-medium</item>
+         <item name="android:textAllCaps">true</item>
+     </style>
+@@ -402,7 +414,7 @@
+     <!-- Add contacts button style for empty states. -->
+     <style name="AddContactsButtonStyle" parent="@style/Widget.AppCompat.Button.Borderless">
+         <item name="android:textSize">16sp</item>
+-        <item name="android:textColor">@color/primary_color</item>
++        <item name="android:textColor">@color/dialtacts_theme_color</item>
+         <item name="android:fontFamily">sans-serif-medium</item>
+         <item name="android:textAllCaps">true</item>
+     </style>
+@@ -459,7 +471,7 @@ background and text color. See also android:style/Widget.Holo.TextView.ListSepar
+      make margin between the button and screen edge 16dp -->
+     <style name="FilterActionButtonStyle" parent="@android:Widget.ActionButton">
+         <item name="android:minWidth">@dimen/contact_filter_action_button_width</item>
+-        <item name="android:textColor">@color/actionbar_text_color</item>
++        <item name="android:textColor">@color/onfirelos_on_background</item>
+     </style>
+ 
+     <style name="CustomContactListFilterView" parent="ContactListFilterTheme">
+@@ -568,7 +580,7 @@ background and text color. See also android:style/Widget.Holo.TextView.ListSepar
+     </style>
+ 
+     <style name="DrawerItemTextActiveStyle">
+-        <item name="android:textColor">@color/primary_color</item>
++        <item name="android:textColor">@color/dialtacts_theme_color</item>
+         <item name="android:textStyle">bold</item>
+     </style>
+ 
+diff --git a/src/com/android/contacts/activities/ActionBarAdapter.java b/src/com/android/contacts/activities/ActionBarAdapter.java
+index 27bcc7a..9755f15 100644
+--- a/src/com/android/contacts/activities/ActionBarAdapter.java
++++ b/src/com/android/contacts/activities/ActionBarAdapter.java
+@@ -148,8 +148,8 @@ public class ActionBarAdapter implements OnCloseListener {
+                 /* attachToRoot = */ false);
+         mSearchContainer.setVisibility(View.VISIBLE);
+         mToolbar.addView(mSearchContainer);
+-        mSearchContainer.setBackgroundColor(mActivity.getResources().getColor(
+-                R.color.searchbox_background_color));
++        // ON-FireLOS: the search field is a pill on the flat bar.
++        mSearchContainer.setBackgroundResource(R.drawable.onfirelos_search_pill);
+         mSearchView = (EditText) mSearchContainer.findViewById(R.id.search_view);
+         mSearchView.setHint(mActivity.getString(mSearchHintResId));
+         mSearchView.addTextChangedListener(new SearchTextWatcher());
+@@ -465,8 +465,9 @@ public class ActionBarAdapter implements OnCloseListener {
+                                 iconColor = mActivity.getResources().getColor(
+                                         R.color.actionbar_color_grey_solid);
+                             } else {
++                                // ON-FireLOS: text colour on the flat bar.
+                                 iconColor = mActivity.getResources().getColor(
+-                                        R.color.actionbar_text_color);
++                                        R.color.onfirelos_on_background);
+                             }
+                             overflow.setImageTintList(ColorStateList.valueOf(iconColor));
+                         }
+diff --git a/src/com/android/contacts/activities/PeopleActivity.java b/src/com/android/contacts/activities/PeopleActivity.java
+index 9e94ff1..a2833dd 100644
+--- a/src/com/android/contacts/activities/PeopleActivity.java
++++ b/src/com/android/contacts/activities/PeopleActivity.java
+@@ -1011,6 +1011,15 @@ public class PeopleActivity extends AppCompatContactsActivity implements
+         showFabWithAnimation(/* showFab */ false);
+     }
+ 
++    @Override
++    protected void onTitleChanged(CharSequence title, int color) {
++        super.onTitleChanged(title, color);
++        // ON-FireLOS: the list's large title says the same.
++        if (mContactsListFragment != null) {
++            mContactsListFragment.setLargeTitle(title);
++        }
++    }
++
+     public void switchToAllContacts() {
+         popSecondLevel();
+         mShouldSwitchToAllContacts = false;
+diff --git a/src/com/android/contacts/drawer/DrawerAdapter.java b/src/com/android/contacts/drawer/DrawerAdapter.java
+index 8931df4..f825973 100644
+--- a/src/com/android/contacts/drawer/DrawerAdapter.java
++++ b/src/com/android/contacts/drawer/DrawerAdapter.java
+@@ -398,7 +398,7 @@ public class DrawerAdapter extends BaseAdapter {
+         textView.setTextAppearance(mActivity, activated
+                 ? TYPEFACE_STYLE_ACTIVATE : TYPEFACE_STYLE_INACTIVE);
+         if (activated) {
+-            imageView.setColorFilter(mActivity.getResources().getColor(R.color.primary_color),
++            imageView.setColorFilter(mActivity.getResources().getColor(R.color.dialtacts_theme_color),
+                     PorterDuff.Mode.SRC_ATOP);
+         } else {
+             imageView.clearColorFilter();
+diff --git a/src/com/android/contacts/list/ContactsUnavailableFragment.java b/src/com/android/contacts/list/ContactsUnavailableFragment.java
+index c13e475..fe50510 100644
+--- a/src/com/android/contacts/list/ContactsUnavailableFragment.java
++++ b/src/com/android/contacts/list/ContactsUnavailableFragment.java
+@@ -76,11 +76,11 @@ public class ContactsUnavailableFragment extends Fragment implements OnClickList
+         mAddAccountButton = (Button) mView.findViewById(R.id.add_account_button);
+         mAddAccountButton.setOnClickListener(this);
+         mAddAccountButton.getBackground().setColorFilter(ContextCompat.getColor(getContext(), R
+-                .color.primary_color), PorterDuff.Mode.SRC_ATOP);
++                .color.dialtacts_theme_color), PorterDuff.Mode.SRC_ATOP);
+         mImportContactsButton = (Button) mView.findViewById(R.id.import_contacts_button);
+         mImportContactsButton.setOnClickListener(this);
+         mImportContactsButton.getBackground().setColorFilter(ContextCompat.getColor(getContext(),
+-                R.color.primary_color), PorterDuff.Mode.SRC_ATOP);
++                R.color.dialtacts_theme_color), PorterDuff.Mode.SRC_ATOP);
+         mProgress = (ProgressBar) mView.findViewById(R.id.progress);
+ 
+         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+diff --git a/src/com/android/contacts/list/DefaultContactBrowseListFragment.java b/src/com/android/contacts/list/DefaultContactBrowseListFragment.java
+index f07c4a5..2171d2b 100644
+--- a/src/com/android/contacts/list/DefaultContactBrowseListFragment.java
++++ b/src/com/android/contacts/list/DefaultContactBrowseListFragment.java
+@@ -37,6 +37,7 @@ import android.os.Handler;
+ import android.provider.ContactsContract;
+ import android.provider.ContactsContract.Directory;
+ import android.support.v4.content.ContextCompat;
++import android.support.v4.graphics.ColorUtils;
+ import android.support.v4.widget.SwipeRefreshLayout;
+ import android.text.TextUtils;
+ import android.util.Log;
+@@ -49,6 +50,7 @@ import android.view.View;
+ import android.view.ViewGroup;
+ import android.view.accessibility.AccessibilityEvent;
+ import android.view.accessibility.AccessibilityManager;
++import android.widget.AbsListView;
+ import android.widget.Button;
+ import android.widget.FrameLayout;
+ import android.widget.ImageView;
+@@ -152,6 +154,9 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment
+ 
+     private boolean mSearchResultClicked;
+ 
++    // ON-FireLOS: the list's large title, its first row (docs/DESIGN.md).
++    private TextView mLargeTitle;
++
+     private ActionBarAdapter mActionBarAdapter;
+     private PeopleActivity mActivity;
+     private ContactsRequest mContactsRequest;
+@@ -166,12 +171,14 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment
+                 case ActionBarAdapter.Listener.Action.START_SELECTION_MODE:
+                     displayCheckBoxes(true);
+                     startSearchOrSelectionMode();
++                    updateLargeTitle();
+                     break;
+                 case ActionBarAdapter.Listener.Action.START_SEARCH_MODE:
+                     if (!mIsRecreatedInstance) {
+                         Logger.logScreenView(mActivity, ScreenEvent.ScreenType.SEARCH);
+                     }
+                     startSearchOrSelectionMode();
++                    updateLargeTitle();
+                     break;
+                 case ActionBarAdapter.Listener.Action.BEGIN_STOPPING_SEARCH_AND_SELECTION_MODE:
+                     mActivity.showFabWithAnimation(/* showFab */ true);
+@@ -193,6 +200,7 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment
+ 
+                     // Determine whether the account has pullToRefresh feature
+                     setSwipeRefreshLayoutEnabledOrNot(getFilter());
++                    updateLargeTitle();
+                     break;
+                 case ActionBarAdapter.Listener.Action.CHANGE_SEARCH_QUERY:
+                     final String queryString = mActionBarAdapter.getQueryString();
+@@ -491,6 +499,15 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment
+ 
+         initSwipeRefreshLayout();
+ 
++        // ON-FireLOS: the large title as the first row, in a container like the search
++        // header below so that it can go away in search and selection mode.
++        final FrameLayout titleContainer = new FrameLayout(inflater.getContext());
++        mLargeTitle = (TextView) inflater.inflate(
++                R.layout.onfirelos_large_title, titleContainer, false);
++        mLargeTitle.setText(getActivity().getTitle());
++        titleContainer.addView(mLargeTitle);
++        getListView().addHeaderView(titleContainer, null, false);
++
+         // Putting the header view inside a container will allow us to make
+         // it invisible later. See checkHeaderViewVisibility()
+         final FrameLayout headerContainer = new FrameLayout(inflater.getContext());
+@@ -786,6 +803,72 @@ public class DefaultContactBrowseListFragment extends ContactBrowseListFragment
+         super.setSearchMode(flag);
+         checkHeaderViewVisibility();
+         if (!flag) showSearchProgress(false);
++        updateLargeTitle();
++    }
++
++    /** ON-FireLOS: the large title says what the tool bar's title says. */
++    public void setLargeTitle(CharSequence title) {
++        if (mLargeTitle != null) {
++            mLargeTitle.setText(title);
++        }
++    }
++
++    @Override
++    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
++            int totalItemCount) {
++        super.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
++        updateLargeTitle();
++    }
++
++    @Override
++    public void onHiddenChanged(boolean hidden) {
++        super.onHiddenChanged(hidden);
++        if (hidden) {
++            setToolbarTitleAlpha(1f);
++        } else {
++            updateLargeTitle();
++        }
++    }
++
++    @Override
++    public void onDestroyView() {
++        // The screens that take the list's place have no large title.
++        setToolbarTitleAlpha(1f);
++        mLargeTitle = null;
++        super.onDestroyView();
++    }
++
++    /**
++     * ON-FireLOS: the large title shows on the plain list only; the tool bar's title fades in
++     * as much of it as has scrolled away.
++     */
++    private void updateLargeTitle() {
++        if (mLargeTitle == null) return;
++        // The tool bar's search field counts from when it opens, before anything is typed.
++        final boolean show = !isSearchMode() && (mActionBarAdapter == null
++                || !mActionBarAdapter.isSearchMode() && !mActionBarAdapter.isSelectionMode());
++        mLargeTitle.setVisibility(show ? View.VISIBLE : View.GONE);
++        float away = 1f;
++        final View row = (View) mLargeTitle.getParent();
++        final int height = mLargeTitle.getHeight();
++        if (show && height == 0) {
++            away = 0f;  // not laid out yet: the list is at its top
++        } else if (show && row.getParent() == getListView()) {
++            // A row out of view is detached and counts as away.
++            away = Math.max(0f, Math.min(1f,
++                    (getListView().getPaddingTop() - row.getTop()) / (float) height));
++        }
++        setToolbarTitleAlpha(show ? away : 1f);
++    }
++
++    private void setToolbarTitleAlpha(float alpha) {
++        final Activity activity = getActivity();
++        if (activity == null) return;
++        final android.support.v7.widget.Toolbar toolbar = activity.findViewById(R.id.toolbar);
++        if (toolbar == null) return;
++        final int color = ContextCompat.getColor(activity, R.color.onfirelos_on_background);
++        toolbar.setTitleTextColor(ColorUtils.setAlphaComponent(color,
++                Math.round(android.graphics.Color.alpha(color) * alpha)));
+     }
+ 
+     /** Show or hide the directory-search progress spinner. */

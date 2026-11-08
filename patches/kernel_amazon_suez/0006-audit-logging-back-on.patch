@@ -1,0 +1,33 @@
+diff --git a/kernel/Makefile b/kernel/Makefile
+index c82cae81..cf233758 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -7,7 +7,27 @@ subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/hibcore
+ subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
+ subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
+ 
+-subdir-ccflags-y += -DCONFIG_DISABLE_AUDIT
++# -DCONFIG_DISABLE_AUDIT was hard-wired here. Not by Amazon
++# and not by MediaTek: the community kernel added it in 2022
++# (commit fa3143493f), against log flooding in permissive mode. The flag
++# appears in no Kconfig and in no .config, so it is invisible to any
++# search - "CONFIG_AUDIT=y" in the generated .config then simply has
++# no effect.
++#
++# Consequence: kernel/audit.c sets audit_initialized = AUDIT_DISABLED, audit_init()
++# bails out immediately, the NETLINK_AUDIT socket is never created (family 9 is
++# missing from /proc/net/netlink), logd does not start its audit thread - and not
++# a single SELinux denial from the kernel is ever logged.
++#
++# Only denials from user space (hwservicemanager, init property service),
++# which log themselves, stayed visible. That fakes a clean log and makes
++# the ROM practically impossible to diagnose for
++# SELinux.
++#
++# Cost: without "audit=1" on the kernel command line audit still stays in
++# state AUDIT_OFF, and CONFIG_AUDITSYSCALL only has an effect with loaded rules
++# (there are none). So in practice there is only overhead when an actual
++# denial happens.
+ 
+ obj-y     = fork.o exec_domain.o panic.o \
+ 	    cpu.o exit.o softirq.o resource.o \

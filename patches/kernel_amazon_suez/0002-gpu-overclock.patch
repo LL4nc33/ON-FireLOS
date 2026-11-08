@@ -1,0 +1,91 @@
+diff --git a/drivers/misc/mediatek/base/power/mt8173/mt_gpufreq.c b/drivers/misc/mediatek/base/power/mt8173/mt_gpufreq.c
+index 44c32a45..b25bee6e 100644
+--- a/drivers/misc/mediatek/base/power/mt8173/mt_gpufreq.c
++++ b/drivers/misc/mediatek/base/power/mt8173/mt_gpufreq.c
+@@ -182,6 +182,18 @@ static DEFINE_MUTEX(mt_gpufreq_lock);
+ static DEFINE_MUTEX(mt_gpufreq_power_lock);
+ 
+ static unsigned int mt_gpufreqs_num;
++
++/* ON-FireLOS: make higher GPU steps available. Commenting out one line
++   is enough for the stock state. */
++#define ONFIRELOS_GPU_OVERCLOCK 1
++
++#ifdef ONFIRELOS_GPU_OVERCLOCK
++/* Upper limit in kHz. Stock value 445000; other possible steps: 598000,
++   698000. 0 switches the limit off. */
++static unsigned int onfirelos_gpu_max_khz = 445000;
++module_param(onfirelos_gpu_max_khz, uint, 0644);
++MODULE_PARM_DESC(onfirelos_gpu_max_khz, "GPU upper limit in kHz, 0 = off");
++#endif
+ static struct mt_gpufreq_table_info *mt_gpufreqs;
+ static struct mt_gpufreq_table_info *mt_gpufreqs_default;
+ static struct mt_gpufreq_power_table_info *mt_gpufreqs_power;
+@@ -269,7 +281,25 @@ static unsigned int mt_gpufreq_check_dvfs_efuse(void)
+ 
+     /* If using mt6311 pmic, should restrict gpu top freq as 450MHz. */
+ #ifdef CONFIG_REGULATOR_MT6311
++#ifdef ONFIRELOS_GPU_OVERCLOCK
++	/* On suez the MT6311 does NOT supply the GPU but the big
++	 * CPU cluster. According to the device tree (suez_dvt.dts):
++	 *
++	 *   mtgpufreq { reg-vgpu-supply       = <&mt6397_vgpu_reg>; }
++	 *   mtcpufreq { reg-ext-vpca57-supply = <&mt6311_vcpu_reg>; }
++	 *
++	 * So the cap here applies across the board as soon as the MT6311
++	 * driver is built in, without it describing the GPU supply. The
++	 * mt6397 VGPU regulator can do 700 to 1350 mV; the 1130 mV of the
++	 * higher steps are within that.
++	 *
++	 * Hence the full table. The stock cap of 445 MHz is applied by
++	 * onfirelos_gpu_max_khz further down - adjustable at runtime.
++	 */
++	type = GPUFREQ_TYPE_700;
++#else
+ 	type = GPUFREQ_TYPE_450;
++#endif
+ 	return type;
+ #endif
+ 
+@@ -950,6 +980,41 @@ unsigned int mt_gpufreq_target(unsigned int idx)
+ 			mt_gpufreq_ptpod_disable_idx);
+ 	}
+ 
++#ifdef ONFIRELOS_GPU_OVERCLOCK
++    /************************************************
++    * ON-FireLOS: user upper limit
++    *
++    * The full table is always built (698/598/445/396/253 MHz). The
++    * stock cap of 445 MHz is applied here, not when building the table -
++    * that way it can be moved at runtime, without a reboot:
++    *
++    *   /sys/module/mt_gpufreq/parameters/onfirelos_gpu_max_khz
++    *
++    * 0 means no limit. The explicit debug settings from
++    * /proc/gpufreq (fixed, keep opp) and the PTPOD calibration keep
++    * precedence - interfering with them would be wrong.
++    *
++    * The table is sorted in descending order, so the first entry below
++    * the limit is the highest allowed step.
++    *************************************************/
++	if (onfirelos_gpu_max_khz
++	    && mt_gpufreq_fixed_freq_volt_state == false
++	    && mt_gpufreq_keep_opp_frequency_state == false
++	    && mt_gpufreq_ptpod_disable == false
++	    && target_freq > onfirelos_gpu_max_khz) {
++		unsigned int i;
++
++		for (i = 0; i < mt_gpufreqs_num; i++) {
++			if (mt_gpufreqs[i].gpufreq_khz <= onfirelos_gpu_max_khz) {
++				target_freq = mt_gpufreqs[i].gpufreq_khz;
++				target_volt = mt_gpufreqs[i].gpufreq_volt;
++				target_idx = mt_gpufreqs[i].gpufreq_idx;
++				break;
++			}
++		}
++	}
++#endif
++
+     /************************************************
+     * target frequency == current frequency, skip it
+     *************************************************/

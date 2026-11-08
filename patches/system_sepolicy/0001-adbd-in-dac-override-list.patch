@@ -1,0 +1,21 @@
+diff --git a/public/domain.te b/public/domain.te
+index 6618c4b..b3f74f5 100644
+--- a/public/domain.te
++++ b/public/domain.te
+@@ -1363,6 +1363,16 @@ full_treble_only(`
+ # Instead of granting them it is usually better to add the domain to
+ # a Unix group or change the permissions of a file.
+ define(`dac_override_allowed', `{
++  # ON-FireLOS: on this userdebug build adbd runs as root with the full
++  # capability set anyway - removing the permission gains nothing and
++  # could break adb in enforcing mode. AOSP does not grant it to adbd
++  # otherwise.
++  #
++  # Only types from the public policy may be listed here: the list is
++  # also compiled for plat_pub_policy, which knows no vendor
++  # domains. That is why MediaTek's kisd had to be removed as well
++  # instead of being exempted.
++  adbd
+   dnsmasq
+   dumpstate
+   init

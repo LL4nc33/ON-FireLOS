@@ -1,0 +1,26 @@
+# No foreign binaries here. The camera, Wi-Fi, GPU and audio drivers belong to
+# Amazon and MediaTek; scripts/extract-blobs.sh pulls them from your own
+# device, the one they are licensed on.
+*.so
+*.img
+*.bin
+*.zip
+*.apk
+
+# Build output
+out/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Platform tools are platform-specific binaries, not our code
+tools/platform-tools/
+
+# Signing keys never belong in the repository.
+keys/
+*.pk8
+*.x509.pem
+
+# Logs of scripts/verify-camera.sh (device log, test photos)
+findings/camera-verify/

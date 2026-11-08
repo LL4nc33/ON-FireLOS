@@ -1,0 +1,21 @@
+From: ON-FireLOS
+Subject: [PATCH] uvcvideo: do not parse frames of UVC_VS_UNDEFINED (CVE-2024-53104)
+
+For formats without frame descriptors (DV), ftype stays 0. A crafted
+USB camera descriptor of type UVC_VS_UNDEFINED (0) then still matched
+the loop, and more frames were written than memory had been allocated
+for. The driver is built in, a USB device on the OTG port is enough.
+Corresponds to upstream ecf2b43018da ("media: uvcvideo: Skip parsing frames of
+type UVC_VS_UNDEFINED in uvc_parse_format").
+---
+--- a/drivers/media/usb/uvc/uvc_driver.c	2026-10-29 14:08:46.983808871 +0000
++++ b/drivers/media/usb/uvc/uvc_driver.c	2026-10-29 14:13:45.156396027 +0000
+@@ -455,7 +455,7 @@
+ 	/* Parse the frame descriptors. Only uncompressed, MJPEG and frame
+ 	 * based formats have frame descriptors.
+ 	 */
+-	while (buflen > 2 && buffer[1] == USB_DT_CS_INTERFACE &&
++	while (ftype && buflen > 2 && buffer[1] == USB_DT_CS_INTERFACE &&
+ 	       buffer[2] == ftype) {
+ 		frame = &format->frame[format->nframes];
+ 		if (ftype != UVC_VS_FRAME_FRAME_BASED)

@@ -1,0 +1,12 @@
+diff --git a/fonts.mk b/fonts.mk
+index fea0aef..d79f697 100644
+--- a/fonts.mk
++++ b/fonts.mk
+@@ -191,7 +191,6 @@ PRODUCT_PACKAGES := \
+     NotoSerifArmenian-Regular.ttf \
+     NotoSerifBengali-Bold.ttf \
+     NotoSerifBengali-Regular.ttf \
+-    NotoSerifCJK-Regular.ttc \
+     NotoSerifDevanagari-Bold.ttf \
+     NotoSerifDevanagari-Regular.ttf \
+     NotoSerifEthiopic-Bold.otf \

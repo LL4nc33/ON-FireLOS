@@ -1,0 +1,42 @@
+From: ON-FireLOS
+Subject: [PATCH] f2fs: also write a clean checkpoint on umount
+
+After the sync before every shutdown the file system is clean, and
+f2fs_put_super no longer wrote a checkpoint. The last one carried no
+umount flag, and fsck.f2fs took every reboot for a power failure.
+Only helps if /data can actually be unmounted at shutdown.
+Corresponds to upstream "f2fs: write checkpoint before put_super" (Linux 4.2).
+---
+diff -ru a/fs/f2fs/checkpoint.c b/fs/f2fs/checkpoint.c
+--- a/fs/f2fs/checkpoint.c	2026-10-29 04:08:38.450237907 +0000
++++ b/fs/f2fs/checkpoint.c	2026-10-29 04:08:38.450452638 +0000
+@@ -996,7 +996,8 @@
+ 
+ 	mutex_lock(&sbi->cp_mutex);
+ 
+-	if (!sbi->s_dirty && cpc->reason != CP_DISCARD)
++	if (!sbi->s_dirty && cpc->reason != CP_DISCARD &&
++			cpc->reason != CP_UMOUNT)
+ 		goto out;
+ 	if (unlikely(f2fs_cp_error(sbi)))
+ 		goto out;
+diff -ru a/fs/f2fs/super.c b/fs/f2fs/super.c
+--- a/fs/f2fs/super.c	2026-10-29 04:08:38.449839645 +0000
++++ b/fs/f2fs/super.c	2026-10-29 04:08:38.450152466 +0000
+@@ -435,8 +435,14 @@
+ 	f2fs_destroy_stats(sbi);
+ 	stop_gc_thread(sbi);
+ 
+-	/* We don't need to do checkpoint when it's clean */
+-	if (sbi->s_dirty) {
++	/*
++	 * We don't need to do checkpoint when it's clean - unless the last
++	 * one lacks the umount flag. Android syncs before every shutdown,
++	 * which writes a checkpoint without it; fsck then took every reboot
++	 * for a power loss and checked all of /data (upstream since 4.2).
++	 */
++	if (sbi->s_dirty ||
++			!is_set_ckpt_flags(F2FS_CKPT(sbi), CP_UMOUNT_FLAG)) {
+ 		struct cp_control cpc = {
+ 			.reason = CP_UMOUNT,
+ 		};

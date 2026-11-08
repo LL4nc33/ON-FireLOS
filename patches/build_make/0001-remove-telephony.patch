@@ -1,0 +1,80 @@
+diff --git a/target/product/core.mk b/target/product/core.mk
+index dfce360..b3fef1f 100644
+--- a/target/product/core.mk
++++ b/target/product/core.mk
+@@ -20,6 +20,21 @@
+ # core_minimal.mk instead. If you care about wearables, you need to modify
+ # core_tiny.mk in addition to core_minimal.mk.
+ 
++# ON-FireLOS: telephony removed.
++#
++# This device (Amazon Fire HD 10 2017, Wi-Fi model) has no modem and
++# no SIM slot; "pm list features" has no
++# android.hardware.telephony. Measured, com.android.phone cost 10.7 MB
++# PSS and 1.08 seconds of CPU in 4.3 hours - no performance gain. The
++# gain is 22 MB on /system, on a partition that is 95 percent full.
++#
++# Why here and not in the device tree: PRODUCT_PACKAGES can only add,
++# and in Android 9 inherit-product only appends a marker instead of the
++# values (build/make/core/product.mk). A $(filter-out ...) in the device's
++# product file therefore finds nothing to filter - the names only appear
++# literally here. This tree builds suez exclusively.
++# Removed: SimAppDialog, Telecom, TeleService, MmsService.
++
+ PRODUCT_PACKAGES += \
+     BasicDreams \
+     BlockedNumberProvider \
+@@ -54,21 +69,16 @@ PRODUCT_PACKAGES += \
+     Settings \
+     SettingsIntelligence \
+     SharedStorageBackup \
+-    SimAppDialog \
+     StorageManager \
+-    Telecom \
+-    TeleService \
+     Traceur \
+     VpnDialogs \
+-    vr \
+-    MmsService
++    vr
+ 
+ # The set of packages whose code can be loaded by the system server.
+ PRODUCT_SYSTEM_SERVER_APPS += \
+     FusedLocation \
+     InputDevices \
+     KeyChain \
+-    Telecom \
+ 
+ # The set of packages we want to force 'speed' compilation on.
+ PRODUCT_DEXPREOPT_SPEED_APPS += \
+diff --git a/target/product/core_base.mk b/target/product/core_base.mk
+index 5b37b8d..d1fd0ee 100644
+--- a/target/product/core_base.mk
++++ b/target/product/core_base.mk
+@@ -16,11 +16,25 @@
+ # Note that components added here will be also shared in PDK. Components
+ # that should not be in PDK should be added in lower level like core.mk.
+ 
++# ON-FireLOS: telephony removed.
++#
++# This device (Amazon Fire HD 10 2017, Wi-Fi model) has no modem and
++# no SIM slot; "pm list features" has no
++# android.hardware.telephony. Measured, com.android.phone cost 10.7 MB
++# PSS and 1.08 seconds of CPU in 4.3 hours - no performance gain. The
++# gain is 22 MB on /system, on a partition that is 95 percent full.
++#
++# Why here and not in the device tree: PRODUCT_PACKAGES can only add,
++# and in Android 9 inherit-product only appends a marker instead of the
++# values (build/make/core/product.mk). A $(filter-out ...) in the device's
++# product file therefore finds nothing to filter - the names only appear
++# literally here. This tree builds suez exclusively.
++# Removed: TelephonyProvider.
++
+ PRODUCT_PACKAGES += \
+     ContactsProvider \
+     DefaultContainerService \
+     Home \
+-    TelephonyProvider \
+     UserDictionaryProvider \
+     atrace \
+     libandroidfw \
