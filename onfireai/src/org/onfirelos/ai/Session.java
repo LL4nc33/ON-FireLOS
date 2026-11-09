@@ -259,6 +259,13 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             case "screen_scroll": text = mContext.getString(R.string.step_scroll); break;
             case "screen_key": text = mContext.getString(R.string.step_key, detail); break;
             case "open_app": text = mContext.getString(R.string.step_open, detail); break;
+            case "browser_open": text = mContext.getString(R.string.step_open, detail); break;
+            case "browser_read": text = mContext.getString(R.string.step_read_page); break;
+            case "browser_tabs": text = mContext.getString(R.string.step_tabs); break;
+            case "browser_media": text = mContext.getString(R.string.step_music); break;
+            case "browser_act": text = detail.isEmpty()
+                    ? mContext.getString(R.string.step_page)
+                    : mContext.getString(R.string.step_tap, detail); break;
             default: text = Agent.readable(tool) + "…";
         }
         if (mVisible) {

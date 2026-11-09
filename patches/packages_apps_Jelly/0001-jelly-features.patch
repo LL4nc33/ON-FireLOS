@@ -79,7 +79,7 @@ index 277567e..dd89dc1 100644
 +
  include $(BUILD_PACKAGE)
 diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
-index fceafc5..f559289 100644
+index fceafc5..6a4805a 100644
 --- a/app/src/main/AndroidManifest.xml
 +++ b/app/src/main/AndroidManifest.xml
 @@ -20,15 +20,31 @@
@@ -163,7 +163,7 @@ index fceafc5..f559289 100644
              android:label="@string/settings_title"
              android:theme="@style/AppTheme.NoActionBar" />
  
-@@ -110,6 +145,42 @@
+@@ -110,6 +145,53 @@
              android:authorities="org.lineageos.jelly.history"
              android:exported="false" />
  
@@ -196,6 +196,17 @@ index fceafc5..f559289 100644
 +        <service
 +            android:name=".webview.ReadAloud"
 +            android:exported="false" />
++
++        <!-- The browser bridge for the assistant (ON-FireAI): tabs, reading
++             pages, acting in them. Exported, but every call is checked and only
++             platform-signed callers get an answer (control/BrowserControl). -->
++        <service
++            android:name=".control.BrowserControl"
++            android:exported="true">
++            <intent-filter>
++                <action android:name="org.lineageos.jelly.action.BROWSER_CONTROL" />
++            </intent-filter>
++        </service>
 +
 +        <!-- The WebView asks Play services for barcode detection and takes the
 +             whole app down if this is missing: any page could do that. -->
@@ -2423,6 +2434,1363 @@ index 0000000..e3310a8
 +    private int dp(int v) {
 +        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
 +                getResources().getDisplayMetrics());
++    }
++}
+diff --git a/app/src/main/java/org/lineageos/jelly/control/BrowserControl.java b/app/src/main/java/org/lineageos/jelly/control/BrowserControl.java
+new file mode 100644
+index 0000000..ad2bc45
+--- /dev/null
++++ b/app/src/main/java/org/lineageos/jelly/control/BrowserControl.java
+@@ -0,0 +1,205 @@
++/*
++ * Copyright (C) 2026 ON-FireLOS
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.lineageos.jelly.control;
++
++import android.app.Service;
++import android.content.Intent;
++import android.content.pm.PackageManager;
++import android.os.Binder;
++import android.os.Handler;
++import android.os.IBinder;
++import android.os.Looper;
++import android.os.Parcel;
++import android.os.RemoteException;
++import android.os.SystemClock;
++import android.util.Log;
++
++import org.json.JSONException;
++import org.json.JSONObject;
++
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.TimeUnit;
++
++/**
++ * The browser bridge for the assistant (ON-FireAI): it lists, opens and
++ * switches tabs, reads pages and acts in them. Protocol v1, see
++ * browser-bridge-spec.md.
++ *
++ * A plain Binder, no AIDL: transaction 1 carries a JSON request as a string
++ * and answers with a JSON string. The caller must be platform-signed; any
++ * other app gets "not allowed" and nothing else. The work runs on the main
++ * thread, where the WebViews live; the binder thread waits for the answer,
++ * 15 s unless the request asks for another time (at most 30 s).
++ *
++ * Nothing of a page is logged, only the command and action names.
++ */
++public class BrowserControl extends Service {
++
++    static final String TAG = "BrowserControl";
++    public static final String ACTION = "org.lineageos.jelly.action.BROWSER_CONTROL";
++
++    private static final int TRANSACTION_REQUEST = 1;
++    private static final long TIMEOUT_DEFAULT_MS = 15000;
++    private static final long TIMEOUT_MIN_MS = 1000;
++    private static final long TIMEOUT_MAX_MS = 30000;
++    // Waits inside a command end this much before the caller gives up, so
++    // that "still loading" still arrives as an answer and not as a timeout.
++    private static final long ANSWER_MARGIN_MS = 400;
++
++    private final Handler mMain = new Handler(Looper.getMainLooper());
++
++    private final Binder mBinder = new Binder() {
++        @Override
++        protected boolean onTransact(int code, Parcel data, Parcel reply, int flags)
++                throws RemoteException {
++            if (code != TRANSACTION_REQUEST) {
++                return super.onTransact(code, data, reply, flags);
++            }
++            // First of all, before anything of the request is looked at.
++            boolean allowed = isAllowed(Binder.getCallingUid());
++            String response = allowed ? handle(data.readString())
++                    : Job.error("not allowed").toString();
++            if (reply != null) {
++                reply.writeString(response);
++            }
++            return true;
++        }
++    };
++
++    @Override
++    public IBinder onBind(Intent intent) {
++        return mBinder;
++    }
++
++    /** Platform-signed: the system and the ROM's own apps. */
++    private boolean isAllowed(int uid) {
++        PackageManager pm = getPackageManager();
++        String[] packages = pm.getPackagesForUid(uid);
++        if (packages == null) {
++            return false;
++        }
++        for (String pkg : packages) {
++            if (pm.checkSignatures("android", pkg) == PackageManager.SIGNATURE_MATCH) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String handle(String request) {
++        JSONObject req;
++        try {
++            req = new JSONObject(request != null ? request : "");
++        } catch (JSONException e) {
++            return Job.error("bad request").toString();
++        }
++        if (Looper.myLooper() == Looper.getMainLooper()) {
++            // A call from inside the app would wait for itself.
++            return Job.error("not on the main thread").toString();
++        }
++        long timeout = Math.max(TIMEOUT_MIN_MS, Math.min(TIMEOUT_MAX_MS,
++                req.optLong("timeout", TIMEOUT_DEFAULT_MS)));
++        log(req);
++        Job job = new Job(req, SystemClock.uptimeMillis() + timeout - ANSWER_MARGIN_MS);
++        mMain.post(() -> Commands.run(this, job));
++        return job.await(timeout);
++    }
++
++    private static void log(JSONObject req) {
++        String cmd = req.optString("cmd");
++        String action = req.optString("action");
++        Log.i(TAG, (isName(cmd) ? cmd : "?")
++                + (isName(action) ? " " + action : action.isEmpty() ? "" : " ?"));
++    }
++
++    // Command and action names are short words; anything else is not logged.
++    private static boolean isName(String s) {
++        return s.matches("[a-zA-Z]{1,12}");
++    }
++
++    /** One request: answered once, by the command or by the timeout. */
++    static final class Job {
++        final JSONObject req;
++        /** Uptime by which a command should answer, waits included. */
++        final long deadline;
++        private final CountDownLatch mLatch = new CountDownLatch(1);
++        private String mResponse;
++        private boolean mDone;
++
++        Job(JSONObject req, long deadline) {
++            this.req = req;
++            this.deadline = deadline;
++        }
++
++        synchronized boolean isDone() {
++            return mDone;
++        }
++
++        long remaining() {
++            return Math.max(0, deadline - SystemClock.uptimeMillis());
++        }
++
++        /** Answers with ok:true and the given fields. */
++        void reply(JSONObject fields) {
++            JSONObject o = fields != null ? fields : new JSONObject();
++            try {
++                o.put("ok", true);
++            } catch (JSONException ignored) {
++            }
++            finish(o);
++        }
++
++        void fail(String error) {
++            finish(error(error));
++        }
++
++        private synchronized void finish(JSONObject o) {
++            if (mDone) {
++                return;
++            }
++            mDone = true;
++            mResponse = o.toString();
++            mLatch.countDown();
++        }
++
++        String await(long timeout) {
++            try {
++                mLatch.await(timeout, TimeUnit.MILLISECONDS);
++            } catch (InterruptedException e) {
++                Thread.currentThread().interrupt();
++            }
++            synchronized (this) {
++                if (!mDone) {
++                    // Whatever the command still does, its answer is dropped.
++                    mDone = true;
++                    mResponse = error("timeout").toString();
++                }
++                return mResponse;
++            }
++        }
++
++        static JSONObject error(String error) {
++            JSONObject o = new JSONObject();
++            try {
++                o.put("ok", false);
++                o.put("error", error);
++            } catch (JSONException ignored) {
++            }
++            return o;
++        }
++    }
++}
+diff --git a/app/src/main/java/org/lineageos/jelly/control/Commands.java b/app/src/main/java/org/lineageos/jelly/control/Commands.java
+new file mode 100644
+index 0000000..87e951f
+--- /dev/null
++++ b/app/src/main/java/org/lineageos/jelly/control/Commands.java
+@@ -0,0 +1,886 @@
++/*
++ * Copyright (C) 2026 ON-FireLOS
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.lineageos.jelly.control;
++
++import android.content.Context;
++import android.content.Intent;
++import android.net.Uri;
++import android.os.Handler;
++import android.os.Looper;
++import android.os.SystemClock;
++import android.text.TextUtils;
++import android.util.Log;
++import android.view.InputDevice;
++import android.view.MotionEvent;
++import android.view.View;
++import android.webkit.WebSettings;
++
++import org.json.JSONArray;
++import org.json.JSONException;
++import org.json.JSONObject;
++import org.json.JSONTokener;
++import org.lineageos.jelly.MainActivity;
++import org.lineageos.jelly.R;
++import org.lineageos.jelly.control.BrowserControl.Job;
++import org.lineageos.jelly.control.Tabs.Tab;
++import org.lineageos.jelly.utils.IntentUtils;
++import org.lineageos.jelly.webapp.WebAppManifest;
++import org.lineageos.jelly.webview.WebViewExt;
++
++import java.io.ByteArrayOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.util.Arrays;
++import java.util.HashSet;
++import java.util.Set;
++import java.util.function.Consumer;
++
++/**
++ * The commands of the browser bridge (BrowserControl), on the main thread.
++ *
++ * What happens inside a page is done by res/raw/browser_control.js,
++ * evaluated in the main frame for each step; it answers with a plain object.
++ * Everything that waits - for a page to load, for a navigation after a click
++ * - answers by the job's deadline at the latest, with what is there by then.
++ */
++final class Commands {
++
++    private static final String TAG = BrowserControl.TAG;
++
++    /** After a click, Enter or a submit: how long a navigation may take to start. */
++    private static final long NAV_START_MS = 3000;
++    /** A same-document navigation (pushState) may still be followed by a real one. */
++    private static final long HISTORY_SETTLE_MS = 400;
++    /** Between finger down and up of a tap. */
++    private static final long TAP_MS = 60;
++    /** play() is asynchronous: how long to give it before looking. */
++    private static final long MEDIA_SETTLE_MS = 800;
++    /** How long a play() may go without a touch after the page asked for one. */
++    private static final long MEDIA_UNLOCK_MS = 3000;
++
++    private static final int MAX_ELEMENTS = 150;
++    private static final int TEXT_DEFAULT = 6000;
++    private static final int TEXT_MIN = 100;
++    private static final int TEXT_MAX = 100000;
++    private static final Set<String> KEYS = new HashSet<>(Arrays.asList(
++            "Enter", "Escape", "Tab", "PageDown", "PageUp", "Home", "End"));
++
++    private static final Handler sMain = new Handler(Looper.getMainLooper());
++    private static String sControl;
++    private static String sReadability;
++
++    private Commands() {
++    }
++
++    static void run(Context c, Job job) {
++        if (job.isDone()) {
++            return;
++        }
++        try {
++            dispatch(c, job);
++        } catch (RuntimeException e) {
++            Log.w(TAG, "Command failed: " + e.getClass().getSimpleName());
++            job.fail("internal error");
++        }
++    }
++
++    private static void dispatch(Context c, Job job) {
++        switch (str(job.req, "cmd")) {
++            case "tabs":
++                tabs(job);
++                break;
++            case "open":
++                open(c, job);
++                break;
++            case "switch":
++                switchTo(c, job);
++                break;
++            case "close":
++                close(job);
++                break;
++            case "nav":
++                nav(job);
++                break;
++            case "read":
++                read(c, job);
++                break;
++            case "act":
++                act(c, job);
++                break;
++            case "media":
++                media(c, job);
++                break;
++            default:
++                job.fail("unknown cmd");
++        }
++    }
++
++    // Tabs
++
++    private static void tabs(Job job) {
++        JSONArray list = new JSONArray();
++        for (Tab tab : Tabs.list()) {
++            JSONObject o = new JSONObject();
++            put(o, "id", tab.id);
++            put(o, "title", nz(tab.view.getTitle()));
++            put(o, "url", nz(tab.view.getUrl()));
++            put(o, "front", tab.isFront());
++            put(o, "incognito", tab.incognito);
++            put(o, "webapp", tab.webapp);
++            put(o, "loading", tab.view.isLoading());
++            list.put(o);
++        }
++        JSONObject o = new JSONObject();
++        put(o, "tabs", list);
++        job.reply(o);
++    }
++
++    /** The tab a command is about; fails the job and returns null if there is none. */
++    private static Tab target(Job job) {
++        String id = str(job.req, "tab");
++        Tab tab;
++        if (id.isEmpty()) {
++            tab = Tabs.defaultTab();
++            if (tab == null) {
++                job.fail("no tab open");
++                return null;
++            }
++        } else if (Tabs.BACKGROUND.equals(id)) {
++            tab = Tabs.background(null, false);
++            if (tab == null) {
++                job.fail("no background tab");
++                return null;
++            }
++        } else {
++            tab = Tabs.find(id);
++            if (tab == null) {
++                job.fail("no such tab");
++                return null;
++            }
++        }
++        Tabs.touch(tab);
++        return tab;
++    }
++
++    private static void open(Context c, Job job) {
++        String url = str(job.req, "url").trim();
++        if (url.isEmpty()) {
++            job.fail("url missing");
++            return;
++        }
++        String id = str(job.req, "tab");
++        if (job.req.optBoolean("background") || Tabs.BACKGROUND.equals(id)) {
++            load(job, Tabs.background(c, true), url);
++            return;
++        }
++        Tab tab = null;
++        if (!job.req.optBoolean("newTab")) {
++            if (!id.isEmpty()) {
++                tab = Tabs.find(id);
++                if (tab == null) {
++                    job.fail("no such tab");
++                    return;
++                }
++            } else {
++                tab = Tabs.defaultTab();
++            }
++        }
++        // A web app window shows its own pages only; anything else gets a tab.
++        if (tab != null && tab.webapp
++                && !WebAppManifest.isInScope(tab.view.getWebAppScope(), url)) {
++            tab = null;
++        }
++        if (tab == null) {
++            openWindow(c, job, url);
++            return;
++        }
++        Tabs.touch(tab);
++        Tabs.toFront(c, tab);
++        load(job, tab, url);
++    }
++
++    private static void load(Job job, Tab tab, String url) {
++        tab.token = null;
++        PageWait wait = new PageWait(job, tab, navigated -> job.reply(page(tab, true)));
++        tab.view.loadUrl(url);
++        wait.arm(job.remaining());
++    }
++
++    /** A new browser window; answers once its page has loaded. */
++    private static void openWindow(Context c, Job job, String url) {
++        Intent intent = new Intent(c, MainActivity.class)
++                .setData(Uri.parse(url))
++                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NEW_DOCUMENT
++                        | Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
++                .putExtra(IntentUtils.EXTRA_INCOGNITO, false);
++        final Runnable[] giveUp = new Runnable[1];
++        // The window reports in while it is set up, before it starts loading.
++        Consumer<Tab> waiter = new Consumer<Tab>() {
++            @Override
++            public void accept(Tab tab) {
++                if (tab.webapp) {
++                    return;
++                }
++                Tabs.removeListener(this);
++                sMain.removeCallbacks(giveUp[0]);
++                if (job.isDone()) {
++                    return;
++                }
++                PageWait wait = new PageWait(job, tab, navigated -> job.reply(page(tab, true)));
++                wait.arm(job.remaining());
++            }
++        };
++        giveUp[0] = () -> {
++            Tabs.removeListener(waiter);
++            job.fail("the new tab did not open");
++        };
++        Tabs.addListener(waiter);
++        try {
++            c.startActivity(intent);
++        } catch (RuntimeException e) {
++            Tabs.removeListener(waiter);
++            job.fail("cannot open a tab");
++            return;
++        }
++        sMain.postDelayed(giveUp[0], job.remaining());
++    }
++
++    private static void switchTo(Context c, Job job) {
++        String id = str(job.req, "tab");
++        if (id.isEmpty()) {
++            job.fail("tab missing");
++            return;
++        }
++        if (Tabs.BACKGROUND.equals(id)) {
++            // Its page is shown by opening the address visibly.
++            job.fail("the background tab cannot be shown");
++            return;
++        }
++        Tab tab = Tabs.find(id);
++        if (tab == null) {
++            job.fail("no such tab");
++            return;
++        }
++        Tabs.touch(tab);
++        Tabs.toFront(c, tab);
++        JSONObject o = new JSONObject();
++        put(o, "tab", tab.id);
++        job.reply(o);
++    }
++
++    private static void close(Job job) {
++        String id = str(job.req, "tab");
++        if (id.isEmpty()) {
++            job.fail("tab missing");
++            return;
++        }
++        if (Tabs.BACKGROUND.equals(id)) {
++            Tabs.releaseBackground();
++            job.reply(null);
++            return;
++        }
++        Tab tab = Tabs.find(id);
++        if (tab == null) {
++            job.fail("no such tab");
++            return;
++        }
++        tab.activity.finishAndRemoveTask();
++        job.reply(null);
++    }
++
++    private static void nav(Job job) {
++        Tab tab = target(job);
++        if (tab == null) {
++            return;
++        }
++        WebViewExt view = tab.view;
++        Runnable go;
++        switch (str(job.req, "action")) {
++            case "back":
++                if (!view.canGoBack()) {
++                    job.fail("no page to go back to");
++                    return;
++                }
++                go = view::goBack;
++                break;
++            case "forward":
++                if (!view.canGoForward()) {
++                    job.fail("no page to go forward to");
++                    return;
++                }
++                go = view::goForward;
++                break;
++            case "reload":
++                go = view::reload;
++                break;
++            default:
++                job.fail("unknown action");
++                return;
++        }
++        tab.token = null;
++        PageWait wait = new PageWait(job, tab, navigated -> job.reply(page(tab, false)));
++        go.run();
++        wait.arm(NAV_START_MS);
++    }
++
++    // Reading
++
++    private static void read(Context c, Job job) {
++        Tab tab = target(job);
++        if (tab == null || !javascript(tab, job)) {
++            return;
++        }
++        String what = str(job.req, "what");
++        if (what.isEmpty()) {
++            what = "both";
++        }
++        if (!what.equals("both") && !what.equals("text") && !what.equals("elements")) {
++            job.fail("what must be elements, text or both");
++            return;
++        }
++        boolean text = !what.equals("elements");
++        boolean elements = !what.equals("text");
++        JSONObject args = new JSONObject();
++        put(args, "op", "read");
++        put(args, "text", text);
++        put(args, "elements", elements);
++        put(args, "max", Math.max(TEXT_MIN, Math.min(TEXT_MAX,
++                job.req.optInt("max", TEXT_DEFAULT))));
++        put(args, "from", Math.max(1, job.req.optInt("from", 1)));
++        put(args, "limit", MAX_ELEMENTS);
++        put(args, "token", tab.token != null ? tab.token : "");
++        script(c, tab, args, text, job, res -> {
++            if (failed(job, res)) {
++                return;
++            }
++            JSONObject o = page(tab, false);
++            boolean more = false;
++            if (elements) {
++                tab.token = res.optString("token", tab.token);
++                JSONArray list = res.optJSONArray("elements");
++                put(o, "elements", list != null ? list : new JSONArray());
++                more = res.optBoolean("elementsMore");
++                if (res.has("next")) {
++                    put(o, "next", res.optInt("next"));
++                }
++            }
++            if (text) {
++                put(o, "text", res.optString("text"));
++                more |= res.optBoolean("textMore");
++            }
++            put(o, "more", more);
++            job.reply(o);
++        });
++    }
++
++    // Acting
++
++    private static void act(Context c, Job job) {
++        Tab tab = target(job);
++        if (tab == null || !javascript(tab, job)) {
++            return;
++        }
++        String action = str(job.req, "action");
++        int n = job.req.optInt("n", 0);
++        JSONObject args = new JSONObject();
++        put(args, "token", tab.token != null ? tab.token : "");
++        put(args, "n", n);
++        put(args, "text", str(job.req, "text"));
++        put(args, "submit", job.req.optBoolean("submit"));
++        put(args, "key", str(job.req, "key"));
++        put(args, "direction", str(job.req, "direction"));
++        boolean navigating;
++        switch (action) {
++            case "click":
++            case "type":
++            case "select":
++            case "check":
++                if (n < 1) {
++                    job.fail("n missing");
++                    return;
++                }
++                if (action.equals("click")) {
++                    click(c, job, tab, args);
++                    return;
++                }
++                navigating = action.equals("type") && job.req.optBoolean("submit");
++                break;
++            case "key":
++                if (!KEYS.contains(str(job.req, "key"))) {
++                    job.fail("unknown key");
++                    return;
++                }
++                navigating = str(job.req, "key").equals("Enter");
++                break;
++            case "scroll":
++            case "find":
++                navigating = false;
++                break;
++            default:
++                job.fail("unknown action");
++                return;
++        }
++        put(args, "op", action);
++        // Listening already: the script itself may start the navigation.
++        final JSONObject[] result = new JSONObject[1];
++        PageWait wait = navigating
++                ? new PageWait(job, tab, navigated -> replyAct(job, tab, result[0], navigated))
++                : null;
++        script(c, tab, args, false, job, res -> {
++            if (failed(job, res)) {
++                if (wait != null) {
++                    wait.cancel();
++                }
++                return;
++            }
++            result[0] = res;
++            if (wait != null && res.optBoolean("nav")) {
++                wait.arm(NAV_START_MS);
++            } else {
++                if (wait != null) {
++                    wait.cancel();
++                }
++                replyAct(job, tab, res, false);
++            }
++        });
++    }
++
++    /**
++     * In the window in front, a tap on the WebView where the element is: a
++     * real touch, which sites that want a user gesture (playing a video,
++     * opening a window) accept. Where the element is covered, off screen, or
++     * the tab is not on screen at all, the element's own click().
++     */
++    private static void click(Context c, Job job, Tab tab, JSONObject args) {
++        JSONObject clicked = new JSONObject();
++        put(clicked, "done", true);
++        PageWait wait = new PageWait(job, tab, navigated -> replyAct(job, tab, clicked, navigated));
++        put(args, "op", "locate");
++        script(c, tab, args, false, job, res -> {
++            if (failed(job, res)) {
++                wait.cancel();
++                return;
++            }
++            float x = (float) res.optDouble("x", -1);
++            float y = (float) res.optDouble("y", -1);
++            if (res.optBoolean("hit") && canTouch(tab, x, y)) {
++                tap(tab, x, y, () -> wait.arm(NAV_START_MS));
++                return;
++            }
++            put(args, "op", "click");
++            script(c, tab, args, false, job, res2 -> {
++                if (failed(job, res2)) {
++                    wait.cancel();
++                    return;
++                }
++                wait.arm(NAV_START_MS);
++            });
++        });
++    }
++
++    private static boolean canTouch(Tab tab, float x, float y) {
++        View view = tab.view;
++        return !tab.isBackground() && tab.isFront() && !tab.activity.isInPictureInPictureMode()
++                && view.isAttachedToWindow() && view.isShown()
++                && x >= 0 && y >= 0 && x < view.getWidth() && y < view.getHeight();
++    }
++
++    private static void tap(Tab tab, float x, float y, Runnable then) {
++        long down = SystemClock.uptimeMillis();
++        touch(tab.view, down, down, MotionEvent.ACTION_DOWN, x, y);
++        sMain.postDelayed(() -> {
++            if (Tabs.isLive(tab)) {
++                touch(tab.view, down, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x, y);
++            }
++            then.run();
++        }, TAP_MS);
++    }
++
++    private static void touch(View view, long down, long time, int action, float x, float y) {
++        MotionEvent.PointerProperties props = new MotionEvent.PointerProperties();
++        props.id = 0;
++        props.toolType = MotionEvent.TOOL_TYPE_FINGER;
++        MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
++        coords.x = x;
++        coords.y = y;
++        coords.pressure = 1f;
++        coords.size = 1f;
++        MotionEvent event = MotionEvent.obtain(down, time, action, 1,
++                new MotionEvent.PointerProperties[]{props},
++                new MotionEvent.PointerCoords[]{coords},
++                0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0);
++        view.dispatchTouchEvent(event);
++        event.recycle();
++    }
++
++    private static void replyAct(Job job, Tab tab, JSONObject res, boolean navigated) {
++        JSONObject o = new JSONObject();
++        put(o, "done", res != null && res.optBoolean("done"));
++        put(o, "navigated", navigated);
++        put(o, "title", nz(tab.view.getTitle()));
++        put(o, "url", nz(tab.view.getUrl()));
++        String note = res != null ? res.optString("note") : "";
++        if (!note.isEmpty()) {
++            put(o, "note", note);
++        }
++        job.reply(o);
++    }
++
++    // Media
++
++    private static void media(Context c, Job job) {
++        Tab tab = target(job);
++        if (tab == null || !javascript(tab, job)) {
++            return;
++        }
++        String action = str(job.req, "action");
++        if (!action.equals("play") && !action.equals("pause") && !action.equals("seek")) {
++            job.fail("unknown action");
++            return;
++        }
++        JSONObject args = new JSONObject();
++        put(args, "op", "media");
++        put(args, "action", action);
++        if (action.equals("seek")) {
++            double seconds = job.req.optDouble("seconds", Double.NaN);
++            if (Double.isNaN(seconds) || seconds < 0) {
++                job.fail("seconds missing");
++                return;
++            }
++            put(args, "seconds", seconds);
++        }
++        script(c, tab, args, false, job, res -> {
++            if (failed(job, res)) {
++                return;
++            }
++            if (!action.equals("play") || res.optBoolean("playing")) {
++                replyMedia(job, action, res);
++                return;
++            }
++            sMain.postDelayed(() -> mediaCheck(c, job, tab, true), MEDIA_SETTLE_MS);
++        });
++    }
++
++    private static void mediaCheck(Context c, Job job, Tab tab, boolean mayUnlock) {
++        if (job.isDone()) {
++            return;
++        }
++        if (!Tabs.isLive(tab)) {
++            job.fail("tab closed");
++            return;
++        }
++        JSONObject args = new JSONObject();
++        put(args, "op", "mstate");
++        script(c, tab, args, false, job, res -> {
++            if (failed(job, res)) {
++                return;
++            }
++            if (res.optBoolean("playing") || !mayUnlock || !res.optBoolean("blocked")) {
++                replyMedia(job, "play", res);
++                return;
++            }
++            // The page wanted a touch before playing. The user asked the
++            // assistant to play, so for a moment the WebView does not insist.
++            WebSettings settings = tab.view.getSettings();
++            boolean before = settings.getMediaPlaybackRequiresUserGesture();
++            settings.setMediaPlaybackRequiresUserGesture(false);
++            sMain.postDelayed(() -> {
++                if (Tabs.isLive(tab)) {
++                    settings.setMediaPlaybackRequiresUserGesture(before);
++                }
++            }, MEDIA_UNLOCK_MS);
++            JSONObject again = new JSONObject();
++            put(again, "op", "media");
++            put(again, "action", "play");
++            sMain.postDelayed(() -> {
++                if (job.isDone() || !Tabs.isLive(tab)) {
++                    return;
++                }
++                script(c, tab, again, false, job, res2 -> {
++                    if (failed(job, res2)) {
++                        return;
++                    }
++                    sMain.postDelayed(() -> mediaCheck(c, job, tab, false), MEDIA_SETTLE_MS);
++                });
++            }, 200);
++        });
++    }
++
++    private static void replyMedia(Job job, String action, JSONObject res) {
++        boolean playing = res.optBoolean("playing");
++        JSONObject o = new JSONObject();
++        put(o, "done", action.equals("play") ? playing
++                : action.equals("pause") ? !playing : res.optBoolean("done"));
++        put(o, "playing", playing);
++        put(o, "position", res.optDouble("position", 0));
++        Object duration = res.opt("duration");
++        put(o, "duration", duration != null ? duration : JSONObject.NULL);
++        job.reply(o);
++    }
++
++    // The page script
++
++    private static boolean javascript(Tab tab, Job job) {
++        if (!tab.view.getSettings().getJavaScriptEnabled()) {
++            job.fail("javascript is off in this tab");
++            return false;
++        }
++        return true;
++    }
++
++    /** True if there is no usable answer; the job then fails with the script's error. */
++    private static boolean failed(Job job, JSONObject res) {
++        if (res == null) {
++            job.fail("the page did not answer");
++            return true;
++        }
++        String error = res.optString("error");
++        if (!error.isEmpty()) {
++            job.fail(error);
++            return true;
++        }
++        return false;
++    }
++
++    /**
++     * Runs browser_control.js with args in the tab's main frame; reader adds
++     * Readability, the reader view's library, for the text. Both stay local
++     * to the call: nothing is left on the page's window but the marks.
++     */
++    private static void script(Context c, Tab tab, JSONObject args, boolean reader, Job job,
++                               Consumer<JSONObject> result) {
++        if (!Tabs.isLive(tab)) {
++            job.fail("tab closed");
++            return;
++        }
++        StringBuilder js = new StringBuilder("(function(){var module,exports,R=null;");
++        if (reader) {
++            js.append(readability(c)).append("\n;R=typeof Readability=='function'?Readability:null;");
++        }
++        js.append("\nreturn (").append(control(c)).append("\n)(").append(args.toString())
++                .append(",R);})()");
++        tab.view.evaluateJavascript(js.toString(), value -> {
++            if (job.isDone()) {
++                return;
++            }
++            try {
++                result.accept(parse(value));
++            } catch (RuntimeException e) {
++                Log.w(TAG, "Command failed: " + e.getClass().getSimpleName());
++                job.fail("internal error");
++            }
++        });
++    }
++
++    private static JSONObject parse(String value) {
++        if (value == null) {
++            return null;
++        }
++        try {
++            Object o = new JSONTokener(value).nextValue();
++            return o instanceof JSONObject ? (JSONObject) o : null;
++        } catch (JSONException e) {
++            return null;
++        }
++    }
++
++    private static String control(Context c) {
++        if (sControl == null) {
++            String s = raw(c, R.raw.browser_control).trim();
++            // An expression is pasted around it; a closing semicolon would end it.
++            while (s.endsWith(";")) {
++                s = s.substring(0, s.length() - 1).trim();
++            }
++            sControl = s;
++        }
++        return sControl;
++    }
++
++    private static String readability(Context c) {
++        if (sReadability == null) {
++            sReadability = raw(c, R.raw.readability);
++        }
++        return sReadability;
++    }
++
++    private static String raw(Context c, int id) {
++        try (InputStream in = c.getResources().openRawResource(id)) {
++            ByteArrayOutputStream out = new ByteArrayOutputStream();
++            byte[] buffer = new byte[16384];
++            int n;
++            while ((n = in.read(buffer)) > 0) {
++                out.write(buffer, 0, n);
++            }
++            return out.toString("UTF-8");
++        } catch (IOException e) {
++            return "";
++        }
++    }
++
++    // Waiting for pages
++
++    /**
++     * Follows the loads of a tab: whether a navigation starts, and when it
++     * has loaded. It listens from the start, so that a navigation the script
++     * itself set off is not missed; the clock only runs once armed.
++     */
++    private static final class PageWait implements WebViewExt.PageListener {
++        private final Job mJob;
++        private final Tab mTab;
++        private final Consumer<Boolean> mDone;
++        private final String mUrlBefore;
++        private final Runnable mTimer = this::end;
++        private boolean mArmed;
++        private boolean mStarted;
++        private boolean mNavigated;
++        private boolean mLoaded;
++        private boolean mEnded;
++
++        PageWait(Job job, Tab tab, Consumer<Boolean> done) {
++            mJob = job;
++            mTab = tab;
++            mDone = done;
++            mUrlBefore = tab.view.getUrl();
++            tab.view.addPageListener(this);
++        }
++
++        /** startMs: how long a navigation may take to start; its load may take the rest. */
++        void arm(long startMs) {
++            if (mEnded) {
++                return;
++            }
++            mArmed = true;
++            if (mStarted && mLoaded) {
++                end();
++            } else if (mStarted) {
++                schedule(mJob.remaining());
++            } else if (mNavigated) {
++                schedule(Math.min(HISTORY_SETTLE_MS, mJob.remaining()));
++            } else {
++                schedule(Math.min(startMs, mJob.remaining()));
++            }
++        }
++
++        void cancel() {
++            mEnded = true;
++            detach();
++        }
++
++        @Override
++        public void onPageEvent(int event, String url, int progress) {
++            if (mEnded) {
++                return;
++            }
++            switch (event) {
++                case WebViewExt.PAGE_STARTED:
++                    mStarted = true;
++                    mNavigated = true;
++                    mLoaded = false;
++                    if (mArmed) {
++                        schedule(mJob.remaining());
++                    }
++                    break;
++                case WebViewExt.PAGE_HISTORY:
++                    mNavigated = true;
++                    if (mArmed && !mStarted) {
++                        schedule(Math.min(HISTORY_SETTLE_MS, mJob.remaining()));
++                    }
++                    break;
++                case WebViewExt.PAGE_FINISHED:
++                    if (mStarted) {
++                        loaded();
++                    }
++                    break;
++                case WebViewExt.PAGE_PROGRESS:
++                    if (mStarted && progress >= 100) {
++                        loaded();
++                    }
++                    break;
++            }
++        }
++
++        private void loaded() {
++            mLoaded = true;
++            if (mArmed) {
++                end();
++            }
++        }
++
++        private void schedule(long ms) {
++            sMain.removeCallbacks(mTimer);
++            sMain.postDelayed(mTimer, ms);
++        }
++
++        private void detach() {
++            sMain.removeCallbacks(mTimer);
++            mTab.view.removePageListener(this);
++        }
++
++        private void end() {
++            if (mEnded) {
++                return;
++            }
++            mEnded = true;
++            detach();
++            if (mJob.isDone()) {
++                return;
++            }
++            if (!Tabs.isLive(mTab)) {
++                mJob.fail("tab closed");
++                return;
++            }
++            boolean navigated = mNavigated || !TextUtils.equals(mUrlBefore, mTab.view.getUrl());
++            try {
++                mDone.accept(navigated);
++            } catch (RuntimeException e) {
++                Log.w(TAG, "Command failed: " + e.getClass().getSimpleName());
++                mJob.fail("internal error");
++            }
++        }
++    }
++
++    // Helpers
++
++    /** The page fields of an answer: title, url, loading, and the tab if asked for. */
++    private static JSONObject page(Tab tab, boolean withTab) {
++        JSONObject o = new JSONObject();
++        if (withTab) {
++            put(o, "tab", tab.id);
++        }
++        put(o, "title", nz(tab.view.getTitle()));
++        put(o, "url", nz(tab.view.getUrl()));
++        put(o, "loading", tab.view.isLoading());
++        return o;
++    }
++
++    /** A string field; "" if missing or null. */
++    private static String str(JSONObject o, String key) {
++        return o.isNull(key) ? "" : o.optString(key);
++    }
++
++    private static String nz(String s) {
++        return s != null ? s : "";
++    }
++
++    private static void put(JSONObject o, String key, Object value) {
++        try {
++            o.put(key, value);
++        } catch (JSONException ignored) {
++            // Only for NaN and infinite numbers, which are not put here.
++        }
++    }
++}
+diff --git a/app/src/main/java/org/lineageos/jelly/control/Tabs.java b/app/src/main/java/org/lineageos/jelly/control/Tabs.java
+new file mode 100644
+index 0000000..9c8509d
+--- /dev/null
++++ b/app/src/main/java/org/lineageos/jelly/control/Tabs.java
+@@ -0,0 +1,248 @@
++/*
++ * Copyright (C) 2026 ON-FireLOS
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.lineageos.jelly.control;
++
++import android.app.ActivityManager;
++import android.content.Context;
++import android.os.Handler;
++import android.os.Looper;
++import android.os.SystemClock;
++import android.util.DisplayMetrics;
++import android.util.Log;
++import android.view.View;
++
++import org.lineageos.jelly.webapp.WebAppActivity;
++import org.lineageos.jelly.webview.WebViewExt;
++import org.lineageos.jelly.webview.WebViewExtActivity;
++
++import java.util.ArrayList;
++import java.util.List;
++import java.util.function.Consumer;
++
++/**
++ * The browser windows the assistant can control, and its hidden tab.
++ *
++ * Every window (MainActivity, WebAppActivity) is a task of its own, so the
++ * task id names a tab: "t" + id. It stays when the window is rebuilt after a
++ * lost renderer, which sets up a new WebView in the same task. The windows
++ * report in from WebViewExt (set up, released) and WebViewExtActivity
++ * (resumed, paused). Main thread only.
++ */
++public final class Tabs {
++
++    static final String BACKGROUND = "bg";
++    /** The hidden tab goes once it has not been used for this long. */
++    private static final long BACKGROUND_IDLE_MS = 5 * 60 * 1000;
++
++    static final class Tab {
++        final String id;
++        final WebViewExt view;
++        /** Null for the hidden tab. */
++        final WebViewExtActivity activity;
++        final boolean incognito;
++        final boolean webapp;
++        long lastUsed;
++        /** Marks of the last read of elements (browser_control.js). */
++        String token;
++
++        Tab(String id, WebViewExt view, WebViewExtActivity activity, boolean incognito,
++            boolean webapp) {
++            this.id = id;
++            this.view = view;
++            this.activity = activity;
++            this.incognito = incognito;
++            this.webapp = webapp;
++            lastUsed = SystemClock.uptimeMillis();
++        }
++
++        boolean isBackground() {
++            return activity == null;
++        }
++
++        boolean isFront() {
++            return activity != null && activity == sFront;
++        }
++    }
++
++    private static final String TAG = "BrowserControl";
++    private static final List<Tab> sTabs = new ArrayList<>();
++    private static final List<Consumer<Tab>> sListeners = new ArrayList<>();
++    private static final Handler sMain = new Handler(Looper.getMainLooper());
++    private static final Runnable sIdle = Tabs::releaseBackground;
++    private static WebViewExtActivity sFront;
++    private static Tab sBackground;
++
++    private Tabs() {
++    }
++
++    /** A window has set up its WebView (WebViewExt.init). */
++    public static void register(WebViewExtActivity activity, WebViewExt view, boolean incognito) {
++        Tab tab = new Tab("t" + activity.getTaskId(), view, activity, incognito,
++                activity instanceof WebAppActivity);
++        sTabs.add(tab);
++        for (Consumer<Tab> listener : new ArrayList<>(sListeners)) {
++            // Called from the window's onCreate: a failure here must not take it down.
++            try {
++                listener.accept(tab);
++            } catch (RuntimeException e) {
++                Log.w(TAG, "Tab listener failed: " + e.getClass().getSimpleName());
++            }
++        }
++    }
++
++    /** A WebView is gone (WebViewExt.release); also the hidden one. */
++    public static void unregister(WebViewExt view) {
++        for (int i = sTabs.size() - 1; i >= 0; i--) {
++            if (sTabs.get(i).view == view) {
++                sTabs.remove(i);
++            }
++        }
++        if (sBackground != null && sBackground.view == view) {
++            sBackground = null;
++            sMain.removeCallbacks(sIdle);
++        }
++    }
++
++    public static void resumed(WebViewExtActivity activity) {
++        sFront = activity;
++        long now = SystemClock.uptimeMillis();
++        for (Tab tab : sTabs) {
++            if (tab.activity == activity) {
++                tab.lastUsed = now;
++            }
++        }
++    }
++
++    public static void paused(WebViewExtActivity activity) {
++        if (sFront == activity) {
++            sFront = null;
++        }
++    }
++
++    /** Told of every window set up from now on, until removed. */
++    static void addListener(Consumer<Tab> listener) {
++        sListeners.add(listener);
++    }
++
++    static void removeListener(Consumer<Tab> listener) {
++        sListeners.remove(listener);
++    }
++
++    private static boolean usable(Tab tab) {
++        return tab.activity != null && !tab.activity.isFinishing() && !tab.activity.isDestroyed();
++    }
++
++    /** The windows, most recently used first; a rebuilt one only once. */
++    static List<Tab> list() {
++        List<Tab> out = new ArrayList<>();
++        for (int i = sTabs.size() - 1; i >= 0; i--) {
++            Tab tab = sTabs.get(i);
++            if (!usable(tab) || find(tab.id) != tab) {
++                continue;
++            }
++            int at = 0;
++            while (at < out.size() && out.get(at).lastUsed >= tab.lastUsed) {
++                at++;
++            }
++            out.add(at, tab);
++        }
++        return out;
++    }
++
++    /** The window with this id; the newest if it was rebuilt. */
++    static Tab find(String id) {
++        for (int i = sTabs.size() - 1; i >= 0; i--) {
++            Tab tab = sTabs.get(i);
++            if (tab.id.equals(id) && usable(tab)) {
++                return tab;
++            }
++        }
++        return null;
++    }
++
++    /** The window in front, else the one used last; null if there is none. */
++    static Tab defaultTab() {
++        Tab best = null;
++        for (Tab tab : list()) {
++            if (tab.isFront()) {
++                return tab;
++            }
++            if (best == null || tab.lastUsed > best.lastUsed) {
++                best = tab;
++            }
++        }
++        return best;
++    }
++
++    static boolean isLive(Tab tab) {
++        return tab == sBackground || (sTabs.contains(tab) && usable(tab));
++    }
++
++    static void touch(Tab tab) {
++        tab.lastUsed = SystemClock.uptimeMillis();
++        if (tab == sBackground) {
++            sMain.removeCallbacks(sIdle);
++            sMain.postDelayed(sIdle, BACKGROUND_IDLE_MS);
++        }
++    }
++
++    /** Brings a window to the front. */
++    static void toFront(Context context, Tab tab) {
++        if (tab.activity == null || tab.isFront()) {
++            return;
++        }
++        try {
++            context.getSystemService(ActivityManager.class)
++                    .moveTaskToFront(tab.activity.getTaskId(), 0);
++        } catch (RuntimeException e) {
++            Log.w(TAG, "Cannot bring a tab to the front: " + e.getClass().getSimpleName());
++        }
++    }
++
++    /**
++     * The hidden tab, created on first use if create is set. A WebView of
++     * the app, never attached to a window; it is given the screen's size so
++     * that pages lay out as on screen - with no size every element would
++     * count as invisible.
++     */
++    static Tab background(Context context, boolean create) {
++        if (sBackground == null && create) {
++            Context app = context.getApplicationContext();
++            WebViewExt view = new WebViewExt(app);
++            view.initBackground(Tabs::releaseBackground);
++            DisplayMetrics dm = app.getResources().getDisplayMetrics();
++            view.measure(View.MeasureSpec.makeMeasureSpec(dm.widthPixels, View.MeasureSpec.EXACTLY),
++                    View.MeasureSpec.makeMeasureSpec(dm.heightPixels, View.MeasureSpec.EXACTLY));
++            view.layout(0, 0, dm.widthPixels, dm.heightPixels);
++            sBackground = new Tab(BACKGROUND, view, null, false, false);
++        }
++        if (sBackground != null) {
++            touch(sBackground);
++        }
++        return sBackground;
++    }
++
++    /** Destroys the hidden tab: unused for a while, closed, or its renderer died. */
++    static void releaseBackground() {
++        sMain.removeCallbacks(sIdle);
++        Tab tab = sBackground;
++        sBackground = null;
++        if (tab != null) {
++            tab.view.release(true);
++        }
 +    }
 +}
 diff --git a/app/src/main/java/org/lineageos/jelly/history/HistoryActivity.java b/app/src/main/java/org/lineageos/jelly/history/HistoryActivity.java
@@ -4847,7 +6215,7 @@ index 0000000..1d48e81
 +    }
 +}
 diff --git a/app/src/main/java/org/lineageos/jelly/webview/ChromeClient.java b/app/src/main/java/org/lineageos/jelly/webview/ChromeClient.java
-index b5aabf5..3005cf5 100644
+index b5aabf5..da31c8e 100644
 --- a/app/src/main/java/org/lineageos/jelly/webview/ChromeClient.java
 +++ b/app/src/main/java/org/lineageos/jelly/webview/ChromeClient.java
 @@ -15,31 +15,40 @@
@@ -4894,15 +6262,18 @@ index b5aabf5..3005cf5 100644
  
      ChromeClient(WebViewExtActivity activity, boolean incognito,
                   UrlBarController urlBarController, ProgressBar progressBar) {
-@@ -54,6 +63,7 @@ class ChromeClient extends WebChromeClientCompat {
+@@ -54,6 +63,10 @@ class ChromeClient extends WebChromeClientCompat {
      public void onProgressChanged(WebView view, int progress) {
          mProgressBar.setVisibility(progress == 100 ? View.INVISIBLE : View.VISIBLE);
          mProgressBar.setProgress(progress == 100 ? 0 : progress);
 +        mActivity.onLoadProgress(progress);
++        if (view instanceof WebViewExt) {
++            ((WebViewExt) view).notifyPage(WebViewExt.PAGE_PROGRESS, null, progress);
++        }
          super.onProgressChanged(view, progress);
      }
  
-@@ -66,7 +76,7 @@ class ChromeClient extends WebChromeClientCompat {
+@@ -66,7 +79,7 @@ class ChromeClient extends WebChromeClientCompat {
      @Override
      public void onReceivedTitle(WebView view, String title) {
          mUrlBarController.onTitleReceived(title);
@@ -4911,7 +6282,7 @@ index b5aabf5..3005cf5 100644
              HistoryProvider.addOrUpdateItem(mActivity.getContentResolver(), title, view.getUrl());
          }
      }
-@@ -79,10 +89,10 @@ class ChromeClient extends WebChromeClientCompat {
+@@ -79,10 +92,10 @@ class ChromeClient extends WebChromeClientCompat {
      @Override
      public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> path,
                                       FileChooserParams params) {
@@ -4926,7 +6297,7 @@ index b5aabf5..3005cf5 100644
              Toast.makeText(mActivity, mActivity.getString(R.string.error_no_activity_found),
                      Toast.LENGTH_LONG).show();
              return false;
-@@ -93,11 +103,102 @@ class ChromeClient extends WebChromeClientCompat {
+@@ -93,11 +106,102 @@ class ChromeClient extends WebChromeClientCompat {
      @Override
      public void onGeolocationPermissionsShowPrompt(String origin,
                                                     GeolocationPermissions.Callback callback) {
@@ -7300,7 +8671,7 @@ index 0000000..5dbd3d3
 +    }
 +}
 diff --git a/app/src/main/java/org/lineageos/jelly/webview/WebClient.java b/app/src/main/java/org/lineageos/jelly/webview/WebClient.java
-index b7e8f79..d1d1b64 100644
+index b7e8f79..db111f8 100644
 --- a/app/src/main/java/org/lineageos/jelly/webview/WebClient.java
 +++ b/app/src/main/java/org/lineageos/jelly/webview/WebClient.java
 @@ -31,7 +31,9 @@ import android.text.TextUtils;
@@ -7321,25 +8692,47 @@ index b7e8f79..d1d1b64 100644
  
  import java.net.URISyntaxException;
  import java.util.ArrayList;
-@@ -60,13 +63,46 @@ class WebClient extends WebViewClient {
+@@ -60,13 +63,71 @@ class WebClient extends WebViewClient {
      @Override
      public void onPageStarted(WebView view, String url, Bitmap favicon) {
          super.onPageStarted(view, url, favicon);
+-        mUrlBarController.onPageLoadStarted(url);
 +        if (view instanceof WebViewExt) {
 +            ((WebViewExt) view).setPageHost(Uri.parse(url).getHost());
 +        }
-         mUrlBarController.onPageLoadStarted(url);
++        // None in the assistant's hidden tab.
++        if (mUrlBarController != null) {
++            mUrlBarController.onPageLoadStarted(url);
++        }
 +        if (view.getContext() instanceof WebViewExtActivity) {
 +            ((WebViewExtActivity) view.getContext()).onPageStartedLoading(url);
++        }
++        if (view instanceof WebViewExt) {
++            ((WebViewExt) view).notifyPage(WebViewExt.PAGE_STARTED, url, 0);
 +        }
      }
  
      @Override
      public void onPageFinished(WebView view, String url) {
          super.onPageFinished(view, url);
-         mUrlBarController.onPageLoadFinished(view.getContext(), view.getCertificate());
+-        mUrlBarController.onPageLoadFinished(view.getContext(), view.getCertificate());
++        if (mUrlBarController != null) {
++            mUrlBarController.onPageLoadFinished(view.getContext(), view.getCertificate());
++        }
 +        if (view.getContext() instanceof WebViewExtActivity) {
 +            ((WebViewExtActivity) view.getContext()).onPageFinishedLoading(url);
++        }
++        if (view instanceof WebViewExt) {
++            ((WebViewExt) view).notifyPage(WebViewExt.PAGE_FINISHED, url, 100);
++        }
++    }
++
++    @Override
++    public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
++        super.doUpdateVisitedHistory(view, url, isReload);
++        // Also for navigation inside the document, which starts no load.
++        if (view instanceof WebViewExt) {
++            ((WebViewExt) view).notifyPage(WebViewExt.PAGE_HISTORY, url, 0);
 +        }
 +    }
 +
@@ -7347,6 +8740,11 @@ index b7e8f79..d1d1b64 100644
 +    public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
 +        // Without this, a renderer killed by the low memory killer - routine on
 +        // a 2 GB device with a few tabs open - crashes the browser itself.
++        // The assistant's hidden tab has no window to rebuild it; it just goes.
++        if (view instanceof WebViewExt && ((WebViewExt) view).isBackground()) {
++            ((WebViewExt) view).onBackgroundRendererGone();
++            return true;
++        }
 +        if (view.getContext() instanceof WebViewExtActivity && view instanceof WebViewExt) {
 +            ((WebViewExtActivity) view.getContext()).onRendererGone((WebViewExt) view,
 +                    detail.didCrash());
@@ -7368,7 +8766,7 @@ index b7e8f79..d1d1b64 100644
      }
  
      @Override
-@@ -76,6 +112,12 @@ class WebClient extends WebViewClient {
+@@ -76,8 +137,16 @@ class WebClient extends WebViewClient {
              String url = request.getUrl().toString();
              boolean needsLookup = request.hasGesture()
                      || !TextUtils.equals(url, webViewExt.getLastLoadedUrl());
@@ -7379,9 +8777,25 @@ index b7e8f79..d1d1b64 100644
 +                needsLookup = false;
 +            }
  
++            // The hidden tab never hands a link to another app.
              if (!webViewExt.isIncognito()
++                    && !webViewExt.isBackground()
                      && needsLookup
-@@ -199,7 +241,9 @@ class WebClient extends WebViewClient {
+                     && !request.isRedirect()
+                     && startActivityForUrl(view, url)) {
+@@ -95,6 +164,11 @@ class WebClient extends WebViewClient {
+     public void onReceivedHttpAuthRequest(WebView view,
+                                           HttpAuthHandler handler, String host, String realm) {
+         Context context = view.getContext();
++        if (!(context instanceof android.app.Activity)) {
++            // The hidden tab: no window to ask in.
++            handler.cancel();
++            return;
++        }
+         AlertDialog.Builder builder = new AlertDialog.Builder(context);
+         LayoutInflater layoutInflater = LayoutInflater.from(context);
+         View dialogView = layoutInflater.inflate(R.layout.auth_dialog, new LinearLayout(context));
+@@ -199,7 +273,9 @@ class WebClient extends WebViewClient {
              return TextUtils.equals(lastIntent.getPackage(), ourPackageName) ? null : lastIntent;
          }
  
@@ -8331,25 +9745,37 @@ index 0000000..790231b
 +    }
 +}
 diff --git a/app/src/main/java/org/lineageos/jelly/webview/WebViewExt.java b/app/src/main/java/org/lineageos/jelly/webview/WebViewExt.java
-index d1fc94a..ad5a077 100644
+index d1fc94a..4698990 100644
 --- a/app/src/main/java/org/lineageos/jelly/webview/WebViewExt.java
 +++ b/app/src/main/java/org/lineageos/jelly/webview/WebViewExt.java
-@@ -23,6 +23,14 @@ import androidx.collection.ArrayMap;
+@@ -23,10 +23,26 @@ import androidx.collection.ArrayMap;
  import android.util.AttributeSet;
  import android.util.Log;
  import android.view.View;
 +import android.view.ViewGroup;
++import android.webkit.GeolocationPermissions;
++import android.webkit.JsPromptResult;
++import android.webkit.JsResult;
++import android.webkit.PermissionRequest;
 +import android.webkit.ValueCallback;
++import android.webkit.WebChromeClient;
 +
 +import androidx.webkit.WebSettingsCompat;
 +import androidx.webkit.WebViewCompat;
 +import androidx.webkit.WebViewFeature;
 +
++import java.util.ArrayList;
 +import java.util.Collections;
++import java.util.List;
  import android.webkit.WebSettings;
  import android.webkit.WebView;
  import android.widget.ProgressBar;
-@@ -51,6 +59,7 @@ public class WebViewExt extends WebView {
+ 
++import org.lineageos.jelly.control.Tabs;
+ import org.lineageos.jelly.ui.UrlBarController;
+ import org.lineageos.jelly.utils.PrefsUtils;
+ import org.lineageos.jelly.utils.UrlUtils;
+@@ -51,6 +67,7 @@ public class WebViewExt extends WebView {
      private boolean mIncognito;
      private boolean mDesktopMode;
      private String mLastLoadedUrl;
@@ -8357,7 +9783,27 @@ index d1fc94a..ad5a077 100644
  
      private final Map<String, String> mRequestHeaders = new ArrayMap<>();
      private static final String HEADER_DNT = "DNT";
-@@ -98,10 +107,24 @@ public class WebViewExt extends WebView {
+@@ -80,7 +97,7 @@ public class WebViewExt extends WebView {
+             return;
+         }
+ 
+-        String templateUri = PrefsUtils.getSearchEngine(mActivity);
++        String templateUri = PrefsUtils.getSearchEngine(getContext());
+         fixedUrl = UrlUtils.getFormattedUri(templateUri, url);
+         if (fixedUrl != null) {
+             super.loadUrl(fixedUrl, mRequestHeaders);
+@@ -92,22 +109,41 @@ public class WebViewExt extends WebView {
+     }
+ 
+     private void setup() {
+-        getSettings().setJavaScriptEnabled(PrefsUtils.getJavascript(mActivity));
+-        getSettings().setJavaScriptCanOpenWindowsAutomatically(PrefsUtils.getJavascript(mActivity));
+-        getSettings().setGeolocationEnabled(PrefsUtils.getLocation(mActivity));
++        // The context, not mActivity: the hidden tab (initBackground) has no activity.
++        getSettings().setJavaScriptEnabled(PrefsUtils.getJavascript(getContext()));
++        getSettings().setJavaScriptCanOpenWindowsAutomatically(
++                PrefsUtils.getJavascript(getContext()));
++        getSettings().setGeolocationEnabled(PrefsUtils.getLocation(getContext()));
          getSettings().setSupportMultipleWindows(true);
          getSettings().setBuiltInZoomControls(true);
          getSettings().setDisplayZoomControls(false);
@@ -8386,7 +9832,16 @@ index d1fc94a..ad5a077 100644
  
          setOnLongClickListener(new OnLongClickListener() {
              boolean shouldAllowDownload;
-@@ -122,8 +145,14 @@ public class WebViewExt extends WebView {
+ 
+             @Override
+             public boolean onLongClick(View v) {
++                if (mActivity == null) {
++                    return false;
++                }
+                 HitTestResult result = getHitTestResult();
+                 switch (result.getType()) {
+                     case HitTestResult.IMAGE_TYPE:
+@@ -122,8 +158,17 @@ public class WebViewExt extends WebView {
              }
          });
  
@@ -8398,20 +9853,30 @@ index d1fc94a..ad5a077 100644
 +                mWebApis.saveUrl(url);
 +                return;
 +            }
-+            mActivity.downloadFileAsk(url, contentDisposition, mimeType);
++            // The hidden tab has nobody to ask; it downloads nothing.
++            if (mActivity != null) {
++                mActivity.downloadFileAsk(url, contentDisposition, mimeType);
++            }
 +        });
  
          // Mobile: Remove "wv" from the WebView's user agent. Some websites don't work
          // properly if the browser reports itself as a simple WebView.
-@@ -146,12 +175,123 @@ public class WebViewExt extends WebView {
-         if (PrefsUtils.getDoNotTrack(mActivity)) {
+@@ -143,20 +188,136 @@ public class WebViewExt extends WebView {
+             mDesktopUserAgent = DESKTOP_USER_AGENT_FALLBACK;
+         }
+ 
+-        if (PrefsUtils.getDoNotTrack(mActivity)) {
++        if (PrefsUtils.getDoNotTrack(getContext())) {
              mRequestHeaders.put(HEADER_DNT, "1");
          }
 +
 +        mScriptlets = new Scriptlets(this);
 +        mScriptlets.update();
-+        installBridge();
-+        installOrientationLock();
++        // Both answer to the window; the hidden tab has none.
++        if (!mBackground) {
++            installBridge();
++            installOrientationLock();
++        }
 +    }
 +
 +    /**
@@ -8527,7 +9992,14 @@ index d1fc94a..ad5a077 100644
          ChromeClient chromeClient = new ChromeClient(activity, incognito,
                  urlBarController, progressBar);
          setWebChromeClient(chromeClient);
-@@ -180,6 +320,59 @@ public class WebViewExt extends WebView {
+         setWebViewClient(new WebClient(urlBarController));
+         setup();
++        // ON-FireLOS: one more tab the assistant can see and control.
++        Tabs.register(activity, this, incognito);
+     }
+ 
+     public Bitmap getSnap() {
+@@ -180,6 +341,61 @@ public class WebViewExt extends WebView {
          return mIncognito;
      }
  
@@ -8551,6 +10023,8 @@ index d1fc94a..ad5a077 100644
 +            return;
 +        }
 +        mReleased = true;
++        Tabs.unregister(this);
++        mPageListeners.clear();
 +        if (mWebApis != null) {
 +            mWebApis.release();
 +        }
@@ -8587,7 +10061,7 @@ index d1fc94a..ad5a077 100644
      public void setDesktopMode(boolean desktopMode) {
          mDesktopMode = desktopMode;
          WebSettings settings = getSettings();
-@@ -193,6 +386,197 @@ public class WebViewExt extends WebView {
+@@ -193,6 +409,326 @@ public class WebViewExt extends WebView {
          return mDesktopMode;
      }
  
@@ -8778,6 +10252,135 @@ index d1fc94a..ad5a077 100644
 +        return mWebAppScope;
 +    }
 +
++    // ON-FireLOS: page loads, for the assistant's browser control
++    // (control/Commands). WebClient and ChromeClient report here; whoever waits
++    // for a page listens for as long as it waits.
++    public static final int PAGE_STARTED = 1;
++    public static final int PAGE_FINISHED = 2;
++    public static final int PAGE_PROGRESS = 3;
++    /** The address changed, also within the document (history.pushState). */
++    public static final int PAGE_HISTORY = 4;
++
++    public interface PageListener {
++        void onPageEvent(int event, String url, int progress);
++    }
++
++    private final List<PageListener> mPageListeners = new ArrayList<>();
++    private boolean mLoading;
++
++    public void addPageListener(PageListener listener) {
++        mPageListeners.add(listener);
++    }
++
++    public void removePageListener(PageListener listener) {
++        mPageListeners.remove(listener);
++    }
++
++    void notifyPage(int event, String url, int progress) {
++        if (event == PAGE_STARTED) {
++            mLoading = true;
++        } else if (event == PAGE_FINISHED) {
++            mLoading = false;
++        }
++        if (mPageListeners.isEmpty()) {
++            return;
++        }
++        for (PageListener listener : new ArrayList<>(mPageListeners)) {
++            listener.onPageEvent(event, url, progress);
++        }
++    }
++
++    /** Started loading, and neither finished nor at 100% yet. */
++    public boolean isLoading() {
++        return mLoading && getProgress() < 100;
++    }
++
++    // ON-FireLOS: the assistant's hidden tab (control/Tabs).
++    private boolean mBackground;
++    private Runnable mOnBackgroundGone;
++
++    /**
++     * Sets up the assistant's hidden tab instead of init(): a WebView of the
++     * app with no window, no address bar and nobody to ask. Same settings,
++     * user agent and profile as a normal tab. JavaScript is always on, the
++     * control script needs it. Links open in the tab itself, not in a new
++     * window or another app; dialogs, permission requests and downloads are
++     * declined, and the page APIs of WebApis are left out - they need a window
++     * to ask in. onRendererGone runs when the renderer died: the tab must go.
++     */
++    public void initBackground(Runnable onRendererGone) {
++        mBackground = true;
++        mOnBackgroundGone = onRendererGone;
++        setWebChromeClient(new BackgroundChromeClient());
++        setWebViewClient(new WebClient(null));
++        setup();
++        getSettings().setJavaScriptEnabled(true);
++        getSettings().setSupportMultipleWindows(false);
++    }
++
++    public boolean isBackground() {
++        return mBackground;
++    }
++
++    /** From WebClient: the hidden tab's renderer is gone. */
++    void onBackgroundRendererGone() {
++        if (mOnBackgroundGone != null) {
++            mOnBackgroundGone.run();
++        }
++    }
++
++    private static final class BackgroundChromeClient extends WebChromeClient {
++        @Override
++        public void onProgressChanged(WebView view, int progress) {
++            if (view instanceof WebViewExt) {
++                ((WebViewExt) view).notifyPage(PAGE_PROGRESS, null, progress);
++            }
++        }
++
++        @Override
++        public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
++            result.cancel();
++            return true;
++        }
++
++        @Override
++        public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
++            result.cancel();
++            return true;
++        }
++
++        @Override
++        public boolean onJsPrompt(WebView view, String url, String message, String defaultValue,
++                                  JsPromptResult result) {
++            result.cancel();
++            return true;
++        }
++
++        @Override
++        public boolean onJsBeforeUnload(WebView view, String url, String message,
++                                        JsResult result) {
++            // Leaving is fine: nobody could answer the question.
++            result.confirm();
++            return true;
++        }
++
++        @Override
++        public void onGeolocationPermissionsShowPrompt(String origin,
++                                                       GeolocationPermissions.Callback callback) {
++            callback.invoke(origin, false, false);
++        }
++
++        @Override
++        public void onPermissionRequest(PermissionRequest request) {
++            request.deny();
++        }
++
++        @Override
++        public void onShowCustomView(View view, WebChromeClient.CustomViewCallback callback) {
++            callback.onCustomViewHidden();
++        }
++    }
++
 +    public String getUserAgent() {
 +        return getSettings().getUserAgentString();
 +    }
@@ -8786,10 +10389,10 @@ index d1fc94a..ad5a077 100644
          return mRequestHeaders;
      }
 diff --git a/app/src/main/java/org/lineageos/jelly/webview/WebViewExtActivity.java b/app/src/main/java/org/lineageos/jelly/webview/WebViewExtActivity.java
-index 8eb53dd..64df8b9 100644
+index 8eb53dd..86a0f1b 100644
 --- a/app/src/main/java/org/lineageos/jelly/webview/WebViewExtActivity.java
 +++ b/app/src/main/java/org/lineageos/jelly/webview/WebViewExtActivity.java
-@@ -15,7 +15,36 @@
+@@ -15,7 +15,37 @@
   */
  package org.lineageos.jelly.webview;
  
@@ -8811,6 +10414,7 @@ index 8eb53dd..64df8b9 100644
 +import java.util.WeakHashMap;
 +
 +import org.lineageos.jelly.R;
++import org.lineageos.jelly.control.Tabs;
 +import android.content.pm.PackageManager;
 +import android.content.res.Configuration;
 +import android.util.Rational;
@@ -8826,7 +10430,7 @@ index 8eb53dd..64df8b9 100644
  import androidx.appcompat.app.AppCompatActivity;
  import android.view.View;
  import android.webkit.WebChromeClient;
-@@ -37,4 +66,493 @@ public abstract class WebViewExtActivity extends AppCompatActivity {
+@@ -37,4 +67,502 @@ public abstract class WebViewExtActivity extends AppCompatActivity {
      public abstract void onShowCustomView(View view, WebChromeClient.CustomViewCallback callback);
  
      public abstract void onHideCustomView();
@@ -8977,7 +10581,14 @@ index 8eb53dd..64df8b9 100644
 +    protected void onDestroy() {
 +        unregisterPipReceiver();
 +        sWindows.remove(this);
++        Tabs.paused(this);
 +        super.onDestroy();
++    }
++
++    @Override
++    protected void onPause() {
++        Tabs.paused(this);
++        super.onPause();
 +    }
 +
 +    private boolean mLeavingForOwnActivity;
@@ -9057,6 +10668,8 @@ index 8eb53dd..64df8b9 100644
 +    protected void onResume() {
 +        super.onResume();
 +        mLeavingForOwnActivity = false;
++        // ON-FireLOS: the window in front, for the assistant (control/Tabs).
++        Tabs.resumed(this);
 +        // A link from another app opens a new browser window. A video still
 +        // floating from an older one would play on over it - in one browser
 +        // that reads as a bug. The new window takes over; the old one stops.
@@ -10045,6 +11658,904 @@ index 887d286..8d7374f 100644
 +            app:showAsAction="never" />
 +    </group>
  </menu>
+diff --git a/app/src/main/res/raw/browser_control.js b/app/src/main/res/raw/browser_control.js
+new file mode 100644
+index 0000000..ec00758
+--- /dev/null
++++ b/app/src/main/res/raw/browser_control.js
+@@ -0,0 +1,892 @@
++// ON-FireLOS: the page side of the assistant's browser control
++// (control/Commands.java, protocol in browser-bridge-spec.md).
++//
++// Evaluated on demand in the main frame, never injected ahead of the page,
++// as one call: (this function)(args, Readability or null). It numbers the
++// interactive elements, reads the page's text and acts on numbered elements.
++//
++// Numbered elements carry data-onf="<token>:<n>". A fresh read makes a new
++// token and keeps it on the window (__onfGen); the browser remembers it per
++// tab. A number from an older read, or from a document since replaced, does
++// not match and is refused with "page changed, read again".
++//
++// The page's own scripts ran first and may have replaced any builtin. What
++// is used here is taken from the prototypes, not from the objects, and
++// called through an uncurried Function.prototype.call: a site that overrides
++// el.click, el.value or Array.prototype.forEach neither sees nor steers us.
++// Elements of same-origin frames come from other realms, so kinds are told by
++// tag name, never by instanceof. Password values are never read.
++(function (a, Readability) {
++  'use strict';
++  var W = window, D = document;
++  var FP = Function.prototype;
++  var uncurry = FP.bind.bind(FP.call);
++  var getOwn = Object.getOwnPropertyDescriptor, getProto = Object.getPrototypeOf;
++  var defProp = Object.defineProperty;
++  var mRound = Math.round, mMin = Math.min, mMax = Math.max, mRandom = Math.random;
++  var STALE = 'page changed, read again';
++
++  function desc(proto, name) {
++    for (var p = proto; p; p = getProto(p)) {
++      var d = getOwn(p, name);
++      if (d) return d;
++    }
++    return null;
++  }
++  function method(proto, name) {
++    var d = desc(proto, name);
++    return d && typeof d.value === 'function' ? uncurry(d.value) : null;
++  }
++  function getter(proto, name) {
++    var d = desc(proto, name);
++    return d && d.get ? uncurry(d.get) : null;
++  }
++  function setter(proto, name) {
++    var d = desc(proto, name);
++    return d && d.set ? uncurry(d.set) : null;
++  }
++
++  var EP = Element.prototype, HP = HTMLElement.prototype, NP = Node.prototype;
++  var DP = Document.prototype, IP = HTMLInputElement.prototype;
++  var TP = HTMLTextAreaElement.prototype, SP = HTMLSelectElement.prototype;
++  var MP = HTMLMediaElement.prototype;
++  var qsa = method(EP, 'querySelectorAll'), dqsa = method(DP, 'querySelectorAll');
++  var getAttr = method(EP, 'getAttribute'), setAttr = method(EP, 'setAttribute');
++  var remAttr = method(EP, 'removeAttribute'), hasAttr = method(EP, 'hasAttribute');
++  var closest = method(EP, 'closest'), matches = method(EP, 'matches');
++  var rectOf = method(EP, 'getBoundingClientRect'), rectsOf = method(EP, 'getClientRects');
++  var intoView = method(EP, 'scrollIntoView');
++  var localNameOf = getter(EP, 'localName');
++  var innerTextOf = getter(HP, 'innerText'), editableOf = getter(HP, 'isContentEditable');
++  var textOf = getter(NP, 'textContent'), setText = setter(NP, 'textContent');
++  var kidsOf = getter(NP, 'childNodes'), nodeTypeOf = getter(NP, 'nodeType');
++  var parentOf = getter(NP, 'parentElement'), docOf = getter(NP, 'ownerDocument');
++  var connectedOf = getter(NP, 'isConnected'), contains = method(NP, 'contains');
++  var comparePos = method(NP, 'compareDocumentPosition');
++  var cloneNode = method(NP, 'cloneNode');
++  var dispatch = method(EventTarget.prototype, 'dispatchEvent');
++  var clickEl = method(HP, 'click'), focusEl = method(HP, 'focus');
++  var fromPoint = method(DP, 'elementFromPoint'), byId = method(DP, 'getElementById');
++  var activeOf = getter(DP, 'activeElement'), bodyOf = getter(DP, 'body');
++  var viewOf = getter(DP, 'defaultView'), scrollingOf = getter(DP, 'scrollingElement');
++  var createWalker = method(DP, 'createTreeWalker'), nextNode = method(TreeWalker.prototype, 'nextNode');
++  var computed = uncurry(W.getComputedStyle);
++  var inputType = getter(IP, 'type'), inputValue = getter(IP, 'value');
++  var setInputValue = setter(IP, 'value'), checkedOf = getter(IP, 'checked');
++  var areaValue = getter(TP, 'value'), setAreaValue = setter(TP, 'value');
++  var selIndex = getter(SP, 'selectedIndex'), setSelIndex = setter(SP, 'selectedIndex');
++  var optionsOf = getter(SP, 'options'), optionText = getter(HTMLOptionElement.prototype, 'text');
++  var optionValue = getter(HTMLOptionElement.prototype, 'value');
++  var playMedia = method(MP, 'play'), pauseMedia = method(MP, 'pause');
++  var pausedOf = getter(MP, 'paused'), endedOf = getter(MP, 'ended');
++  var timeOf = getter(MP, 'currentTime'), setTime = setter(MP, 'currentTime');
++  var durationOf = getter(MP, 'duration');
++  var thenOf = method(Promise.prototype, 'then');
++  var requestSubmit = method(HTMLFormElement.prototype, 'requestSubmit');
++  var submitForm = method(HTMLFormElement.prototype, 'submit');
++  var SPr = String.prototype;
++  var sLower = uncurry(SPr.toLowerCase), sIndexOf = uncurry(SPr.indexOf);
++  var sSlice = uncurry(SPr.slice), sReplace = uncurry(SPr.replace), sSplit = uncurry(SPr.split);
++
++  // Strings
++
++  function clean(s) {
++    s = s == null ? '' : '' + s;
++    return sReplace(sReplace(s, /\s+/g, ' '), /^ | $/g, '');
++  }
++  function cut(s, n) {
++    return s.length > n ? sSlice(s, 0, n - 1) + '…' : s;
++  }
++  function setWin(name, value) {
++    defProp(W, name, { value: value, writable: true, configurable: true, enumerable: false });
++  }
++
++  // Documents: the main one and every same-origin frame inside it
++
++  function frameDoc(frame) {
++    try {
++      var d = frame.contentDocument;
++      return d && d.documentElement ? d : null;
++    } catch (e) {
++      return null; // Cross-origin.
++    }
++  }
++  function frameInset(frame) {
++    var r = rectOf(frame), cs = computed(W, frame);
++    return {
++      x: r.left + frame.clientLeft + (parseFloat(cs.paddingLeft) || 0),
++      y: r.top + frame.clientTop + (parseFloat(cs.paddingTop) || 0)
++    };
++  }
++  function eachDoc(doc, fn) {
++    fn(doc);
++    var frames = dqsa(doc, 'iframe,frame');
++    for (var i = 0; i < frames.length; i++) {
++      var fd = frameDoc(frames[i]);
++      if (fd) eachDoc(fd, fn);
++    }
++  }
++  // The element's rectangle in the main frame's viewport (CSS pixels).
++  function topRect(el) {
++    var r = rectOf(el), x = r.left, y = r.top;
++    var win = viewOf(docOf(el));
++    while (win && win !== W) {
++      var fe = null;
++      try { fe = win.frameElement; } catch (e) { fe = null; }
++      if (!fe) break;
++      var inset = frameInset(fe);
++      x += inset.x;
++      y += inset.y;
++      win = viewOf(docOf(fe));
++    }
++    return { left: x, top: y, width: r.width, height: r.height };
++  }
++  // The element under a point of the main viewport, looking into frames.
++  function hitAt(x, y) {
++    var el = fromPoint(D, x, y);
++    while (el) {
++      var ln = localNameOf(el);
++      if (ln !== 'iframe' && ln !== 'frame') break;
++      var fd = frameDoc(el);
++      if (!fd) break;
++      var inset = frameInset(el);
++      x -= inset.x;
++      y -= inset.y;
++      var inner = fromPoint(fd, x, y);
++      if (!inner) break;
++      el = inner;
++    }
++    return el;
++  }
++
++  // Elements
++
++  var INTERACTIVE = 'a[href],area[href],button,input:not([type=hidden]),textarea,select,'
++      + 'summary,[contenteditable]:not([contenteditable=false]),[onclick],'
++      + '[role=button],[role=link],[role=tab],[role=menuitem],[role=checkbox],[role=switch],'
++      + '[role=option],[role=combobox],[role=radio],[role=textbox],[role=searchbox]';
++
++  // Every interactive element in document order, frames at their place.
++  function eachInteractive(doc, fn) {
++    var list = dqsa(doc, INTERACTIVE + ',iframe,frame');
++    for (var i = 0; i < list.length; i++) {
++      var el = list[i], ln = localNameOf(el);
++      if (ln === 'iframe' || ln === 'frame') {
++        var fd = frameDoc(el);
++        if (fd) eachInteractive(fd, fn);
++      } else {
++        fn(el);
++      }
++    }
++  }
++  function typeOfInput(el) {
++    return localNameOf(el) === 'input' ? inputType(el) : '';
++  }
++  function autocomplete(el) {
++    return sLower(getAttr(el, 'autocomplete') || '');
++  }
++  function isPassword(el) {
++    return localNameOf(el) === 'input'
++        && (inputType(el) === 'password' || sIndexOf(autocomplete(el), 'password') >= 0);
++  }
++  // Values that stay in the browser besides passwords: card numbers and one-time codes.
++  function isSecret(el) {
++    if (isPassword(el)) return true;
++    var ac = autocomplete(el);
++    return sIndexOf(ac, 'cc-number') >= 0 || sIndexOf(ac, 'cc-csc') >= 0
++        || sIndexOf(ac, 'one-time-code') >= 0;
++  }
++  function kindOf(el) {
++    var ln = localNameOf(el), role = sLower(getAttr(el, 'role') || '');
++    if (ln === 'input') {
++      if (isPassword(el)) return 'password';
++      var t = inputType(el);
++      if (t === 'checkbox' || t === 'radio') return t;
++      if (t === 'button' || t === 'submit' || t === 'reset' || t === 'image') return 'button';
++      if (t === 'file') return 'other';
++      return 'field';
++    }
++    if (ln === 'textarea') return 'textarea';
++    if (ln === 'select') return 'select';
++    if (role === 'checkbox' || role === 'switch') return 'checkbox';
++    if (role === 'radio') return 'radio';
++    if (role === 'textbox' || role === 'searchbox') {
++      return getAttr(el, 'aria-multiline') === 'true' ? 'textarea' : 'field';
++    }
++    if (role === 'button' || role === 'tab' || role === 'menuitem') return 'button';
++    if (role === 'link') return 'link';
++    if (ln === 'button' || ln === 'summary') return 'button';
++    if ((ln === 'a' || ln === 'area') && hasAttr(el, 'href')) return 'link';
++    if (editableOf(el)) return 'textarea';
++    return 'other';
++  }
++  // The element's own box; for a checkbox or radio hidden behind a styled
++  // label, the label's - that is what a user would tap.
++  function box(el) {
++    var r = rectOf(el);
++    if (r.width >= 1 && r.height >= 1) return el;
++    var t = typeOfInput(el);
++    if (t === 'checkbox' || t === 'radio') {
++      var ls = el.labels;
++      for (var i = 0; ls && i < ls.length; i++) {
++        var lr = rectOf(ls[i]);
++        if (lr.width >= 1 && lr.height >= 1) return ls[i];
++      }
++    }
++    return null;
++  }
++  function shown(el) {
++    if (closest(el, '[aria-hidden="true"]')) return false;
++    var b = box(el);
++    if (!b) return false;
++    var v = computed(W, b).visibility;
++    return v !== 'hidden' && v !== 'collapse';
++  }
++  function inViewport(el) {
++    var b = box(el);
++    if (!b) return false;
++    var r = topRect(b);
++    return r.top < W.innerHeight && r.top + r.height > 0
++        && r.left < W.innerWidth && r.left + r.width > 0;
++  }
++  function textIn(el) {
++    var t = innerTextOf(el);
++    return t != null ? t : textOf(el);
++  }
++  function nameOf(el, kind) {
++    var ln = localNameOf(el);
++    var s = clean(getAttr(el, 'aria-label'));
++    if (!s) {
++      var ids = getAttr(el, 'aria-labelledby');
++      if (ids) {
++        var parts = sSplit(clean(ids), ' '), doc = docOf(el);
++        for (var i = 0; i < parts.length; i++) {
++          var t = parts[i] ? byId(doc, parts[i]) : null;
++          if (t) s += ' ' + textIn(t);
++        }
++        s = clean(s);
++      }
++    }
++    // A name given only to assistive tools can differ from what the button shows
++    // ("Download the app" on a button that says "Installieren"): the shown text goes
++    // with it, so the model and the safety check see what the user sees.
++    if (s && kind !== 'field' && kind !== 'textarea' && kind !== 'password'
++        && kind !== 'select' && ln !== 'input') {
++      var shown = clean(textIn(el));
++      if (shown && sIndexOf(sLower(s), sLower(shown)) < 0) s = s + ' (' + shown + ')';
++    }
++    if (!s && el.labels && el.labels.length) s = clean(textIn(el.labels[0]));
++    // The text of a field, a text area or a list is its content, not its name.
++    if (!s && kind !== 'field' && kind !== 'textarea' && kind !== 'password'
++        && kind !== 'select' && ln !== 'input') {
++      s = clean(textIn(el));
++    }
++    if (!s && ln === 'input' && kind === 'button') s = clean(inputValue(el));
++    if (!s) s = clean(getAttr(el, 'placeholder') || getAttr(el, 'aria-placeholder'));
++    if (!s) s = clean(getAttr(el, 'title'));
++    if (!s) s = clean(getAttr(el, 'alt'));
++    if (!s) s = clean(getAttr(el, 'name'));
++    if (!s) {
++      // An icon button: the name of the picture inside.
++      var inner = qsa(el, '[aria-label],img[alt],[title],svg title')[0];
++      if (inner) {
++        s = clean(getAttr(inner, 'aria-label') || getAttr(inner, 'alt')
++            || getAttr(inner, 'title') || textOf(inner));
++      }
++    }
++    return cut(s, 80);
++  }
++  function valueOf(el, kind) {
++    var ln = localNameOf(el);
++    if (kind === 'field' || kind === 'textarea') {
++      if (isSecret(el)) return undefined;
++      var v = ln === 'input' ? inputValue(el) : ln === 'textarea' ? areaValue(el) : textIn(el);
++      return cut(clean(v), 200);
++    }
++    if (kind === 'select' && ln === 'select') {
++      var i = selIndex(el), opts = optionsOf(el);
++      return i >= 0 && i < opts.length ? cut(clean(optionText(opts[i])), 80) : '';
++    }
++    return undefined;
++  }
++  function isChecked(el) {
++    if (localNameOf(el) === 'input') return !!checkedOf(el);
++    return getAttr(el, 'aria-checked') === 'true';
++  }
++  function isDisabled(el) {
++    try {
++      if (matches(el, ':disabled')) return true;
++    } catch (e) {
++      // Not a form control.
++    }
++    return !!closest(el, '[aria-disabled="true"]');
++  }
++  function hrefOf(el) {
++    var ln = localNameOf(el);
++    if ((ln !== 'a' && ln !== 'area') || !hasAttr(el, 'href')) return '';
++    var p = el.protocol || '';
++    if (p === 'javascript:') return 'javascript:';
++    var h = el.host ? p + '//' + el.host + (el.pathname || '') : p + (el.pathname || '');
++    return cut(h, 80);
++  }
++  function optionsList(el) {
++    var opts = optionsOf(el), out = [];
++    for (var i = 0; i < opts.length && i < 20; i++) out[out.length] = cut(clean(optionText(opts[i])), 80);
++    return out;
++  }
++  function describe(el, n) {
++    var kind = kindOf(el);
++    var o = { n: n, kind: kind, label: nameOf(el, kind) };
++    var v = valueOf(el, kind);
++    if (v !== undefined) o.value = v;
++    if (kind === 'checkbox' || kind === 'radio') o.checked = isChecked(el);
++    if (localNameOf(el) === 'select') o.options = optionsList(el);
++    var h = hrefOf(el);
++    if (h) o.href = h;
++    o.visible = inViewport(el);
++    if (isDisabled(el)) o.disabled = true;
++    return o;
++  }
++
++  // Marks
++
++  function freshToken() {
++    var seq = (W.__onfSeq | 0) + 1;
++    setWin('__onfSeq', seq);
++    var token = 'g' + seq + '.' + sSlice('' + mRound(mRandom() * 1e9), 0, 9);
++    setWin('__onfGen', token);
++    return token;
++  }
++  function byNumber(n) {
++    var tok = a.token;
++    if (!tok || W.__onfGen !== tok || !(n >= 1)) return null;
++    var sel = '[data-onf="' + tok + ':' + (n | 0) + '"]', found = null;
++    eachDoc(D, function (doc) {
++      if (!found) {
++        var l = dqsa(doc, sel);
++        if (l.length && connectedOf(l[0])) found = l[0];
++      }
++    });
++    return found;
++  }
++
++  // Text
++
++  var SKIP = { script: 1, style: 1, noscript: 1, template: 1, svg: 1, canvas: 1, iframe: 1,
++    frame: 1, object: 1, embed: 1, head: 1, select: 1, option: 1, textarea: 1, input: 1,
++    datalist: 1, math: 1 };
++  var BLOCK = { address: 1, article: 1, aside: 1, blockquote: 1, dd: 1, details: 1, dialog: 1,
++    div: 1, dl: 1, dt: 1, fieldset: 1, figcaption: 1, figure: 1, footer: 1, form: 1,
++    header: 1, hr: 1, li: 1, main: 1, nav: 1, ol: 1, p: 1, pre: 1, section: 1, summary: 1,
++    table: 1, tbody: 1, thead: 1, tfoot: 1, tr: 1, ul: 1, caption: 1, legend: 1 };
++  var HEADING = { h1: '#', h2: '##', h3: '###', h4: '####', h5: '#####', h6: '######' };
++
++  // The text under root, a line per block, headings marked with #. live:
++  // root is in the shown page, and what is not shown is left out.
++  function pageText(root, live, max) {
++    var out = '', line = '', full = false;
++    function flush() {
++      var l = clean(line);
++      line = '';
++      if (l && l !== '-') out += (out ? '\n' : '') + l;
++      if (out.length > max) full = true;
++    }
++    // seen: text directly in node is visible (visibility can come back further down).
++    function walk(node, seen) {
++      var kids = kidsOf(node);
++      for (var i = 0; i < kids.length && !full; i++) {
++        var k = kids[i], t = nodeTypeOf(k);
++        if (t === 3) {
++          if (seen) line += textOf(k);
++          continue;
++        }
++        if (t !== 1) continue;
++        var ln = localNameOf(k);
++        if (SKIP[ln]) continue;
++        var kSeen = seen;
++        if (live) {
++          if (getAttr(k, 'aria-hidden') === 'true') continue;
++          var cs = computed(W, k);
++          if (!rectsOf(k).length && cs.display !== 'contents') continue;
++          kSeen = cs.visibility === 'visible';
++        }
++        if (ln === 'br') {
++          flush();
++        } else if (HEADING[ln]) {
++          flush();
++          var h = clean(live ? textIn(k) : textOf(k));
++          if (h) out += (out ? '\n\n' : '') + HEADING[ln] + ' ' + h;
++          if (out.length > max) full = true;
++        } else if (BLOCK[ln]) {
++          flush();
++          if (ln === 'li') line = '- ';
++          walk(k, kSeen);
++          flush();
++        } else if (ln === 'td' || ln === 'th') {
++          line += ' ';
++          walk(k, kSeen);
++          line += ' ';
++        } else {
++          walk(k, kSeen);
++        }
++      }
++    }
++    walk(root, true);
++    flush();
++    if (out.length > max) {
++      out = sSlice(out, 0, max);
++      full = true;
++    }
++    return { text: out, more: full };
++  }
++  // The article as reader view sees it, or null where that does not work.
++  function readerText(max) {
++    if (!Readability) return null;
++    try {
++      var art = new Readability(cloneNode(D, true), {
++        serializer: function (el) { return el; }
++      }).parse();
++      if (!art || !art.content || clean(art.textContent).length < 200) return null;
++      var title = clean(art.title || D.title);
++      var head = title ? '# ' + title + '\n\n' : '';
++      var body = pageText(art.content, false, mMax(0, max - head.length));
++      return { text: head + body.text, more: body.more };
++    } catch (e) {
++      return null;
++    }
++  }
++
++  // Events
++
++  function fire(el, type) {
++    var e = type === 'input'
++        ? new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText' })
++        : new Event(type, { bubbles: true });
++    dispatch(el, e);
++  }
++  function press(el) {
++    try {
++      clickEl(el);
++    } catch (e) {
++      // Not an HTML element (SVG): a plain click event.
++      dispatch(el, new MouseEvent('click', { bubbles: true, cancelable: true, view: W }));
++    }
++  }
++  var KEYS = { Enter: 13, Escape: 27, Tab: 9, PageDown: 34, PageUp: 33, Home: 36, End: 35 };
++
++  function keyEvent(type, key) {
++    var code = KEYS[key];
++    var e = new KeyboardEvent(type, { key: key, code: key, keyCode: code, which: code,
++      bubbles: true, cancelable: true, composed: true, view: W });
++    if (e.keyCode !== code) {
++      try {
++        defProp(e, 'keyCode', { get: function () { return code; } });
++        defProp(e, 'which', { get: function () { return code; } });
++      } catch (x) {
++        // Left as it is.
++      }
++    }
++    return e;
++  }
++  function focused() {
++    var doc = D, el = activeOf(doc);
++    while (el) {
++      var ln = localNameOf(el);
++      if (ln !== 'iframe' && ln !== 'frame') break;
++      var fd = frameDoc(el);
++      var inner = fd ? activeOf(fd) : null;
++      if (!inner) break;
++      el = inner;
++    }
++    return el || bodyOf(D) || D.documentElement;
++  }
++  function isTextual(el) {
++    var ln = localNameOf(el);
++    return ln === 'textarea' || editableOf(el) || (ln === 'input' && kindOf(el) !== 'button'
++        && kindOf(el) !== 'checkbox' && kindOf(el) !== 'radio');
++  }
++  function canScroll(el) {
++    if (el.scrollHeight <= el.clientHeight + 1) return false;
++    var o = computed(W, el).overflowY;
++    return o === 'auto' || o === 'scroll' || o === 'overlay';
++  }
++  // What a swipe at el (or the middle of the screen) would scroll.
++  function scroller(el) {
++    if (!el) el = hitAt(W.innerWidth / 2, W.innerHeight / 2);
++    for (var p = el; p; p = parentOf(p)) {
++      if (p === D.documentElement || p === bodyOf(D)) break;
++      if (canScroll(p)) return p;
++    }
++    return scrollingOf(D) || D.documentElement;
++  }
++  function scrollPage(s, dy, to) {
++    var root = s === scrollingOf(D);
++    var before = root ? W.scrollY : s.scrollTop;
++    if (root) {
++      if (to !== undefined) W.scrollTo({ top: to, behavior: 'instant' });
++      else W.scrollBy({ top: dy, behavior: 'instant' });
++    } else if (to !== undefined) {
++      s.scrollTo({ top: to, behavior: 'instant' });
++    } else {
++      s.scrollBy({ top: dy, behavior: 'instant' });
++    }
++    return (root ? W.scrollY : s.scrollTop) !== before;
++  }
++  function screenOf(s) {
++    return s === scrollingOf(D) ? W.innerHeight : s.clientHeight;
++  }
++  // The next element Tab would go to: the first usable one after from in
++  // document order, else the first of the page. Positive tabindex order is
++  // not followed.
++  function nextFocusable(from) {
++    var list = dqsa(docOf(from) || D, 'a[href],button,input:not([type=hidden]),select,'
++        + 'textarea,[tabindex],[contenteditable]:not([contenteditable=false])');
++    var first = null;
++    for (var i = 0; i < list.length; i++) {
++      var el = list[i];
++      if (el === from) continue;
++      var ti = getAttr(el, 'tabindex');
++      if ((ti !== null && +ti < 0) || isDisabled(el) || !shown(el)) continue;
++      if (!first) first = el;
++      // 4: DOCUMENT_POSITION_FOLLOWING; 16: contained in from.
++      var pos = comparePos(from, el);
++      if ((pos & 4) && !(pos & 16)) return el;
++    }
++    return first;
++  }
++  // What the browser itself does for a key nobody cancelled.
++  function keyDefault(el, key) {
++    var ln = localNameOf(el);
++    if (key === 'Enter') {
++      if (ln === 'input' && el.form && kindOf(el) !== 'checkbox' && kindOf(el) !== 'radio') {
++        var form = el.form;
++        var btn = qsa(form, 'button[type=submit],button:not([type]),input[type=submit],'
++            + 'input[type=image]')[0];
++        if (btn && !isDisabled(btn)) press(btn);
++        else if (requestSubmit) requestSubmit(form);
++        else submitForm(form);
++        return true;
++      }
++      if (ln === 'a' || ln === 'button' || ln === 'summary' || kindOf(el) === 'button'
++          || kindOf(el) === 'link') {
++        press(el);
++        return true;
++      }
++      return false;
++    }
++    if (key === 'Tab') {
++      var next = nextFocusable(el);
++      if (!next) return false;
++      try { focusEl(next); } catch (e) { return false; }
++      return true;
++    }
++    if (key === 'Escape') return false;
++    if ((key === 'Home' || key === 'End') && isTextual(el)) return false;
++    var s = scroller(el === bodyOf(D) ? null : el);
++    if (key === 'PageDown' || key === 'PageUp') {
++      return scrollPage(s, (key === 'PageDown' ? 0.9 : -0.9) * screenOf(s));
++    }
++    return scrollPage(s, 0, key === 'Home' ? 0 : s.scrollHeight);
++  }
++  function sendKey(el, key) {
++    var go = dispatch(el, keyEvent('keydown', key));
++    if (go && key === 'Enter') go = dispatch(el, keyEvent('keypress', key));
++    var did = go ? keyDefault(el, key) : true;
++    dispatch(el, keyEvent('keyup', key));
++    return did;
++  }
++
++  // Media
++
++  function pickMedia() {
++    var best = null, area = -1, playing = null, pArea = -1;
++    eachDoc(D, function (doc) {
++      var l = dqsa(doc, 'video,audio');
++      for (var i = 0; i < l.length; i++) {
++        var m = l[i], r = rectOf(m), ar = r.width * r.height;
++        if (!pausedOf(m) && !endedOf(m) && ar > pArea) {
++          playing = m;
++          pArea = ar;
++        }
++        if (ar > area) {
++          best = m;
++          area = ar;
++        }
++      }
++    });
++    return playing || best;
++  }
++  function mediaState(m) {
++    var d = durationOf(m);
++    return { done: true, playing: !pausedOf(m) && !endedOf(m),
++      position: mRound(timeOf(m) * 10) / 10,
++      duration: isFinite(d) ? mRound(d * 10) / 10 : null,
++      blocked: W.__onfPlayErr === 'NotAllowedError' };
++  }
++
++  // Operations
++
++  function read() {
++    var res = {};
++    if (a.elements) {
++      var list = [], from = mMax(1, a.from | 0), limit = a.limit | 0 || 150, total = 0;
++      if (from > 1) {
++        // Paging on: the numbers of the last read stay.
++        if (!a.token || W.__onfGen !== a.token) return { error: STALE };
++        var tok = a.token, prefix = tok + ':', byN = [];
++        eachDoc(D, function (doc) {
++          var l = dqsa(doc, '[data-onf^="' + prefix + '"]');
++          for (var i = 0; i < l.length; i++) {
++            var n = +sSlice(getAttr(l[i], 'data-onf'), prefix.length);
++            if (n >= 1) byN[n] = l[i];
++          }
++        });
++        total = byN.length - 1;
++        for (var n = from; n < byN.length && list.length < limit; n++) {
++          if (byN[n] && shown(byN[n])) list[list.length] = describe(byN[n], n);
++        }
++        res.token = tok;
++      } else {
++        var token = freshToken(), count = 0;
++        eachDoc(D, function (doc) {
++          var old = dqsa(doc, '[data-onf]');
++          for (var i = 0; i < old.length; i++) remAttr(old[i], 'data-onf');
++        });
++        eachInteractive(D, function (el) {
++          if (!shown(el)) return;
++          count++;
++          setAttr(el, 'data-onf', token + ':' + count);
++          if (list.length < limit) list[list.length] = describe(el, count);
++        });
++        total = count;
++        res.token = token;
++      }
++      var last = list.length ? list[list.length - 1].n : from - 1;
++      res.elements = list;
++      res.elementsMore = total > last;
++      if (res.elementsMore) res.next = last + 1;
++    }
++    if (a.text) {
++      var max = a.max | 0 || 6000;
++      var t = readerText(max);
++      if (!t) {
++        var body = bodyOf(D);
++        t = body ? pageText(body, true, max) : { text: '', more: false };
++      }
++      res.text = t.text;
++      res.textMore = t.more;
++    }
++    return res;
++  }
++
++  // Scrolls n into view; where its middle is on the screen in device pixels
++  // of the WebView, and whether a tap there would reach it.
++  function locate() {
++    var el = byNumber(a.n);
++    if (!el) return { error: STALE };
++    var b = box(el);
++    if (!b) return { hit: false };
++    intoView(b, { block: 'center', inline: 'center', behavior: 'instant' });
++    var r = topRect(b), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
++    var h = hitAt(cx, cy);
++    var ok = !!h && (h === b || contains(b, h));
++    var vv = W.visualViewport;
++    var sc = vv ? vv.scale : 1, ox = vv ? vv.offsetLeft : 0, oy = vv ? vv.offsetTop : 0;
++    var vw = vv ? vv.width : W.innerWidth, vh = vv ? vv.height : W.innerHeight;
++    var inside = cx - ox >= 0 && cy - oy >= 0 && cx - ox < vw && cy - oy < vh;
++    var dpr = W.devicePixelRatio || 1;
++    return { hit: ok && inside, x: (cx - ox) * sc * dpr, y: (cy - oy) * sc * dpr };
++  }
++  function click() {
++    var el = byNumber(a.n);
++    if (!el) return { error: STALE };
++    press(el);
++    return { done: true };
++  }
++  function type() {
++    var el = byNumber(a.n);
++    if (!el) return { error: STALE };
++    if (isPassword(el)) return { error: 'password field: the user types it' };
++    var kind = kindOf(el), ln = localNameOf(el);
++    if (kind !== 'field' && kind !== 'textarea') return { error: 'not a text field' };
++    var text = a.text == null ? '' : '' + a.text;
++    intoView(el, { block: 'center', behavior: 'instant' });
++    try { focusEl(el); } catch (e) { /* Not focusable. */ }
++    if (ln === 'input' || ln === 'textarea') {
++      // The prototype's setter: React and Vue keep their own on the element
++      // and only notice a change made past it.
++      if (ln === 'input') setInputValue(el, text);
++      else setAreaValue(el, text);
++      fire(el, 'input');
++      fire(el, 'change');
++    } else if (editableOf(el)) {
++      // An editor: select all and type over it, through its own input handling.
++      var doc = docOf(el), sel = doc.getSelection(), range = doc.createRange();
++      range.selectNodeContents(el);
++      sel.removeAllRanges();
++      sel.addRange(range);
++      var ok = false;
++      try { ok = doc.execCommand('insertText', false, text); } catch (e) { ok = false; }
++      if (!ok) {
++        setText(el, text);
++        fire(el, 'input');
++      }
++    } else {
++      return { error: 'not a text field' };
++    }
++    if (a.submit) {
++      sendKey(el, 'Enter');
++      return { done: true, nav: true };
++    }
++    return { done: true };
++  }
++  function select() {
++    var el = byNumber(a.n);
++    if (!el) return { error: STALE };
++    if (localNameOf(el) !== 'select') return { error: 'not a select list' };
++    var want = sLower(clean(a.text));
++    if (!want) return { error: 'text missing' };
++    var opts = optionsOf(el), pick = -1;
++    // An exact match first, then the first that contains the text.
++    for (var pass = 0; pass < 2 && pick < 0; pass++) {
++      for (var i = 0; i < opts.length; i++) {
++        if (isDisabled(opts[i])) continue;
++        var t = sLower(clean(optionText(opts[i])));
++        var hit = pass === 0 ? t === want || sLower(optionValue(opts[i])) === want
++            : sIndexOf(t, want) >= 0;
++        if (hit) {
++          pick = i;
++          break;
++        }
++      }
++    }
++    if (pick < 0) return { error: 'no such option' };
++    try { focusEl(el); } catch (e) { /* Not focusable. */ }
++    setSelIndex(el, pick);
++    fire(el, 'input');
++    fire(el, 'change');
++    return { done: true, note: cut(clean(optionText(opts[pick])), 120) };
++  }
++  function check() {
++    var el = byNumber(a.n);
++    if (!el) return { error: STALE };
++    var want = a.text === 'on' ? true : a.text === 'off' ? false : null;
++    if (want === null) return { error: 'text must be on or off' };
++    var kind = kindOf(el);
++    if (kind !== 'checkbox' && kind !== 'radio') return { error: 'not a checkbox' };
++    if (isChecked(el) === want) return { done: true, note: want ? 'already on' : 'already off' };
++    if (kind === 'radio' && !want) {
++      return { error: 'a radio button cannot be switched off; pick another one' };
++    }
++    var b = box(el);
++    if (b) intoView(b, { block: 'center', behavior: 'instant' });
++    press(el);
++    return { done: isChecked(el) === want };
++  }
++  function key() {
++    if (!KEYS[a.key]) return { error: 'unknown key' };
++    sendKey(focused(), a.key);
++    return { done: true, nav: a.key === 'Enter' };
++  }
++  function scroll() {
++    if (a.n) {
++      var el = byNumber(a.n);
++      if (!el) return { error: STALE };
++      var b = box(el) || el;
++      intoView(b, { block: 'center', behavior: 'instant' });
++      return { done: true };
++    }
++    if (a.direction !== 'down' && a.direction !== 'up') {
++      return { error: 'direction must be down or up' };
++    }
++    var s = scroller(null);
++    var moved = scrollPage(s, (a.direction === 'down' ? 0.9 : -0.9) * screenOf(s));
++    if (!moved) return { done: false, note: a.direction === 'down' ? 'at the bottom' : 'at the top' };
++    return { done: true };
++  }
++  function find() {
++    var want = sLower(clean(a.text));
++    if (!want) return { error: 'text missing' };
++    var hit = null, line = '';
++    eachDoc(D, function (doc) {
++      var body = bodyOf(doc);
++      if (hit || !body) return;
++      var tw = createWalker(doc, body, 4 /* NodeFilter.SHOW_TEXT */);
++      for (var node = nextNode(tw); node && !hit; node = nextNode(tw)) {
++        var c = clean(textOf(node));
++        if (sIndexOf(sLower(c), want) < 0) continue;
++        var p = parentOf(node);
++        if (p && !SKIP[localNameOf(p)] && !closest(p, 'script,style,noscript,template')
++            && shown(p)) {
++          hit = p;
++          line = c;
++        }
++      }
++    });
++    if (!hit) {
++      // Spread over several nodes ("a <b>bold</b> word"): the innermost
++      // element whose text holds it all.
++      var el = bodyOf(D);
++      if (el && sIndexOf(sLower(clean(textIn(el))), want) >= 0) {
++        for (var descended = true; descended;) {
++          descended = false;
++          var kids = el.children;
++          for (var i = 0; i < kids.length; i++) {
++            if (!SKIP[localNameOf(kids[i])] && sIndexOf(sLower(clean(textIn(kids[i]))), want) >= 0) {
++              el = kids[i];
++              descended = true;
++              break;
++            }
++          }
++        }
++        hit = el;
++        line = clean(textIn(el));
++      }
++    }
++    if (!hit) return { done: false, note: 'not found' };
++    intoView(hit, { block: 'center', behavior: 'instant' });
++    var at = sIndexOf(sLower(line), want);
++    var start = mMax(0, at - mMax(0, (120 - want.length) >> 1));
++    var note = sSlice(line, start, start + 120);
++    if (start > 0) note = '…' + note;
++    if (start + 120 < line.length) note += '…';
++    return { done: true, note: note };
++  }
++  function media() {
++    var m = pickMedia();
++    if (!m) return { error: 'no video or audio on the page' };
++    setWin('__onfMedia', m);
++    if (a.action === 'play') {
++      setWin('__onfPlayErr', '');
++      var p = playMedia(m);
++      if (p && thenOf) {
++        thenOf(p, null, function (e) { setWin('__onfPlayErr', e && e.name || 'error'); });
++      }
++    } else if (a.action === 'pause') {
++      pauseMedia(m);
++    } else if (a.action === 'seek') {
++      var s = +a.seconds;
++      if (!(s >= 0)) return { error: 'seconds missing' };
++      var d = durationOf(m);
++      setTime(m, isFinite(d) ? mMin(s, d) : s);
++    } else {
++      return { error: 'unknown action' };
++    }
++    return mediaState(m);
++  }
++  function mstate() {
++    var m = W.__onfMedia;
++    if (!m || !connectedOf(m)) m = pickMedia();
++    if (!m) return { error: 'no video or audio on the page' };
++    return mediaState(m);
++  }
++
++  var OPS = { read: read, locate: locate, click: click, type: type, select: select,
++    check: check, key: key, scroll: scroll, find: find, media: media, mstate: mstate };
++  if (!a || typeof OPS[a.op] !== 'function' || !getOwn(OPS, a.op)) return { error: 'unknown op' };
++  try {
++    return OPS[a.op]();
++  } catch (e) {
++    return { error: 'page error: ' + (e && e.name || 'unknown') };
++  }
++})
 diff --git a/app/src/main/res/raw/readability.js b/app/src/main/res/raw/readability.js
 new file mode 100644
 index 0000000..b745aa0

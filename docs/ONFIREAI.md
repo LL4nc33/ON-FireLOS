@@ -132,6 +132,35 @@ gist:
 | smart home | Home Assistant straight through its API (address and a long-lived token in the settings): what lights, heating, windows, sensors are like, and switching them. Lights, media players, heating and fans switch straight away; everything else (switches, scripts, scenes, doors, locks, alarm systems - a garage opener is often just a switch) asks first with the thing's own name ("Garagentor einschalten?", "Haustür aufsperren?") and does nothing at the lock screen |
 | MCP | the tools of your MCP servers |
 
+## Working in the browser
+
+ON-FireLOS's browser lets ON-FireAI work on web pages from the inside, not as
+screen pixels: a service in the browser that only apps signed like the system
+can use (it checks the caller's signature). "Such auf willhaben ein Rad unter
+200 Euro", "lies mir den Artikel vor", "mach den zweiten Tab zu".
+
+- Tabs: list, bring to the front, close; open a page or a search in a visible
+  tab, or for looking something up in an invisible one, while the user does
+  something else (only reading there, never acting).
+- Reading: title, address, the page's main text (reader mode where it works),
+  and every control numbered - links, buttons, fields with their label and
+  value, lists with their options, boxes - also those off screen. Where a
+  button's name for assistive tools differs from what it shows, both are given
+  ("Download the app (Installieren)"), so the model sees what the user sees.
+- Acting: click (in a visible tab a real touch, so pages that need one work),
+  type (as a person would, React pages see it), choose an option, tick, keys,
+  scroll, find text, back, forward, reload; it waits until a new page has
+  loaded. Videos: play, pause, seek.
+- Before a click or an Enter that sends, buys, pays, deletes, downloads,
+  installs, subscribes or signs in, it asks. Password fields are never read
+  and never typed into (the user types them, then it goes on); card numbers
+  and one-time codes are kept out like passwords.
+- What a page says is data for the model, never an instruction; the log keeps
+  only which command ran.
+- Measured on my device: open and read a page in about 2s; search on
+  Wikipedia and open the first hit, 13 steps, in 23s.
+- Not seen: other sites' frames inside a page and shadow DOM.
+
 ## Operating the screen
 
 When turned on (Settings > System > ON-FireAI > Screen), ON-FireAI can work in

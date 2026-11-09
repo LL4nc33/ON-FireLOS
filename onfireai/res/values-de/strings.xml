@@ -134,6 +134,9 @@
     <string name="step_scroll">Ich scrolle…</string>
     <string name="step_key">Ich drücke %1$s</string>
     <string name="step_open">Ich öffne %1$s</string>
+    <string name="step_read_page">Ich lese die Seite…</string>
+    <string name="step_tabs">Ich schaue mir die Tabs an…</string>
+    <string name="step_page">Ich arbeite auf der Seite…</string>
     <string name="chip_notifications">Benachrichtigungen</string>
     <string name="pref_notifications">Benachrichtigungen lesen</string>
     <string name="pref_notifications_summary">Fragst du, was es Neues gibt, liest ON-FireAI deine Benachrichtigungen und fasst sie zusammen</string>

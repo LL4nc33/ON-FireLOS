@@ -54,7 +54,11 @@ final class Agent {
     private static final java.util.regex.Pattern RISKY = java.util.regex.Pattern.compile(
             "(?i)(senden|absenden|send|kaufen|kauf|buy|bestell|order|bezahl|pay|lösch|delete|"
                     + "entfern|remove|überweis|transfer|post|veröffentlich|publish|abonn|"
-                    + "subscribe|install|deinstall|uninstall|zurücksetzen|reset)");
+                    + "subscribe|install|deinstall|uninstall|zurücksetzen|reset|download|"
+                    + "herunterlad)");
+    /** On a web page, signing in is asked about too (the user types passwords anyway). */
+    private static final java.util.regex.Pattern LOGIN = java.util.regex.Pattern.compile(
+            "(?i)(anmeld|einlogg|log ?in|sign ?in|registrier|register|sign ?up|konto erstell)");
     private static final int MAX_HISTORY = 24;
     /** What the model hears when the user said no: plain enough that it cannot claim success. */
     private static final String DECLINED = "NOT DONE. The user said no, so nothing was done and"
@@ -275,15 +279,19 @@ final class Agent {
                     }
                     final Mcp.Tool external = mcp.get(toolName);
                     final Tools.Result r;
-                    if (toolName.startsWith("screen_")) {
+                    if (toolName.startsWith("screen_") || toolName.startsWith("browser_")) {
                         limit = MAX_SCREEN_ROUNDS;
                     }
                     final String detail = stepDetail(toolName, fn.optString("arguments"));
                     post(run, () -> mCallback.onStep(toolName, detail));
                     final String tapLabel = "screen_tap".equals(toolName)
-                            ? screenLabel(fn.optString("arguments")) : "";
+                            ? screenLabel(fn.optString("arguments"))
+                            : "browser_act".equals(toolName)
+                            ? browserLabel(fn.optString("arguments")) : "";
                     if (external == null && !tapLabel.isEmpty()
-                            && RISKY.matcher(tapLabel).find()
+                            && (RISKY.matcher(tapLabel).find()
+                            || ("browser_act".equals(toolName)
+                            && LOGIN.matcher(tapLabel).find()))
                             && !confirm(run, mContext.getString(R.string.confirm_tap,
                                     tapLabel.replace('\n', ' ')))) {
                         r = new Tools.Result(DECLINED, null);
@@ -352,12 +360,33 @@ final class Agent {
     }
 
     /** What a step is about: the element tapped, the text typed, the app opened. */
+    /**
+     * What a browser action is about to press: the control's label for a click, a key or
+     * a submit (Enter in a field sends a form); "" for anything else.
+     */
+    private static String browserLabel(String arguments) {
+        try {
+            final JSONObject a = new JSONObject(arguments == null || arguments.isEmpty()
+                    ? "{}" : arguments);
+            final String action = a.optString("action");
+            if ("click".equals(action) || ("type".equals(action) && a.optBoolean("submit"))
+                    || ("key".equals(action) && "Enter".equals(a.optString("key")))) {
+                return Browser.label(a.optInt("n", -1));
+            }
+        } catch (JSONException ignored) {
+        }
+        return "";
+    }
+
     private static String stepDetail(String tool, String arguments) {
         try {
             final JSONObject a = new JSONObject(arguments == null || arguments.isEmpty()
                     ? "{}" : arguments);
             switch (tool) {
                 case "screen_tap": return screenLabel(arguments);
+                case "browser_act": return browserLabel(arguments).isEmpty()
+                        ? a.optString("text") : browserLabel(arguments);
+                case "browser_open": return a.optString("url");
                 case "screen_type": return a.optString("text");
                 case "screen_key": return a.optString("key");
                 case "open_app": return a.optString("name");
