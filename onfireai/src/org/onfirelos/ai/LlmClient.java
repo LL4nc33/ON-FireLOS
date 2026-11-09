@@ -100,6 +100,30 @@ final class LlmClient {
         return mCancelled;
     }
 
+    /** A failure as the user should read it, not as Java names it. */
+    static String describe(android.content.Context context, Throwable e) {
+        if (e instanceof java.net.UnknownHostException
+                || e instanceof java.net.ConnectException
+                || e instanceof java.net.NoRouteToHostException) {
+            return context.getString(R.string.err_unreachable);
+        }
+        if (e instanceof java.net.SocketTimeoutException) {
+            return context.getString(R.string.err_timeout);
+        }
+        if (e instanceof ServerException) {
+            final String code = String.valueOf(e.getMessage());
+            if (code.startsWith("401") || code.startsWith("403")) {
+                return context.getString(R.string.err_key);
+            }
+            if (code.startsWith("404")) {
+                return context.getString(R.string.err_not_found);
+            }
+            return context.getString(R.string.err_server, code);
+        }
+        final String m = e.getMessage();
+        return m == null || m.isEmpty() ? e.getClass().getSimpleName() : m;
+    }
+
     /** The model to ask: the one set, or the server's first. */
     String model() throws IOException {
         if (!mModel.isEmpty()) {
@@ -211,7 +235,7 @@ final class LlmClient {
             final JSONArray toolCalls = part.optJSONArray("tool_calls");
             if (toolCalls != null) {
                 for (int i = 0; i < toolCalls.length(); i++) {
-                    gather(toolCalls.getJSONObject(i), i, calls);
+                    gather(toolCalls.getJSONObject(i), streamed ? -1 : i, calls);
                 }
             }
         }
@@ -221,26 +245,43 @@ final class LlmClient {
         }
     }
 
-    /** Streamed calls come in pieces: the name first, the arguments a few characters at a time. */
+    /**
+     * Streamed calls come in pieces: the name first, the arguments a few characters at a time.
+     * position is the place in a whole (not streamed) message, -1 for a streamed piece.
+     */
     private static void gather(JSONObject piece, int position, TreeMap<Integer, JSONObject> calls)
             throws JSONException {
-        final int index = piece.optInt("index", position);
+        // Some servers send "id": null and "name": null on the pieces after the first.
+        final String id = text(piece, "id");
+        final int index;
+        if (piece.has("index") && !piece.isNull("index")) {
+            index = piece.getInt("index");
+        } else if (position >= 0) {
+            index = position;
+        } else if (calls.isEmpty()) {
+            index = 0;
+        } else {
+            // No index: a piece with an id of its own starts the next call.
+            final int last = calls.lastKey();
+            final String lastId = calls.get(last).optString("id");
+            index = !id.isEmpty() && !lastId.startsWith(SYNTHETIC) && !id.equals(lastId)
+                    ? last + 1 : last;
+        }
         JSONObject call = calls.get(index);
         if (call == null) {
             call = new JSONObject()
-                    .put("id", "call_" + index)
+                    .put("id", SYNTHETIC + index)
                     .put("type", "function")
                     .put("function", new JSONObject().put("name", "").put("arguments", ""));
             calls.put(index, call);
         }
-        final String id = piece.optString("id", "");
         if (!id.isEmpty()) {
             call.put("id", id);
         }
         final JSONObject function = piece.optJSONObject("function");
         if (function != null) {
             final JSONObject target = call.getJSONObject("function");
-            final String name = function.optString("name", "");
+            final String name = text(function, "name");
             if (!name.isEmpty()) {
                 target.put("name", target.optString("name") + name);
             }
@@ -251,6 +292,13 @@ final class LlmClient {
                 target.put("arguments", args.toString());
             }
         }
+    }
+
+    private static final String SYNTHETIC = "onfireai_call_";
+
+    /** A string field; JSON null and a missing field are both empty (optString gives "null"). */
+    private static String text(JSONObject o, String key) {
+        return o.isNull(key) ? "" : o.optString(key, "");
     }
 
     private HttpURLConnection open(String address, String method) throws IOException {

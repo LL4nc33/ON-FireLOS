@@ -98,9 +98,10 @@ final class FastTrack {
         } else {
             final Matcher m = TIMER.matcher(t);
             if (m.matches()) {
-                final Integer n = m.group(1).matches("\\d+") ? Integer.valueOf(m.group(1))
+                final Integer n = m.group(1).matches("\\d{1,4}") ? Integer.valueOf(m.group(1))
                         : NUMBERS.get(m.group(1));
-                if (n == null || n <= 0) {
+                // Nothing, or more than a day: the model asks back.
+                if (n == null || n <= 0 || n > 1440) {
                     return null;
                 }
                 final String unit = m.group(2);

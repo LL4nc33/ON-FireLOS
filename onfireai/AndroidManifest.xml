@@ -70,6 +70,13 @@
                 android:resource="@drawable/ic_launcher" />
         </activity>
 
+        <!-- Asks a text at once. Not exported: only ON-FireAI itself (and adb as root, for
+             tests) may; a text shared by another app only fills the field. -->
+        <activity-alias
+            android:name=".Ask"
+            android:exported="false"
+            android:targetActivity=".AssistActivity" />
+
         <!-- Settings > System > ON-FireAI. -->
         <activity
             android:name=".SettingsActivity"
@@ -123,6 +130,11 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- The wake word: offline, on the tablet (off until turned on). -->
+        <service
+            android:name=".WakeWord"
+            android:exported="false" />
 
         <!-- Makes it the assistant on first start, when none is chosen. -->
         <receiver android:name=".BootReceiver">

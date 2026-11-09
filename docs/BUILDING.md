@@ -25,6 +25,8 @@ scripts/build-skia-stub.sh       # the two libskia stubs, not shipped as binarie
 scripts/fetch-androidx-webkit.sh # androidx.webkit 1.10.0 for the browser, checksum-verified
 scripts/fetch-exoplayer.sh       # ExoPlayer 2.19.1 and Guava for the gallery's video player
 scripts/fetch-store-apps.sh      # Droid-ify, Aurora Store, eSpeak from F-Droid, checksum-verified
+scripts/fetch-onfireai-kws.sh    # ON-FireAI's wake word: sherpa-onnx library and model, checksum-verified
+scripts/onfireai-into-tree.sh /root/los16   # ON-FireAI (onfireai/) as packages/apps/ONFireAI
 ```
 
 Then create the signing keys (see [Signing keys](#signing-keys)) - before the
@@ -146,6 +148,14 @@ script, into `device/amazon/suez/prebuilt-apps/`. Droid-ify and Aurora keep
 F-Droid's signature, so Droid-ify can update them; eSpeak's library has to be
 stored uncompressed, which breaks that signature, so it is signed with the
 ROM's key and updated with the ROM.
+
+ON-FireAI, the assistant, is source in this repository (`onfireai/`, see
+[ON-FireAI](ONFIREAI.md)); `scripts/onfireai-into-tree.sh` places it in the tree and the
+device's makefile adds it when it is there. Its wake word needs sherpa-onnx's
+Android library (Apache-2.0, with onnxruntime, MIT) and a keyword spotting model
+(Apache-2.0); `scripts/fetch-onfireai-kws.sh` fetches both, checked against pinned
+SHA-256, into `onfireai/jni/` and `onfireai/assets/kws/` (not in the repository).
+Without them ON-FireAI builds and works, without a wake word.
 
 ## Signing keys
 

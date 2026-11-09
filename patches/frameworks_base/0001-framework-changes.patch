@@ -9089,6 +9089,23 @@ index 5727b9a0..7b99e545 100644
      private void initView(Context context) {
          mScroller = new OverScroller(getContext());
          setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
+diff --git a/services/accessibility/java/com/android/server/accessibility/AccessibilityServiceConnection.java b/services/accessibility/java/com/android/server/accessibility/AccessibilityServiceConnection.java
+index 012666ce..0c0ac3bc 100644
+--- a/services/accessibility/java/com/android/server/accessibility/AccessibilityServiceConnection.java
++++ b/services/accessibility/java/com/android/server/accessibility/AccessibilityServiceConnection.java
+@@ -107,7 +107,11 @@ class AccessibilityServiceConnection extends AbstractAccessibilityServiceConnect
+     }
+ 
+     public void unbindLocked() {
+-        mContext.unbindService(this);
++        try {
++            mContext.unbindService(this);
++        } catch (IllegalArgumentException e) {
++            // ON-FireLOS: already released (the app was force-stopped while bound).
++        }
+         UserState userState = mUserStateWeakReference.get();
+         if (userState == null) return;
+         userState.removeServiceLocked(this);
 diff --git a/services/core/java/com/android/server/AppOpsService.java b/services/core/java/com/android/server/AppOpsService.java
 index 95ba5024..aaf61cd3 100644
 --- a/services/core/java/com/android/server/AppOpsService.java

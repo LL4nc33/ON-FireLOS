@@ -43,9 +43,17 @@ final class Embeddings {
         return !Prefs.string(context, Prefs.EMBED_URL).isEmpty();
     }
 
+    /** Until when a server that did not answer is left alone (it would slow each turn). */
+    private static volatile long sDownUntil;
+
+    /** The address changed: try it at once. */
+    static void reset() {
+        sDownUntil = 0;
+    }
+
     /** Worker thread. Null when no server is set or it does not answer. */
     static float[] of(Context context, String text) {
-        if (!configured(context)) {
+        if (!configured(context) || System.currentTimeMillis() < sDownUntil) {
             return null;
         }
         try {
@@ -64,6 +72,7 @@ final class Embeddings {
                     out.write(body.toString().getBytes(StandardCharsets.UTF_8));
                 }
                 if (c.getResponseCode() != 200) {
+                    sDownUntil = System.currentTimeMillis() + 2 * 60 * 1000;
                     return null;
                 }
                 final JSONArray v = new JSONObject(LlmClient.readAll(c.getInputStream()))
@@ -77,6 +86,7 @@ final class Embeddings {
                 c.disconnect();
             }
         } catch (IOException | org.json.JSONException e) {
+            sDownUntil = System.currentTimeMillis() + 2 * 60 * 1000;
             return null;
         }
     }

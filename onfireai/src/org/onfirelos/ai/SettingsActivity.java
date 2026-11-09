@@ -47,16 +47,28 @@ public class SettingsActivity extends Activity {
     private TextView mSearch;
     private TextView mBlocked;
     private TextView mEmbed;
+    private TextView mWakeWord;
     private TextView mStt;
     private TextView mSttUrl;
     private TextView mSttModel;
     private TextView mMemory;
     private Switch mAssistant;
+    private Page.Status mStatus;
+    /** Counts the checks, so an old answer does not overwrite a newer one. */
+    private int mCheck;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mPage = new Page(this, getString(R.string.app_name));
+
+        mStatus = mPage.status(R.drawable.ic_spark);
+        final android.widget.Button tryIt = new android.widget.Button(this, null, 0,
+                R.style.Pill);
+        tryIt.setText(R.string.status_try);
+        tryIt.setOnClickListener(v -> startActivity(new Intent(this, AssistActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
+        mStatus.actions.addView(tryIt);
 
         mPage.section(R.string.section_model);
         mUrl = mPage.row(getString(R.string.pref_url), "", true, v -> editUrl());
@@ -91,6 +103,20 @@ public class SettingsActivity extends Activity {
                     refresh();
                 }));
 
+        mPage.section(R.string.section_wake);
+        mPage.toggle(getString(R.string.pref_wake), getString(
+                WakeWord.available() ? R.string.pref_wake_summary : R.string.pref_wake_missing),
+                WakeWord.wanted(this), (b, on) -> {
+                    Prefs.put(this, Prefs.WAKE, on);
+                    WakeWord.apply(this);
+                });
+        mWakeWord = mPage.row(getString(R.string.pref_wake_word), "", true, v -> pickWakeWord());
+        mPage.toggle(getString(R.string.pref_wake_charging),
+                getString(R.string.pref_wake_charging_summary),
+                Prefs.get(this).getBoolean(Prefs.WAKE_CHARGING_ONLY, true), (b, on) -> {
+                    Prefs.put(this, Prefs.WAKE_CHARGING_ONLY, on);
+                });
+
         mPage.section(R.string.section_start);
         mAssistant = mPage.toggle(getString(R.string.pref_assistant), "", isAssistant(this),
                 (b, on) -> setAssistant(this, on));
@@ -110,7 +136,10 @@ public class SettingsActivity extends Activity {
                         && NotificationWatcher.enabled(this),
                 (b, on) -> {
                     Prefs.put(this, Prefs.NOTIFICATIONS, on);
-                    NotificationWatcher.setEnabled(this, on);
+                    if (on && !NotificationWatcher.enabled(this)) {
+                        // Only the user may grant it, on Android's own page.
+                        startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                    }
                 });
 
         mPage.section(R.string.section_tools);
@@ -124,6 +153,7 @@ public class SettingsActivity extends Activity {
                 Prefs.string(this, Prefs.EMBED_URL),
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, text -> {
                     Prefs.put(this, Prefs.EMBED_URL, text);
+                    Embeddings.reset();
                     refresh();
                 }));
         mPage.toggle(getString(R.string.pref_learn), getString(R.string.pref_learn_summary),
@@ -155,7 +185,7 @@ public class SettingsActivity extends Activity {
                 text = getString(R.string.mcp_tools, Mcp.tools(server, index).size());
                 ok = true;
             } catch (Exception e) {
-                text = getString(R.string.mcp_error, e.getMessage());
+                text = getString(R.string.mcp_error, LlmClient.describe(this, e));
                 ok = false;
             }
             final String shown = text;
@@ -224,6 +254,54 @@ public class SettingsActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refresh();
+        checkStatus();
+    }
+
+    /** The card at the top: ready (and with which model), or what is missing. */
+    private void checkStatus() {
+        final int check = ++mCheck;
+        final String wake = WakeWord.wanted(this) && WakeWord.available()
+                ? getString(R.string.status_wake, Prefs.get(this).getString(Prefs.WAKE_WORD,
+                        WakeWord.PRESETS[0][0]))
+                : getString(R.string.status_no_wake);
+        if (!Prefs.configured(this)) {
+            mStatus.title.setText(R.string.status_setup);
+            mStatus.line.setText(R.string.status_setup_line);
+            mStatus.actions.setVisibility(android.view.View.GONE);
+            return;
+        }
+        mStatus.title.setText(R.string.status_checking);
+        mStatus.line.setText(wake);
+        mStatus.actions.setVisibility(android.view.View.VISIBLE);
+        final LlmClient client = client();
+        new Thread(() -> {
+            String title;
+            String line;
+            try {
+                final String model = client.model();
+                title = getString(R.string.status_ready);
+                line = (model.isEmpty() ? "" : shortModel(model) + " · ") + wake;
+            } catch (Exception e) {
+                title = getString(R.string.status_offline);
+                line = LlmClient.describe(this, e);
+            }
+            final String t = title;
+            final String l = line;
+            mMain.post(() -> {
+                if (check == mCheck && !isDestroyed()) {
+                    mStatus.title.setText(t);
+                    mStatus.line.setText(l);
+                }
+            });
+        }).start();
+    }
+
+    /** "Qwen3.8-27B-UD-Q4_K_M.gguf" reads as "Qwen3.8-27B". */
+    static String shortModel(String model) {
+        String m = model.replaceAll("(?i)\\.gguf$", "");
+        m = m.substring(m.lastIndexOf('/') + 1);
+        m = m.replaceAll("(?i)[-_.](UD-)?(Q\\d.*|IQ\\d.*|F16|BF16|FP16|GGUF)$", "");
+        return m.isEmpty() ? model : m;
     }
 
     private void refresh() {
@@ -242,6 +320,8 @@ public class SettingsActivity extends Activity {
         final String sttModel = Prefs.string(this, Prefs.STT_MODEL);
         Page.setSummary(mSttModel, sttModel.isEmpty() ? getString(R.string.stt_model_default)
                 : sttModel);
+        Page.setSummary(mWakeWord, Prefs.get(this).getString(Prefs.WAKE_WORD,
+                WakeWord.PRESETS[0][0]));
         final String embed = Prefs.string(this, Prefs.EMBED_URL);
         Page.setSummary(mEmbed, embed.isEmpty() ? getString(R.string.pref_embed_empty) : embed);
         final int blocked = Tools.blocked(this).size();
@@ -251,8 +331,11 @@ public class SettingsActivity extends Activity {
         Page.setSummary(mSearch, search.isEmpty() ? getString(R.string.pref_search_empty)
                 : search);
         final Store store = Store.get(this);
-        Page.setSummary(mMemory, getString(R.string.pref_memory_summary, store.notes().size(),
-                store.days().size()));
+        final int notes = store.notes().size();
+        final int days = store.days().size();
+        Page.setSummary(mMemory, getResources().getQuantityString(R.plurals.memory_notes, notes,
+                notes) + ", " + getResources().getQuantityString(R.plurals.memory_days, days,
+                days));
         final boolean assistant = isAssistant(this);
         if (mAssistant.isChecked() != assistant) {
             mAssistant.setChecked(assistant);
@@ -328,6 +411,38 @@ public class SettingsActivity extends Activity {
                     Prefs.put(this, Prefs.SEARCH_URL, text);
                     refresh();
                 });
+    }
+
+    /** The wake word: one of the tried ones, or one's own (English sounds work best). */
+    private void pickWakeWord() {
+        final String[] names = new String[WakeWord.PRESETS.length + 1];
+        for (int i = 0; i < WakeWord.PRESETS.length; i++) {
+            names[i] = WakeWord.PRESETS[i][0];
+        }
+        names[names.length - 1] = getString(R.string.wake_own);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.pref_wake_word)
+                .setItems(names, (d, which) -> {
+                    if (which < WakeWord.PRESETS.length) {
+                        setWakeWord(names[which]);
+                    } else {
+                        ask(R.string.wake_own, getString(R.string.wake_own_help),
+                                Prefs.get(this).getString(Prefs.WAKE_WORD, ""),
+                                InputType.TYPE_CLASS_TEXT, this::setWakeWord);
+                    }
+                })
+                .show();
+    }
+
+    private void setWakeWord(String word) {
+        if (word.trim().isEmpty()) {
+            return;
+        }
+        Prefs.get(this).edit().putString(Prefs.WAKE_WORD, word.trim()).apply();
+        // The service picks the new word up when it starts again.
+        stopService(new Intent(this, WakeWord.class));
+        WakeWord.apply(this);
+        refresh();
     }
 
     /** The apps the screen agent never reads, picked from the installed ones. */
@@ -446,7 +561,7 @@ public class SettingsActivity extends Activity {
                         client.model());
                 ok = true;
             } catch (Exception e) {
-                result = getString(R.string.test_fail, e.getMessage());
+                result = getString(R.string.test_fail, LlmClient.describe(this, e));
                 ok = false;
             }
             final String text = result;

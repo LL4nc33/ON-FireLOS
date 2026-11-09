@@ -25,6 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
@@ -110,6 +111,52 @@ final class Page {
         mCard.setClipToOutline(true);
         mColumn.addView(mCard, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    /**
+     * The card at the top of a page that says how things stand: a large icon in a soft
+     * circle, a title, a line under it, and room for a pill.
+     */
+    static final class Status {
+        final ImageView icon;
+        final TextView title;
+        final TextView line;
+        final LinearLayout actions;
+
+        Status(ImageView icon, TextView title, TextView line, LinearLayout actions) {
+            this.icon = icon;
+            this.title = title;
+            this.line = line;
+            this.actions = actions;
+        }
+    }
+
+    Status status(int icon) {
+        final LinearLayout card = new LinearLayout(mActivity);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.card_bg);
+        card.setPadding(dp(24), dp(24), dp(24), dp(24));
+        final ImageView image = new ImageView(mActivity);
+        image.setImageResource(icon);
+        image.setBackgroundResource(R.drawable.status_circle);
+        image.setPadding(dp(14), dp(14), dp(14), dp(14));
+        card.addView(image, new LinearLayout.LayoutParams(dp(56), dp(56)));
+        final TextView title = text("", 24, R.color.on_background);
+        title.setPadding(0, dp(16), 0, 0);
+        card.addView(title);
+        final TextView line = text("", 15, R.color.on_background_quiet);
+        line.setPadding(0, dp(4), 0, 0);
+        card.addView(line);
+        final LinearLayout actions = new LinearLayout(mActivity);
+        final LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionsLp.topMargin = dp(18);
+        card.addView(actions, actionsLp);
+        final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(12);
+        mColumn.addView(card, lp);
+        return new Status(image, title, line, actions);
     }
 
     /** Free space for a view of one's own under the cards (a pill, a note). */

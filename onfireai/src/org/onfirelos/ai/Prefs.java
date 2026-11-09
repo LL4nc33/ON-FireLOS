@@ -43,6 +43,10 @@ final class Prefs {
     static final String SCREEN = "screen";
     static final String NOTIFICATIONS = "notifications";
     static final String EMBED_URL = "embed_url";
+    static final String WAKE = "wake";
+    static final String WAKE_WORD = "wake_word";
+    static final String WAKE_CHARGING_ONLY = "wake_charging_only";
+    static final String WAKE_THRESHOLD = "wake_threshold";
     static final String EMBED_MODEL = "embed_model";
     /** Packages the screen agent never reads, separated by commas. */
     static final String SCREEN_BLOCKED = "screen_blocked";

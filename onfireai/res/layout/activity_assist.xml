@@ -6,11 +6,19 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
+    <!-- The sheet with its glowing edge, which spills a little above it. -->
+    <FrameLayout
+        android:id="@+id/sheet_frame"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:clipChildren="false">
+
     <LinearLayout
         android:id="@+id/sheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginTop="14dp"
         android:background="@drawable/sheet_bg"
         android:clickable="true"
         android:elevation="8dp"
@@ -33,6 +41,7 @@
             android:orientation="horizontal">
 
             <ImageView
+                android:id="@+id/spark"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_marginStart="4dp"
@@ -139,7 +148,7 @@
                     android:layout_width="64dp"
                     android:layout_height="64dp"
                     android:alpha="0"
-                    android:background="@drawable/chip_bg" />
+                    android:background="@drawable/level_ring" />
 
                 <ImageButton
                     android:id="@+id/mic"
@@ -153,4 +162,11 @@
             </FrameLayout>
         </LinearLayout>
     </LinearLayout>
+
+    <org.onfirelos.ai.GlowEdge
+        android:id="@+id/glow"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="9dp" />
+    </FrameLayout>
 </FrameLayout>

@@ -58,12 +58,25 @@ final class WhisperInput implements Listening {
     private final Handler mMain = new Handler(Looper.getMainLooper());
     private volatile boolean mActive;
     private volatile boolean mStop;
-    private volatile boolean mCancel;
+    /** Counts the recordings; one that was cancelled finds a newer number and keeps quiet. */
+    private volatile int mGeneration;
     private Thread mThread;
 
     WhisperInput(Context context, Callback callback) {
         mContext = context.getApplicationContext();
         mCallback = callback;
+    }
+
+    /**
+     * The microphone as it is. This tablet's VOICE_RECOGNITION input is all but deaf (measured
+     * on my device: noise 15, speech nothing; the raw input hears speech at 1000-2000), so
+     * the raw one where the device has it, else the plain microphone.
+     */
+    static int micSource(Context context) {
+        final String raw = context.getSystemService(android.media.AudioManager.class)
+                .getProperty(android.media.AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED);
+        return "true".equals(raw) ? MediaRecorder.AudioSource.UNPROCESSED
+                : MediaRecorder.AudioSource.MIC;
     }
 
     static boolean configured(Context context) {
@@ -77,9 +90,9 @@ final class WhisperInput implements Listening {
         }
         mActive = true;
         mStop = false;
-        mCancel = false;
+        final int generation = ++mGeneration;
         final int quietLimit = (followUp ? 5 : 8) * 50;
-        mThread = new Thread(() -> listen(quietLimit), "ONFireAI-whisper");
+        mThread = new Thread(() -> listen(generation, quietLimit), "ONFireAI-whisper");
         mThread.start();
         return true;
     }
@@ -91,7 +104,7 @@ final class WhisperInput implements Listening {
 
     @Override
     public void cancel() {
-        mCancel = true;
+        mGeneration++;
         mActive = false;
     }
 
@@ -105,34 +118,41 @@ final class WhisperInput implements Listening {
         return mActive;
     }
 
-    private void post(Runnable r) {
+    private void post(int generation, Runnable r) {
         mMain.post(() -> {
-            if (!mCancel) {
+            if (generation == mGeneration) {
                 r.run();
             }
         });
     }
 
-    private void fail(int error) {
-        mActive = false;
-        post(() -> mCallback.onError(error));
+    /** Still the recording asked for, not one cancelled since. */
+    private boolean current(int generation) {
+        return generation == mGeneration;
     }
 
-    private void listen(int quietLimit) {
+    private void fail(int generation, int error) {
+        if (current(generation)) {
+            mActive = false;
+        }
+        post(generation, () -> mCallback.onError(error));
+    }
+
+    private void listen(int g, int quietLimit) {
         final int min = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT);
         AudioRecord record;
         try {
-            record = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, RATE,
+            record = new AudioRecord(micSource(mContext), RATE,
                     AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
                     Math.max(min, RATE));
         } catch (RuntimeException e) {
-            fail(SpeechRecognizer.ERROR_AUDIO);
+            fail(g, SpeechRecognizer.ERROR_AUDIO);
             return;
         }
         if (record.getState() != AudioRecord.STATE_INITIALIZED) {
             record.release();
-            fail(SpeechRecognizer.ERROR_AUDIO);
+            fail(g, SpeechRecognizer.ERROR_AUDIO);
             return;
         }
         final ByteArrayOutputStream pcm = new ByteArrayOutputStream(RATE * 2 * 6);
@@ -145,11 +165,11 @@ final class WhisperInput implements Listening {
         boolean speech = false;
         try {
             record.startRecording();
-            post(mCallback::onReadyForSpeech);
-            while (!mCancel) {
+            post(g, mCallback::onReadyForSpeech);
+            while (current(g)) {
                 final int n = record.read(frame, 0, FRAME);
                 if (n <= 0) {
-                    fail(SpeechRecognizer.ERROR_AUDIO);
+                    fail(g, SpeechRecognizer.ERROR_AUDIO);
                     return;
                 }
                 frames++;
@@ -167,7 +187,7 @@ final class WhisperInput implements Listening {
                 }
                 final float threshold = Math.max(floor + 12f, 38f);
                 final float level = (db - floor) / 3f - 2f;
-                post(() -> mCallback.onLevel(level));
+                post(g, () -> mCallback.onLevel(level));
                 if (db > threshold) {
                     loud++;
                     quiet = 0;
@@ -186,13 +206,13 @@ final class WhisperInput implements Listening {
                 if (mStop) {
                     if (!speech) {
                         mActive = false;
-                        post(() -> mCallback.onFinal(""));
+                        post(g, () -> mCallback.onFinal(""));
                         return;
                     }
                     break;
                 }
                 if (!speech && frames >= quietLimit) {
-                    fail(SpeechRecognizer.ERROR_SPEECH_TIMEOUT);
+                    fail(g, SpeechRecognizer.ERROR_SPEECH_TIMEOUT);
                     return;
                 }
                 if (frames >= MAX_FRAMES) {
@@ -206,17 +226,19 @@ final class WhisperInput implements Listening {
             }
             record.release();
         }
-        if (mCancel) {
+        if (!current(g)) {
             return;
         }
-        post(() -> mCallback.onPartial("…"));
+        post(g, () -> mCallback.onPartial("…"));
         try {
             final String text = clean(transcribe(wav(pcm.toByteArray())));
-            mActive = false;
-            post(() -> mCallback.onFinal(text));
+            if (current(g)) {
+                mActive = false;
+            }
+            post(g, () -> mCallback.onFinal(text));
         } catch (IOException e) {
             Log.w(TAG, "whisper", e);
-            fail(e instanceof LlmClient.ServerException ? SpeechRecognizer.ERROR_SERVER
+            fail(g, e instanceof LlmClient.ServerException ? SpeechRecognizer.ERROR_SERVER
                     : SpeechRecognizer.ERROR_NETWORK);
         }
     }

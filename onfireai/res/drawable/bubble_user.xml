@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the user said: a soft bubble on the right, its tail corner a little sharper. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners
+        android:bottomLeftRadius="20dp"
+        android:bottomRightRadius="6dp"
+        android:topLeftRadius="20dp"
+        android:topRightRadius="20dp" />
+    <solid android:color="@color/surface_variant" />
+</shape>

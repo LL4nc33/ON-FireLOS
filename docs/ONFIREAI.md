@@ -11,10 +11,17 @@ tree by `scripts/onfireai-into-tree.sh`.
 
 ## Starting it
 
+- the wake word, "Hey Fire" (when turned on, see below)
 - a long press on home (it is the tablet's assistant), or the launcher icon
-- sharing a text to *ON-FireAI*: the text is the question
+- sharing a text to *ON-FireAI*: the text lands in the field, to send with one tap
+  (another app's text never runs anything on its own)
 - a sheet comes up from the bottom; the microphone opens at once (can be turned
   off), or type into the field
+- empty, it greets by the time of day and offers three things to try with a tap
+- its top edge glows, from the green of the design into ember: it breathes with
+  the voice while listening, travels across while thinking, rests while speaking
+  and goes out when done; what was said shows as a bubble, done things as chips
+  with a tick
 
 ## A conversation
 
@@ -45,7 +52,7 @@ tree by `scripts/onfireai-into-tree.sh`.
 | YouTube | find videos (with SearXNG), open them in the YouTube web app |
 | weather | Open-Meteo, here (the time zone's city) or any place, up to 7 days |
 | memory | keep, find and delete notes; search earlier conversations |
-| notifications | read and sum up what is new (when turned on) |
+| notifications | read and sum up what is new (when turned on; Android asks once for notification access) |
 | screen | operate apps (when turned on, see below) |
 | MCP | the tools of your MCP servers |
 
@@ -60,14 +67,46 @@ Settings", it opens Settings, reads, taps *About tablet*, reads again and answer
 - A pill at the top shows the step ("Tapping About tablet") while it works in
   another app, and at the end its answer; its cross stops it.
 - Before a tap on something that sends, buys, pays, deletes, installs or resets,
-  it asks (yes/no, also by voice).
-- Password fields are never read; apps on the block list are never read.
+  it asks: on the pill (yes/no) while it works in another app, else in the sheet,
+  also by voice. An answer with a no in it ("bitte nicht") is a no.
+- It acts only on the app it last read: if another app came up since, it reads
+  again first.
+- Password fields are never read; apps on the block list are never read nor
+  operated, and their notifications are left out too, as are notifications an
+  app marks secret.
+- What it reads (web, screen, notifications, MCP results) is data for the model,
+  never instructions; the log keeps only which tool ran, not what it saw.
+
+## The wake word
+
+Settings > System > ON-FireAI > Wake word. The word - "Hey Fire", "Okay Fire",
+"Hey Computer", "Computer", "Hey Jarvis" or one's own - is recognised on the tablet
+itself by a small keyword spotting model (sherpa-onnx, zipformer 3.3M, offline);
+nothing is sent anywhere before it. On it, a short sound, and the sheet comes up
+listening.
+
+- It listens only while the tablet charges, unless that is turned off - it keeps
+  one of the four cores about a quarter busy (measured on my device) and needs
+  about 100MB of memory.
+- It pauses while ON-FireAI itself listens or speaks.
+- The model knows English sounds; English-sounding words of two or three
+  syllables work best. A word of one's own is split into the model's pieces on
+  the tablet.
+
+## The microphone
+
+This tablet's input for speech recognition (`VOICE_RECOGNITION`) is all but deaf:
+noise at 15, speech not to be seen (measured on my device). ON-FireAI records from
+the raw input (`UNPROCESSED`), which hears speech at 1000-2000, for both the
+wake word and Whisper.
 
 ## MCP servers
 
 Settings > System > ON-FireAI > MCP servers: the address of an MCP server
 (Streamable HTTP) and an optional key. Its tools are lent to the model next to the
-built-in ones; tools the server marks as destructive ask before they run.
+built-in ones. As the MCP spec has it, a tool asks before it runs unless the server
+marks it read-only or not destructive. A server that does not answer is left alone
+for 2 minutes, so it does not slow every question.
 
 ## Listening
 
@@ -95,6 +134,10 @@ built-in ones; tools the server marks as destructive ask before they run.
 
 ## Settings (Settings > System > ON-FireAI)
 
+A card at the top says how things stand: ready (with the model's short name and
+the wake word), the server not reachable, or what is still to set up; errors read
+in words ("not reachable", "key refused"), not as Java names them.
+
 Language model (address, key, model, connection test), voice (speak answers,
 follow-ups, listen right away, the system voice), listening (Google or Whisper
 server, its address and model), start (default assistant), screen (operate the
@@ -112,5 +155,4 @@ meaning), MCP servers.
 
 ## Not yet
 
-- A wake word ("hey ...") without touching the tablet.
 - Talking over an answer to interrupt it (the microphone button does it now).

@@ -100,6 +100,11 @@ public class ScreenAgent extends AccessibilityService {
     @Override
     public boolean onUnbind(android.content.Intent intent) {
         sInstance = null;
+        // Turned off: nothing of it stays on screen or in memory.
+        hidePill();
+        synchronized (this) {
+            mNodes.clear();
+        }
         return super.onUnbind(intent);
     }
 
@@ -115,6 +120,7 @@ public class ScreenAgent extends AccessibilityService {
 
     private LinearLayout mPill;
     private TextView mPillText;
+    private LinearLayout mPillButtons;
     private final Runnable mHidePill = this::hidePill;
 
     private int dp(int v) {
@@ -128,15 +134,15 @@ public class ScreenAgent extends AccessibilityService {
      */
     void showPill(CharSequence text) {
         if (mPill == null) {
-            mPill = new LinearLayout(this);
-            mPill.setOrientation(LinearLayout.HORIZONTAL);
-            mPill.setGravity(Gravity.CENTER_VERTICAL);
-            mPill.setBackgroundResource(R.drawable.pill_surface);
-            mPill.setElevation(dp(6));
-            mPill.setPadding(dp(16), dp(6), dp(6), dp(6));
+            final LinearLayout pill = new LinearLayout(this);
+            pill.setOrientation(LinearLayout.HORIZONTAL);
+            pill.setGravity(Gravity.CENTER_VERTICAL);
+            pill.setBackgroundResource(R.drawable.pill_surface);
+            pill.setElevation(dp(6));
+            pill.setPadding(dp(16), dp(6), dp(6), dp(6));
             final ImageView spark = new ImageView(this);
             spark.setImageResource(R.drawable.ic_spark);
-            mPill.addView(spark, new LinearLayout.LayoutParams(dp(20), dp(20)));
+            pill.addView(spark, new LinearLayout.LayoutParams(dp(20), dp(20)));
             mPillText = new TextView(this);
             mPillText.setTextColor(getColor(R.color.on_background));
             mPillText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
@@ -146,16 +152,19 @@ public class ScreenAgent extends AccessibilityService {
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             textLp.setMarginStart(dp(10));
             textLp.setMarginEnd(dp(4));
-            mPill.addView(mPillText, textLp);
+            pill.addView(mPillText, textLp);
+            mPillButtons = new LinearLayout(this);
+            mPillButtons.setVisibility(View.GONE);
+            pill.addView(mPillButtons);
             final ImageButton stop = new ImageButton(this);
             stop.setImageResource(R.drawable.ic_close);
             stop.setBackgroundResource(android.R.drawable.list_selector_background);
             stop.setContentDescription(getString(R.string.stop));
             stop.setOnClickListener(v -> {
-                Session.get(this).close();
                 hidePill();
+                Session.get(this).stopFromPill();
             });
-            mPill.addView(stop, new LinearLayout.LayoutParams(dp(40), dp(40)));
+            pill.addView(stop, new LinearLayout.LayoutParams(dp(40), dp(40)));
             final WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT,
@@ -165,10 +174,55 @@ public class ScreenAgent extends AccessibilityService {
                     PixelFormat.TRANSLUCENT);
             lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
             lp.y = dp(32);
-            getSystemService(WindowManager.class).addView(mPill, lp);
+            try {
+                getSystemService(WindowManager.class).addView(pill, lp);
+            } catch (RuntimeException e) {
+                // No window for it now (the service is going away): no pill then.
+                return;
+            }
+            mPill = pill;
+            // It glides in from above rather than popping up.
+            pill.setAlpha(0f);
+            pill.setTranslationY(-dp(16));
+            pill.animate().alpha(1f).translationY(0f).setDuration(240)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
         }
         mPillText.setText(text);
+        mPillButtons.removeAllViews();
+        mPillButtons.setVisibility(View.GONE);
         mPill.removeCallbacks(mHidePill);
+    }
+
+    /**
+     * Main thread. A question before a risky step while the sheet is away: yes and no on the
+     * pill, so it can be answered where the work goes on.
+     */
+    void showConfirm(CharSequence question, java.util.function.Consumer<Boolean> answer) {
+        showPill(question);
+        for (boolean yes : new boolean[] { true, false }) {
+            final android.widget.Button b = new android.widget.Button(this, null, 0,
+                    yes ? R.style.Pill : R.style.Pill_Tonal);
+            b.setText(yes ? R.string.yes : R.string.no);
+            b.setOnClickListener(v -> {
+                mPillButtons.removeAllViews();
+                mPillButtons.setVisibility(View.GONE);
+                answer.accept(yes);
+            });
+            final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMarginStart(dp(8));
+            mPillButtons.addView(b, lp);
+        }
+        mPillButtons.setVisibility(View.VISIBLE);
+    }
+
+    /** Main thread. The question is over without an answer from the pill. */
+    void clearConfirm() {
+        if (mPillButtons != null && mPillButtons.getChildCount() > 0) {
+            mPillButtons.removeAllViews();
+            mPillButtons.setVisibility(View.GONE);
+            hidePillLater(1500);
+        }
     }
 
     void hidePillLater(long ms) {
@@ -181,9 +235,14 @@ public class ScreenAgent extends AccessibilityService {
     void hidePill() {
         if (mPill != null) {
             mPill.removeCallbacks(mHidePill);
-            getSystemService(WindowManager.class).removeView(mPill);
+            try {
+                getSystemService(WindowManager.class).removeView(mPill);
+            } catch (RuntimeException ignored) {
+                // Already gone with the service's window token.
+            }
             mPill = null;
             mPillText = null;
+            mPillButtons = null;
         }
     }
 
@@ -207,13 +266,17 @@ public class ScreenAgent extends AccessibilityService {
     /** What is on screen, one line per element worth knowing, numbered for the actions. */
     synchronized String read(List<String> blocked) {
         mNodes.clear();
+        mPackage = "";
         final AccessibilityNodeInfo root = appRoot();
         if (root == null) {
             return "error: no screen to read";
         }
         mPackage = root.getPackageName() == null ? "" : root.getPackageName().toString();
         if (blocked.contains(mPackage)) {
-            return "error: the user does not allow reading " + mPackage;
+            final String app = mPackage;
+            // Nothing may act on it either.
+            mPackage = "";
+            return "error: the user does not allow reading " + app;
         }
         final StringBuilder out = new StringBuilder("app: ").append(mPackage).append('\n');
         walk(root, 0, out);
@@ -294,18 +357,60 @@ public class ScreenAgent extends AccessibilityService {
         return n >= 0 && n < mNodes.size() ? mNodes.get(n) : null;
     }
 
-    /** The text of an element, for the safety check before tapping. */
+    /**
+     * What a tap on an element would hit, for the safety check before tapping: the clickable
+     * row it belongs to with all the text in it ("Buy" can sit in a child of the row).
+     */
     synchronized String label(int n) {
-        final AccessibilityNodeInfo node = node(n);
+        AccessibilityNodeInfo node = node(n);
         if (node == null) {
             return "";
         }
-        final CharSequence t = node.getText() != null ? node.getText()
-                : node.getContentDescription();
-        return t == null ? "" : t.toString();
+        AccessibilityNodeInfo target = node;
+        while (target != null && !target.isClickable()) {
+            target = target.getParent();
+        }
+        final StringBuilder out = new StringBuilder();
+        collect(target != null ? target : node, 0, out);
+        return out.toString().trim();
+    }
+
+    private static void collect(AccessibilityNodeInfo node, int depth, StringBuilder out) {
+        if (node == null || depth > 7 || out.length() > 1000) {
+            return;
+        }
+        final CharSequence t = node.isPassword() ? null : node.getText();
+        final CharSequence d = node.getContentDescription();
+        if (!TextUtils.isEmpty(t)) {
+            out.append(t).append(' ');
+        }
+        if (!TextUtils.isEmpty(d) && !TextUtils.equals(d, t)) {
+            out.append(d).append(' ');
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            collect(node.getChild(i), depth + 1, out);
+        }
+    }
+
+    /**
+     * Before acting: the app read is still the one on screen. Another app (perhaps one on the
+     * block list) may have come up since, and the old elements would act on it blindly.
+     */
+    private String changed() {
+        final AccessibilityNodeInfo root = appRoot();
+        final CharSequence now = root == null ? null : root.getPackageName();
+        if (mPackage.isEmpty() || now == null || !mPackage.contentEquals(now)) {
+            mNodes.clear();
+            return "error: the screen changed; read it again";
+        }
+        return null;
     }
 
     synchronized String tap(int n) {
+        final String changed = changed();
+        if (changed != null) {
+            return changed;
+        }
         AccessibilityNodeInfo node = node(n);
         if (node == null) {
             return "error: no element " + n + "; read the screen again";
@@ -326,6 +431,10 @@ public class ScreenAgent extends AccessibilityService {
     }
 
     synchronized String type(int n, String text) {
+        final String changed = changed();
+        if (changed != null) {
+            return changed;
+        }
         final AccessibilityNodeInfo node = node(n);
         if (node == null || !node.isEditable()) {
             return "error: [" + n + "] is not a field";
@@ -339,6 +448,10 @@ public class ScreenAgent extends AccessibilityService {
     }
 
     synchronized String scroll(int n, boolean down) {
+        final String changed = changed();
+        if (changed != null) {
+            return changed;
+        }
         AccessibilityNodeInfo node = node(n);
         if (node == null) {
             // The first thing on screen that scrolls.

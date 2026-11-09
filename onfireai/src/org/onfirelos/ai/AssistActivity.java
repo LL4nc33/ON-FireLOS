@@ -59,12 +59,17 @@ public class AssistActivity extends Activity implements Session.Ui {
     /** The text view of the last item, updated as it grows. */
     private TextView mLast;
     private int mShownChips = -1;
+    private GlowEdge mGlow;
+    private View mSpark;
+    private android.animation.ObjectAnimator mSparkPulse;
+    /** How many items are on screen already; newer ones come in softly. */
+    private int mShownItems;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_assist);
-        final View sheet = findViewById(R.id.sheet);
+        final View frame = findViewById(R.id.sheet_frame);
         mScroll = findViewById(R.id.scroll);
         mMessages = findViewById(R.id.messages);
         mChipsScroll = findViewById(R.id.chips_scroll);
@@ -73,10 +78,12 @@ public class AssistActivity extends Activity implements Session.Ui {
         mInput = findViewById(R.id.input);
         mMic = findViewById(R.id.mic);
         mLevel = findViewById(R.id.level);
+        mGlow = findViewById(R.id.glow);
+        mSpark = findViewById(R.id.spark);
 
         // On a wide screen the sheet keeps a readable width.
         final int width = Math.min(getResources().getDisplayMetrics().widthPixels, dp(720));
-        sheet.setLayoutParams(new FrameLayout.LayoutParams(width,
+        frame.setLayoutParams(new FrameLayout.LayoutParams(width,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
         mScroll.setMaxHeight(getResources().getDisplayMetrics().heightPixels * 45 / 100);
 
@@ -132,14 +139,28 @@ public class AssistActivity extends Activity implements Session.Ui {
         }
     }
 
-    /** A text shared to ON-FireAI (or handed over by another app) is the question. */
+    /**
+     * A text shared to ON-FireAI goes into the field, for the user to send: any app can
+     * share, and what it shares must not run tools on its own. Only ON-FireAI's own ".Ask"
+     * asks at once.
+     */
     private boolean askShared(Intent intent) {
         final String text = intent == null ? null : intent.getStringExtra(Intent.EXTRA_TEXT);
         if (TextUtils.isEmpty(text) || !Prefs.configured(this)) {
             return false;
         }
         intent.removeExtra(Intent.EXTRA_TEXT);
-        mSession.submitTyped(text.trim());
+        final boolean own = intent.getComponent() != null
+                && intent.getComponent().getClassName().endsWith(".Ask");
+        if (own) {
+            mSession.submitTyped(text.trim());
+        } else {
+            mSession.typing();
+            mInput.setText(text.trim());
+            mInput.setSelection(mInput.length());
+            mInput.requestFocus();
+            getSystemService(InputMethodManager.class).showSoftInput(mInput, 0);
+        }
         return true;
     }
 
@@ -160,6 +181,7 @@ public class AssistActivity extends Activity implements Session.Ui {
     @Override
     protected void onStart() {
         super.onStart();
+        WakeWord.setPaused(true);
         mSession.setVisible(true);
     }
 
@@ -173,6 +195,7 @@ public class AssistActivity extends Activity implements Session.Ui {
         // Something else came up (an app a tool opened, home): when nothing is said any
         // more, the sheet is done.
         if (!mSession.busy()) {
+            WakeWord.setPaused(false);
             finish();
         }
     }
@@ -190,6 +213,7 @@ public class AssistActivity extends Activity implements Session.Ui {
 
     private void close() {
         mSession.close();
+        WakeWord.setPaused(false);
         finish();
     }
 
@@ -230,10 +254,40 @@ public class AssistActivity extends Activity implements Session.Ui {
         } else {
             mLevel.animate().alpha(0f).scaleX(1f).scaleY(1f).setDuration(150);
         }
+        showActivity();
         mScroll.post(() -> mScroll.fullScroll(View.FOCUS_DOWN));
     }
 
+    /** The glowing edge and the spark say what the assistant does, without words. */
+    private void showActivity() {
+        final int mode;
+        switch (mSession.state) {
+            case LISTENING: mode = GlowEdge.LISTENING; break;
+            case THINKING: mode = GlowEdge.THINKING; break;
+            case ANSWERING: mode = GlowEdge.ANSWERING; break;
+            default: mode = mSession.busy() ? GlowEdge.ANSWERING : GlowEdge.IDLE;
+        }
+        mGlow.setMode(mode);
+        final boolean thinking = mSession.state == Session.State.THINKING;
+        if (thinking && mSparkPulse == null) {
+            mSparkPulse = android.animation.ObjectAnimator.ofPropertyValuesHolder(mSpark,
+                    android.animation.PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.3f),
+                    android.animation.PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.3f),
+                    android.animation.PropertyValuesHolder.ofFloat(View.ROTATION, 0f, 45f));
+            mSparkPulse.setDuration(650);
+            mSparkPulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            mSparkPulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            mSparkPulse.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+            mSparkPulse.start();
+        } else if (!thinking && mSparkPulse != null) {
+            mSparkPulse.cancel();
+            mSparkPulse = null;
+            mSpark.animate().scaleX(1f).scaleY(1f).rotation(0f).setDuration(200);
+        }
+    }
+
     void showLevel(float rmsDb) {
+        mGlow.setLevel(rmsDb);
         // About -2 (silence) to 10 (loud).
         final float s = 1f + Math.max(0f, Math.min(1f, (rmsDb + 2f) / 12f)) * 0.35f;
         mLevel.setScaleX(s);
@@ -244,11 +298,16 @@ public class AssistActivity extends Activity implements Session.Ui {
         mMessages.removeAllViews();
         mLast = null;
         if (mSession.items.isEmpty()) {
-            final TextView t = answerView(getString(R.string.greeting));
-            t.setTextColor(getColor(R.color.on_background_quiet));
+            mShownItems = 0;
+            showWelcome();
             return;
         }
-        for (Session.Item item : mSession.items) {
+        if (mShownItems > mSession.items.size()) {
+            mShownItems = 0;
+        }
+        for (int i = 0; i < mSession.items.size(); i++) {
+            final Session.Item item = mSession.items.get(i);
+            final int before = mMessages.getChildCount();
             switch (item.type) {
                 case Session.USER:
                     mLast = userView(item.text);
@@ -268,18 +327,97 @@ public class AssistActivity extends Activity implements Session.Ui {
                 default:
                     mLast = answerView(item.text);
             }
+            if (i >= mShownItems) {
+                for (int v = before; v < mMessages.getChildCount(); v++) {
+                    comeIn(mMessages.getChildAt(v));
+                }
+            }
         }
+        mShownItems = mSession.items.size();
     }
 
+    /** A new line rises a little and fades in. */
+    private void comeIn(View v) {
+        v.setAlpha(0f);
+        v.setTranslationY(dp(10));
+        v.animate().alpha(1f).translationY(0f).setDuration(260)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+    }
+
+    /** The empty sheet: a greeting for the time of day and a few things to try. */
+    private void showWelcome() {
+        final int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        final int greeting = hour < 5 ? R.string.greeting_night
+                : hour < 11 ? R.string.greeting_morning
+                : hour < 18 ? R.string.greeting_day
+                : hour < 23 ? R.string.greeting_evening : R.string.greeting_night;
+        final TextView hello = new TextView(this);
+        hello.setText(greeting);
+        hello.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+        hello.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
+        hello.setTextColor(getColor(R.color.on_background));
+        final LinearLayout.LayoutParams helloLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        helloLp.topMargin = dp(4);
+        mMessages.addView(hello, helloLp);
+        final TextView sub = new TextView(this);
+        sub.setText(R.string.greeting);
+        sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        sub.setTextColor(getColor(R.color.on_background_quiet));
+        mMessages.addView(sub);
+        if (!Prefs.configured(this)) {
+            comeIn(hello);
+            comeIn(sub);
+            return;
+        }
+        final LinearLayout row = new LinearLayout(this);
+        final boolean news = Prefs.get(this).getBoolean(Prefs.NOTIFICATIONS, false)
+                && NotificationWatcher.get() != null;
+        final int[][] ideas = {
+            { R.string.suggest_weather, R.string.suggest_weather_ask },
+            news ? new int[] { R.string.suggest_news, R.string.suggest_news_ask }
+                    : new int[] { R.string.suggest_memory, R.string.suggest_memory_ask },
+            { R.string.suggest_fact, R.string.suggest_fact_ask },
+        };
+        for (int[] idea : ideas) {
+            final TextView chip = new TextView(this);
+            chip.setText(idea[0]);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            chip.setTextColor(getColor(R.color.on_background));
+            chip.setBackgroundResource(R.drawable.suggestion_bg);
+            chip.setPadding(dp(16), dp(9), dp(16), dp(9));
+            final String ask = getString(idea[1]);
+            chip.setOnClickListener(v -> mSession.submitTyped(ask));
+            final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(dp(8));
+            row.addView(chip, lp);
+        }
+        final HorizontalScrollView scroller = new HorizontalScrollView(this);
+        scroller.setHorizontalScrollBarEnabled(false);
+        scroller.addView(row);
+        final LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = dp(16);
+        mMessages.addView(scroller, rowLp);
+        comeIn(hello);
+        comeIn(sub);
+        comeIn(scroller);
+    }
+
+    /** What the user said or typed: a bubble on the right, as wide as it needs. */
     private TextView userView(String text) {
         final TextView t = new TextView(this);
         t.setText(text);
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        t.setTextColor(getColor(R.color.on_background_quiet));
-        t.setGravity(Gravity.END);
+        t.setTextColor(getColor(R.color.on_background));
+        t.setBackgroundResource(R.drawable.bubble_user);
+        t.setPadding(dp(16), dp(10), dp(16), dp(10));
+        t.setMaxWidth(dp(520));
         final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(14);
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.END;
+        lp.topMargin = dp(16);
         lp.setMarginStart(dp(48));
         mMessages.addView(t, lp);
         return t;
@@ -333,13 +471,18 @@ public class AssistActivity extends Activity implements Session.Ui {
         mMessages.addView(row, lp);
     }
 
+    /** Something that was done: a tonal chip with a tick. */
     private void addChip(String text) {
         final TextView chip = new TextView(this);
         chip.setText(text);
         chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         chip.setTextColor(getColor(R.color.on_background));
         chip.setBackgroundResource(R.drawable.chip_bg);
-        chip.setPadding(dp(14), dp(7), dp(14), dp(7));
+        chip.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_check, 0, 0, 0);
+        chip.setCompoundDrawablePadding(dp(6));
+        chip.setGravity(Gravity.CENTER_VERTICAL);
+        chip.setPadding(dp(12), dp(7), dp(16), dp(7));
+        comeIn(chip);
         final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.setMarginEnd(dp(8));

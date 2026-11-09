@@ -45,6 +45,8 @@ final class Mcp {
     private static final String TAG = "ONFireAI";
     private static final String PROTOCOL = "2025-03-26";
     private static final long CACHE = 10 * 60 * 1000;
+    /** A server that did not answer is left alone this long, so it does not slow each turn. */
+    private static final long RETRY = 2 * 60 * 1000;
 
     static final class Server {
         String url;
@@ -71,6 +73,13 @@ final class Mcp {
             this.exposedName = exposedName;
             this.definition = definition;
             this.destructive = destructive;
+        }
+    }
+
+    /** A server that failed shortly before and is left alone for now. */
+    static final class Resting extends IOException {
+        Resting(String message) {
+            super(message);
         }
     }
 
@@ -138,10 +147,14 @@ final class Mcp {
             }
             try {
                 all.addAll(tools(server, index));
+            } catch (Resting e) {
+                // Still left alone after its last failure.
             } catch (IOException | JSONException e) {
                 Log.w(TAG, "mcp " + server.url + ": " + e.getMessage());
                 synchronized (sTools) {
                     sErrors.put(server.url, e.getMessage());
+                    sTools.put(server.url, new ArrayList<>());
+                    sFetched.put(server.url, System.currentTimeMillis() - CACHE + RETRY);
                 }
             }
         }
@@ -152,6 +165,11 @@ final class Mcp {
         synchronized (sTools) {
             final Long at = sFetched.get(server.url);
             if (at != null && System.currentTimeMillis() - at < CACHE) {
+                final String error = sErrors.get(server.url);
+                if (error != null) {
+                    // Failed a moment ago: the same answer, without asking it again.
+                    throw new Resting(error);
+                }
                 return sTools.get(server.url);
             }
         }
@@ -174,10 +192,12 @@ final class Mcp {
                     .put("function", new JSONObject().put("name", exposed)
                             .put("description", t.optString("description", name))
                             .put("parameters", schema));
+            // As the MCP spec has it: a tool that does not say it only reads, and does not say
+            // it is harmless, may destroy, and asks first.
             final JSONObject notes = t.optJSONObject("annotations");
             final boolean readOnly = notes != null && notes.optBoolean("readOnlyHint", false);
-            final boolean destructive = notes != null && !readOnly
-                    && notes.optBoolean("destructiveHint", false);
+            final boolean destructive = !readOnly
+                    && (notes == null || notes.optBoolean("destructiveHint", true));
             tools.add(new Tool(server, name, exposed, definition, destructive));
         }
         synchronized (sTools) {

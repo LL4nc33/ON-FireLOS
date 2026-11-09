@@ -23,13 +23,22 @@ import android.provider.Settings;
 import android.text.TextUtils;
 
 /**
- * Once, on the first start: ON-FireAI becomes the assistant (long press on home) if no other
- * is chosen. Later choices of the user stay as they are.
+ * On each start and update: the wake word and the screen agent as the user set them. Once,
+ * on the first start: ON-FireAI becomes the assistant (long press on home) if no other is
+ * chosen; later choices of the user stay as they are.
  */
 public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        WakeWord.apply(context);
+        // An update of the app takes the screen agent off Android's list; what the user
+        // turned on stays on. Only then: turned off on Android's own page, it stays off.
+        if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())
+                && Prefs.get(context).getBoolean(Prefs.SCREEN, false)
+                && !ScreenAgent.enabled(context)) {
+            ScreenAgent.setEnabled(context, true);
+        }
         if (Prefs.get(context).getBoolean(Prefs.ASSISTANT_SET, false)) {
             return;
         }

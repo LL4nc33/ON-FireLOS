@@ -21,7 +21,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.text.TextUtils;
@@ -45,28 +44,14 @@ public class NotificationWatcher extends NotificationListenerService {
         return new ComponentName(context, NotificationWatcher.class);
     }
 
+    /**
+     * Whether the user let ON-FireAI read notifications. Android 9 keeps that in its own list,
+     * which only the user changes (Settings > Apps > Special access > Notification access);
+     * the secure setting is not read any more.
+     */
     static boolean enabled(Context context) {
-        final String list = Settings.Secure.getString(context.getContentResolver(),
-                "enabled_notification_listeners");
-        return list != null && list.contains(component(context).flattenToString());
-    }
-
-    static void setEnabled(Context context, boolean on) {
-        final String me = component(context).flattenToString();
-        String list = Settings.Secure.getString(context.getContentResolver(),
-                "enabled_notification_listeners");
-        list = list == null ? "" : list;
-        final List<String> parts = new ArrayList<>();
-        for (String p : list.split(":")) {
-            if (!p.isEmpty() && !p.equals(me)) {
-                parts.add(p);
-            }
-        }
-        if (on) {
-            parts.add(me);
-        }
-        Settings.Secure.putString(context.getContentResolver(), "enabled_notification_listeners",
-                TextUtils.join(":", parts));
+        return context.getSystemService(android.app.NotificationManager.class)
+                .isNotificationListenerAccessGranted(component(context));
     }
 
     @Override
@@ -79,8 +64,11 @@ public class NotificationWatcher extends NotificationListenerService {
         sInstance = null;
     }
 
-    /** The notifications on the tablet now, newest first, as "app: title - text" lines. */
-    String describe() {
+    /**
+     * The notifications on the tablet now, newest first, as "app: title - text" lines; not
+     * those of the apps on the block list, nor those an app marked secret.
+     */
+    String describe(List<String> blocked) {
         final StatusBarNotification[] all;
         try {
             all = getActiveNotifications();
@@ -96,7 +84,9 @@ public class NotificationWatcher extends NotificationListenerService {
             // Not ongoing things (music, downloads, charging) and not group summaries.
             if (n.isOngoing() || (n.getNotification().flags
                     & Notification.FLAG_GROUP_SUMMARY) != 0
-                    || getPackageName().equals(n.getPackageName())) {
+                    || getPackageName().equals(n.getPackageName())
+                    || blocked.contains(n.getPackageName())
+                    || n.getNotification().visibility == Notification.VISIBILITY_SECRET) {
                 continue;
             }
             list.add(n);

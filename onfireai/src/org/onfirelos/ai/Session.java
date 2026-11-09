@@ -18,6 +18,7 @@ package org.onfirelos.ai;
 
 import android.content.Context;
 import android.speech.SpeechRecognizer;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +87,9 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     private final StringBuilder mAnswerText = new StringBuilder();
     private java.util.function.Consumer<Boolean> mPendingConfirm;
     private Item mConfirmItem;
+    /** When something last happened, so a conversation long gone starts afresh on screen. */
+    private long mLastChange;
+    private static final long QUIET = 30 * 60 * 1000;
 
     private Session(Context context) {
         mContext = context;
@@ -101,7 +105,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     void attach(Ui ui) {
         mUi = ui;
         // A conversation that went quiet long ago starts afresh on screen too.
-        if (state == State.IDLE && !mSpeaker.speaking() && !Agent.conversationOpen()) {
+        if (state == State.IDLE && !mSpeaker.speaking()
+                && System.currentTimeMillis() - mLastChange > QUIET) {
             items.clear();
             chips.clear();
             status = "";
@@ -128,7 +133,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     }
 
     boolean busy() {
-        return state != State.IDLE || mSpeaker.speaking();
+        // A question of the agent still open counts too: its work goes on after the answer.
+        return state != State.IDLE || mSpeaker.speaking() || mPendingConfirm != null;
     }
 
     /** The pill outside the sheet, when the screen agent can show one. */
@@ -141,11 +147,13 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     @Override
     public void onStep(String tool, String detail) {
-        if (mVisible) {
-            return;
-        }
         final String text;
         switch (tool) {
+            case "weather": text = mContext.getString(R.string.step_weather); break;
+            case "web_search": text = mContext.getString(R.string.step_search); break;
+            case "youtube_search": text = mContext.getString(R.string.step_videos); break;
+            case "recall": text = mContext.getString(R.string.step_recall); break;
+            case "notifications": text = mContext.getString(R.string.step_notifications); break;
             case "screen_read": text = mContext.getString(R.string.step_read); break;
             case "screen_tap": text = mContext.getString(R.string.step_tap, detail); break;
             case "screen_type": text = mContext.getString(R.string.step_type, detail); break;
@@ -153,6 +161,14 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             case "screen_key": text = mContext.getString(R.string.step_key, detail); break;
             case "open_app": text = mContext.getString(R.string.step_open, detail); break;
             default: text = Agent.readable(tool) + "…";
+        }
+        if (mVisible) {
+            // In the sheet the line under the conversation says what goes on.
+            if (state == State.THINKING) {
+                status = text;
+                changed(false);
+            }
+            return;
         }
         pill(text);
     }
@@ -171,7 +187,24 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         setState(State.IDLE);
     }
 
+    /** The cross on the pill: everything stops and the sheet behind the app is done. */
+    void stopFromPill() {
+        close();
+        WakeWord.setPaused(false);
+        if (mUi != null) {
+            mUi.onSessionClosed();
+        }
+    }
+
+    /** The way through a conversation, for adb logcat with log.tag.ONFireAI set to DEBUG. */
+    private static void trace(String what) {
+        if (Log.isLoggable("ONFireAI", Log.DEBUG)) {
+            Log.d("ONFireAI", "session: " + what);
+        }
+    }
+
     private void changed(boolean whole) {
+        mLastChange = System.currentTimeMillis();
         if (mUi != null) {
             mUi.onSessionChanged(whole);
         }
@@ -216,6 +249,12 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
                 break;
             case THINKING:
             case ANSWERING:
+                if (mPendingConfirm != null) {
+                    // Waiting for a yes or no: the microphone is for the answer.
+                    mSpeaker.stop();
+                    startListening(true);
+                    break;
+                }
                 mAgent.cancel();
                 mSpeaker.stop();
                 setState(State.IDLE);
@@ -242,10 +281,14 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     /** The caller has made sure of the microphone permission. */
     void startListening(boolean followUp) {
+        trace("listen followUp=" + followUp + " visible=" + mVisible);
         if (!mVisible) {
             return;
         }
-        mAgent.cancel();
+        // Listening for the answer to a question of the agent must not end its work.
+        if (mPendingConfirm == null) {
+            mAgent.cancel();
+        }
         mSpeaker.stop();
         mFollowUp = followUp;
         mListening = useWhisper() ? mWhisper : mGoogle;
@@ -277,6 +320,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         chips.clear();
         mAnswerText.setLength(0);
         mAnswer = null;
+        // A new question replaces one still being answered.
+        mSpeaker.stop();
         mSpeaker.begin();
         status = mContext.getString(R.string.thinking);
         state = State.THINKING;
@@ -346,6 +391,7 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     @Override
     public void onError(int error) {
+        trace("listening error " + error);
         dropLive();
         state = State.IDLE;
         int message = 0;
@@ -468,8 +514,15 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         items.add(mConfirmItem);
         status = "";
         changed(true);
+        // The sheet is away while the work goes on in an app: the pill asks.
+        final ScreenAgent agent = ScreenAgent.get();
+        if (!mVisible && agent != null) {
+            agent.showConfirm(question, this::answerConfirm);
+        }
         if (Prefs.flag(mContext, Prefs.SPEAK)) {
             mSpeaker.say(question);
+            // Reported as spoken when done, so the microphone opens for the answer.
+            mSpeaker.end();
         }
     }
 
@@ -478,11 +531,7 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         final java.util.function.Consumer<Boolean> pending = mPendingConfirm;
         mPendingConfirm = null;
         if (mConfirmItem != null) {
-            mConfirmItem.text = mConfirmItem.text + "  " + mContext.getString(
-                    yes ? R.string.yes : R.string.no);
-            // Answered: shown as a plain line from now on.
-            items.set(items.indexOf(mConfirmItem), new Item(NOTE, mConfirmItem.text));
-            mConfirmItem = null;
+            settleConfirm(mContext.getString(yes ? R.string.yes : R.string.no));
             state = State.THINKING;
             status = mContext.getString(R.string.thinking);
             changed(true);
@@ -492,23 +541,68 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         }
     }
 
+    /** Answered or gone: the question is shown as a plain line from now on. */
+    private void settleConfirm(String suffix) {
+        final String text = mConfirmItem.text + (suffix.isEmpty() ? "" : "  " + suffix);
+        final int at = items.indexOf(mConfirmItem);
+        if (at >= 0) {
+            items.set(at, new Item(NOTE, text));
+        }
+        mConfirmItem = null;
+    }
+
+    /** The agent stopped waiting (no answer within a minute, or it was cancelled). */
+    @Override
+    public void onConfirmEnded(java.util.function.Consumer<Boolean> answer) {
+        if (mPendingConfirm == null || mPendingConfirm != answer) {
+            return;
+        }
+        mPendingConfirm = null;
+        final ScreenAgent agent = ScreenAgent.get();
+        if (agent != null) {
+            agent.clearConfirm();
+        }
+        if (mConfirmItem != null) {
+            settleConfirm("");
+            changed(true);
+        }
+    }
+
     boolean confirming() {
         return mPendingConfirm != null;
     }
 
-    private static boolean isYes(String text) {
-        final String t = text.toLowerCase(java.util.Locale.ROOT).trim();
-        return t.matches("^(ja|jo|jep|klar|ok|okay|mach|mach das|mach es|gerne|bitte|yes|yeah|"
-                + "sure|do it|go|los).*");
+    /**
+     * A yes, said or typed: a short answer that starts with one. Anything with a no in it is
+     * not one ("bitte nicht", "ja, kein Problem" is too unclear for a risky step).
+     */
+    static boolean isYes(String text) {
+        final String t = text.toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L} ]", " ")
+                .replaceAll("\\s+", " ").trim();
+        if (t.isEmpty() || t.split(" ").length > 4) {
+            return false;
+        }
+        if (t.matches(".*\\b(nicht|nein|nee|nö|kein\\w*|niemals|nie|ohne|später|warte|halt"
+                + "|abbrechen|stop|stopp|no|not|nope|never|don t|dont|cancel|wait)\\b.*")) {
+            return false;
+        }
+        return t.matches("(ja|jo|jep|jawohl|klar|ok|okay|mach|gerne|gern|bitte|passt|genau"
+                + "|los|yes|yeah|yep|sure|do it|go ahead)\\b.*");
     }
 
     /** The answer has been said: the microphone opens for a follow-up, like a conversation. */
     @Override
     public void onSpoken() {
+        trace("spoken visible=" + mVisible + " state=" + state + " confirm="
+                + (mPendingConfirm != null) + " voice=" + mVoiceTurn);
         if (!mVisible) {
-            // Said while another app is in front: the sheet has done its part.
-            if (state == State.IDLE && mUi != null) {
-                mUi.onSessionClosed();
+            // Said while another app is in front: when the work is done too, the sheet has
+            // done its part.
+            if (state == State.IDLE && mPendingConfirm == null) {
+                WakeWord.setPaused(false);
+                if (mUi != null) {
+                    mUi.onSessionClosed();
+                }
             }
             return;
         }

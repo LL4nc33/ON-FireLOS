@@ -10,4 +10,8 @@
     <color name="on_accent">#1A1C18</color>
     <color name="divider">#1AE4E6DD</color>
     <color name="accent_tonal">#338AA366</color>
+    <!-- The sheet's glowing edge: the brand's green into ember. -->
+    <color name="glow_green">#8AA366</color>
+    <color name="glow_light">#C9DE8A</color>
+    <color name="glow_ember">#FFB65C</color>
 </resources>

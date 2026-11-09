@@ -129,7 +129,9 @@ final class Tools {
                             .put("days", integer("1-7, default 3"))));
             tools.put(tool("remember", "Keep a note for later conversations (facts about the"
                             + " user, wishes, things to remember).",
-                    props().put("text", string("The note, as a full sentence")), "text"));
+                    props().put("text", string("The note, short, in the user's language and"
+                            + " without 'the user' (e.g. 'Trinkt am liebsten Grüntee')")),
+                    "text"));
             tools.put(tool("recall", "Look through notes and earlier conversations.",
                     props().put("query", string("What to look for")), "query"));
             tools.put(tool("forget", "Delete a note.",
@@ -750,7 +752,7 @@ final class Tools {
     private Result notifications() {
         final NotificationWatcher watcher = NotificationWatcher.get();
         return watcher == null ? new Result("error: notifications are off", null)
-                : new Result(watcher.describe(), s(R.string.chip_notifications));
+                : new Result(watcher.describe(blocked(mContext)), s(R.string.chip_notifications));
     }
 
     // ---------------------------------------------------------------- the screen
