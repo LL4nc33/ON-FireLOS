@@ -349,6 +349,8 @@ public class AssistActivity extends Activity implements Session.Ui {
             switch (item.type) {
                 case Session.USER:
                     mLast = userView(item.text);
+                    // Still being spoken: paler, until the words are final.
+                    mLast.setAlpha(mSession.isLive(item) ? 0.55f : 1f);
                     break;
                 case Session.NOTE:
                     mLast = answerView(item.text);
@@ -422,13 +424,31 @@ public class AssistActivity extends Activity implements Session.Ui {
         final boolean news = !locked && Prefs.get(this).getBoolean(Prefs.NOTIFICATIONS, false)
                 && NotificationWatcher.get() != null;
         // At the lock screen nothing personal is on offer.
-        final int[][] ideas = {
-            { R.string.suggest_weather, R.string.suggest_weather_ask },
-            locked ? new int[] { R.string.suggest_time, R.string.suggest_time_ask }
-                    : news ? new int[] { R.string.suggest_news, R.string.suggest_news_ask }
-                    : new int[] { R.string.suggest_memory, R.string.suggest_memory_ask },
-            { R.string.suggest_fact, R.string.suggest_fact_ask },
-        };
+        // What one would ask now: the day ahead in the morning, the evening's in the evening.
+        final int[][] ideas;
+        if (hour >= 5 && hour < 11) {
+            ideas = new int[][] {
+                { R.string.suggest_weather_today, R.string.suggest_weather_today_ask },
+                locked ? new int[] { R.string.suggest_headlines, R.string.suggest_headlines_ask }
+                        : new int[] { R.string.suggest_today, R.string.suggest_today_ask },
+                { R.string.suggest_headlines, R.string.suggest_headlines_ask },
+            };
+        } else if (hour >= 18 || hour < 5) {
+            ideas = new int[][] {
+                { R.string.suggest_weather, R.string.suggest_weather_ask },
+                locked ? new int[] { R.string.suggest_time, R.string.suggest_time_ask }
+                        : new int[] { R.string.suggest_tomorrow, R.string.suggest_tomorrow_ask },
+                { R.string.suggest_rain, R.string.suggest_rain_ask },
+            };
+        } else {
+            ideas = new int[][] {
+                { R.string.suggest_weather, R.string.suggest_weather_ask },
+                locked ? new int[] { R.string.suggest_time, R.string.suggest_time_ask }
+                        : news ? new int[] { R.string.suggest_news, R.string.suggest_news_ask }
+                        : new int[] { R.string.suggest_memory, R.string.suggest_memory_ask },
+                { R.string.suggest_fact, R.string.suggest_fact_ask },
+            };
+        }
         for (int[] idea : ideas) {
             final TextView chip = new TextView(this);
             chip.setText(idea[0]);

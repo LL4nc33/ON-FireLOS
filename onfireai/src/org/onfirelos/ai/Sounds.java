@@ -56,6 +56,8 @@ public class Sounds extends Service {
 
     private volatile boolean mPlaying;
     private volatile long mStopAt;
+    /** Quieter while something else speaks (ON-FireAI answering). */
+    private volatile float mDucked = 1f;
     private Thread mThread;
     private AudioFocusRequest mFocus;
     private String mKind = "rain";
@@ -159,8 +161,11 @@ public class Sounds extends Service {
     private void fallAsleep() {
         final AudioManager audio = getSystemService(AudioManager.class);
         final int volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+        // Remembered: should the app die meanwhile, the next start puts it back.
+        Prefs.get(this).edit().putInt(Prefs.SLEEP_VOLUME, volume).apply();
+        AudioFocusRequest hush = null;
         try {
-            for (int v = volume; v > 0; v--) {
+            for (int v = volume; v > 1; v--) {
                 audio.setStreamVolume(AudioManager.STREAM_MUSIC, v, 0);
                 SystemClock.sleep(8000 / Math.max(1, volume));
             }
@@ -170,10 +175,42 @@ public class Sounds extends Service {
                     KeyEvent.KEYCODE_MEDIA_PAUSE));
             audio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,
                     KeyEvent.KEYCODE_MEDIA_PAUSE));
-            SystemClock.sleep(600);
+            // Taking the audio focus tells every well-behaved player to stop as well.
+            hush = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA).build()).build();
+            audio.requestAudioFocus(hush);
+            // The volume comes back only once nothing plays any more.
+            for (int i = 0; i < 50 && audio.isMusicActive(); i++) {
+                SystemClock.sleep(100);
+            }
         } finally {
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
+            if (hush != null) {
+                audio.abandonAudioFocusRequest(hush);
+            }
+            if (!audio.isMusicActive()) {
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
+                Prefs.get(this).edit().remove(Prefs.SLEEP_VOLUME).apply();
+            } else {
+                Log.w(TAG, "sleep timer: something still plays; left quiet");
+            }
             stopSelf();
+        }
+    }
+
+    /** After a restart: the volume a sleep timer left low, and a sleep timer still to come. */
+    static void restore(Context context) {
+        final int volume = Prefs.get(context).getInt(Prefs.SLEEP_VOLUME, -1);
+        if (volume >= 0) {
+            context.getSystemService(AudioManager.class).setStreamVolume(
+                    AudioManager.STREAM_MUSIC, volume, 0);
+            Prefs.get(context).edit().remove(Prefs.SLEEP_VOLUME).apply();
+        }
+        final long at = Prefs.get(context).getLong(Prefs.SLEEP_AT, 0);
+        if (at > System.currentTimeMillis()) {
+            sleepTimer(context, (int) Math.max(1, (at - System.currentTimeMillis()) / 60_000));
+        } else if (at > 0) {
+            Prefs.get(context).edit().remove(Prefs.SLEEP_AT).apply();
         }
     }
 
@@ -182,24 +219,41 @@ public class Sounds extends Service {
         final AudioAttributes attrs = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build();
-        mFocus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(attrs)
-                .setOnAudioFocusChangeListener(change -> {
-                    if (change == AudioManager.AUDIOFOCUS_LOSS) {
-                        mPlaying = false;
-                    }
-                }).build();
-        audio.requestAudioFocus(mFocus);
         final int chunk = RATE / 10;
-        final AudioTrack track = new AudioTrack.Builder()
-                .setAudioAttributes(attrs)
-                .setAudioFormat(new AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(RATE)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build())
-                .setBufferSizeInBytes(chunk * 4 * 4)
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build();
+        final AudioTrack track;
+        try {
+            mFocus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(attrs)
+                    .setOnAudioFocusChangeListener(change -> {
+                        if (change == AudioManager.AUDIOFOCUS_LOSS) {
+                            mPlaying = false;
+                        } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                            mDucked = 0.2f;
+                        } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
+                            mDucked = 1f;
+                        }
+                    }).build();
+            audio.requestAudioFocus(mFocus);
+            track = new AudioTrack.Builder()
+                    .setAudioAttributes(attrs)
+                    .setAudioFormat(new AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(RATE)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build())
+                    .setBufferSizeInBytes(chunk * 4 * 4)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build();
+        } catch (RuntimeException e) {
+            // No sound to be had (the audio system busy or broken): no crash, just quiet.
+            Log.w(TAG, "sounds", e);
+            mPlaying = false;
+            if (mFocus != null) {
+                audio.abandonAudioFocusRequest(mFocus);
+            }
+            stopForeground(true);
+            stopSelf();
+            return;
+        }
         final short[] pcm = new short[chunk * 2];
         final Random random = new Random();
         // Filter states per channel: pink (Paul Kellet), brown, and the slow swell of the sea.
@@ -250,7 +304,7 @@ public class Sounds extends Service {
                                 break;
                         }
                         pcm[2 * i + c] = (short) Math.max(-32767, Math.min(32767,
-                                v * gain * 9000));
+                                v * gain * mDucked * 9000));
                     }
                 }
                 track.write(pcm, 0, pcm.length);

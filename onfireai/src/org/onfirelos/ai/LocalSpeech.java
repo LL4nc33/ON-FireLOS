@@ -90,6 +90,9 @@ final class LocalSpeech {
             } catch (RuntimeException e) {
                 Log.w(TAG, "speech model", e);
             }
+            // Nothing may follow (a wake word heard by mistake): let go later all the same.
+            MAIN.removeCallbacks(RELEASE);
+            MAIN.postDelayed(RELEASE, KEEP);
         }, "ONFireAI-asr-load").start();
     }
 

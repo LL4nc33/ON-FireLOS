@@ -67,6 +67,7 @@ final class Cards {
                 case "list": return c.list(card);
                 case "checklist": return c.checklist(card);
                 case "media": return c.media();
+                case "videos": return c.videos(card);
                 default: return null;
             }
         } catch (JSONException e) {
@@ -369,6 +370,122 @@ final class Cards {
             p.addView(r);
         }
         return p;
+    }
+
+    // ---------------------------------------------------------------- videos
+
+    /**
+     * Videos side by side to swipe through: the picture with its length, the title, the
+     * channel and views. A tap plays it in the browser, with sound.
+     */
+    private View videos(JSONObject card) throws JSONException {
+        final JSONArray videos = card.optJSONArray("videos");
+        if (videos == null || videos.length() == 0) {
+            return null;
+        }
+        final android.widget.HorizontalScrollView scroll =
+                new android.widget.HorizontalScrollView(mContext);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setClipToPadding(false);
+        final LinearLayout strip = new LinearLayout(mContext);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        final int width = dp(236);
+        for (int i = 0; i < videos.length(); i++) {
+            final JSONObject v = videos.getJSONObject(i);
+            final LinearLayout tile = new LinearLayout(mContext);
+            tile.setOrientation(LinearLayout.VERTICAL);
+            tile.setBackgroundResource(R.drawable.card_tonal);
+            tile.setClipToOutline(true);
+            final android.widget.FrameLayout picture = new android.widget.FrameLayout(mContext);
+            final ImageView thumb = new ImageView(mContext);
+            thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            thumb.setBackgroundColor(0xFF20241E);
+            picture.addView(thumb, new android.widget.FrameLayout.LayoutParams(width,
+                    width * 9 / 16));
+            final String length = v.optString("length");
+            if (!length.isEmpty()) {
+                final TextView badge = text(length, 12, android.R.color.white);
+                badge.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+                badge.setBackgroundColor(0xCC000000);
+                badge.setPadding(dp(6), dp(2), dp(6), dp(2));
+                final android.widget.FrameLayout.LayoutParams blp =
+                        new android.widget.FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                Gravity.BOTTOM | Gravity.END);
+                blp.setMargins(0, 0, dp(8), dp(8));
+                picture.addView(badge, blp);
+            }
+            tile.addView(picture);
+            final TextView title = text(v.optString("title"), 15, R.color.on_background);
+            title.setMaxLines(2);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            title.setPadding(dp(12), dp(10), dp(12), 0);
+            tile.addView(title, new LinearLayout.LayoutParams(width,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            final String views = v.optString("views");
+            final TextView meta = text(v.optString("channel") + (views.isEmpty() ? ""
+                    : " · " + views), 13, R.color.on_background_quiet);
+            meta.setSingleLine(true);
+            meta.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            meta.setPadding(dp(12), dp(4), dp(12), dp(12));
+            tile.addView(meta, new LinearLayout.LayoutParams(width,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            final String url = v.optString("url");
+            tile.setOnClickListener(x -> Tools.openVideo(mContext, url));
+            tile.setForeground(mContext.getDrawable(android.R.drawable.list_selector_background));
+            final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(width,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            if (i > 0) {
+                lp.setMarginStart(dp(12));
+            }
+            strip.addView(tile, lp);
+            loadPicture(thumb, "https://i.ytimg.com/vi/" + v.optString("id")
+                    + "/mqdefault.jpg");
+        }
+        scroll.addView(strip);
+        final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(10);
+        scroll.setLayoutParams(lp);
+        return scroll;
+    }
+
+    /** A picture from the web, in the background; kept for the next look. */
+    private static final android.util.LruCache<String, Bitmap> PICTURES =
+            new android.util.LruCache<>(24);
+
+    private void loadPicture(ImageView view, String address) {
+        final Bitmap known = PICTURES.get(address);
+        if (known != null) {
+            view.setImageBitmap(known);
+            return;
+        }
+        view.setTag(address);
+        new Thread(() -> {
+            try {
+                final java.net.HttpURLConnection c = (java.net.HttpURLConnection)
+                        new java.net.URL(address).openConnection();
+                c.setConnectTimeout(5000);
+                c.setReadTimeout(8000);
+                final Bitmap b;
+                try (java.io.InputStream in = c.getInputStream()) {
+                    b = android.graphics.BitmapFactory.decodeStream(in);
+                } finally {
+                    c.disconnect();
+                }
+                if (b != null) {
+                    PICTURES.put(address, b);
+                    view.post(() -> {
+                        if (address.equals(view.getTag())) {
+                            view.setImageBitmap(b);
+                        }
+                    });
+                }
+            } catch (Exception ignored) {
+                // No picture: the tile keeps its dark ground and still plays.
+            }
+        }, "ONFireAI-picture").start();
     }
 
     // ---------------------------------------------------------------- lists

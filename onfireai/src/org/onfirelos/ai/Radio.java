@@ -100,11 +100,14 @@ public class Radio extends Service {
                 return new Tools.Result("error: no station " + query + " found", null);
             }
             final String name = best.optString("name").trim();
-            context.startForegroundService(new Intent(context, Radio.class)
+            final Intent start = new Intent(context, Radio.class)
                     .putExtra(EXTRA_URL, best.optString("url_resolved"))
-                    .putExtra(EXTRA_NAME, name));
-            return new Tools.Result("playing station " + name + " ("
-                    + best.optString("country") + ")", context.getString(R.string.chip_radio,
+                    .putExtra(EXTRA_NAME, name);
+            // On air once the answer is said, not over it.
+            Session.afterAnswer(() -> context.startForegroundService(start));
+            return new Tools.Result("starting station " + name + " after your answer; say"
+                    + " only a few words (" + best.optString("country") + ")",
+                    context.getString(R.string.chip_radio,
                     name), Cards.mediaCard());
         } catch (Exception e) {
             return new Tools.Result("error: radio directory: " + LlmClient.describe(context,

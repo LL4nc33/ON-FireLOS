@@ -497,7 +497,12 @@ public class ScreenAgent extends AccessibilityService {
         for (int attempt = 0; attempt < 12; attempt++) {
             SystemClock.sleep(1000);
             final AccessibilityNodeInfo root = getRootInActiveWindow();
-            final AccessibilityNodeInfo web = root == null ? null : findWebView(root);
+            // Only the browser, where the video was opened; anything else in front is left be.
+            if (root == null || root.getPackageName() == null
+                    || !root.getPackageName().toString().startsWith("org.lineageos.jelly")) {
+                continue;
+            }
+            final AccessibilityNodeInfo web = findWebView(root);
             if (web == null) {
                 continue;
             }

@@ -68,8 +68,21 @@ public class Ambient extends DreamService {
     private TextView mEvent;
     private TextView mTimers;
     private TextView mPlaying;
+    private TextView mAlarm;
+    private int mQuiet;
     private long mWeatherAt;
     private long mTimersAt;
+    /** One look-up of each kind at a time: a slow clock app must not pile up threads. */
+    private final java.util.concurrent.atomic.AtomicBoolean mTimersBusy =
+            new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean mSlowBusy =
+            new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean mWeatherBusy =
+            new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean mPlayingBusy =
+            new java.util.concurrent.atomic.AtomicBoolean();
+    private boolean mNight;
+    private FrameLayout mRoot;
     /** The timers as last asked: label, state, and when each ends (or its time if paused). */
     private volatile List<long[]> mTimerTimes = new ArrayList<>();
     private volatile List<String> mTimerNames = new ArrayList<>();
@@ -110,11 +123,13 @@ public class Ambient extends DreamService {
         setInteractive(false);
         setFullscreen(true);
         final boolean night = night();
+        mNight = night;
         setScreenBright(!night);
         final int strong = night ? Color.rgb(150, 150, 140) : Color.rgb(236, 238, 230);
         final int quiet = night ? Color.rgb(90, 90, 84) : Color.rgb(160, 166, 150);
 
         final FrameLayout root = new FrameLayout(this);
+        mRoot = root;
         root.setBackgroundColor(Color.BLACK);
         mColumn = new LinearLayout(this);
         mColumn.setOrientation(LinearLayout.VERTICAL);
@@ -147,15 +162,14 @@ public class Ambient extends DreamService {
         mWeatherRow.setVisibility(View.GONE);
         mColumn.addView(mWeatherRow);
 
-        mEvent = text(24, quiet);
-        mEvent.setPadding(0, dp(24), 0, 0);
-        mColumn.addView(mEvent);
-        mTimers = text(30, Color.rgb(196, 214, 160));
-        mTimers.setPadding(0, dp(24), 0, 0);
-        mColumn.addView(mTimers);
-        mPlaying = text(24, quiet);
-        mPlaying.setPadding(0, dp(24), 0, 0);
-        mColumn.addView(mPlaying);
+        mQuiet = quiet;
+        // Below, what matters now, each with its sign; a line shows only when it has
+        // something to say.
+        mTimers = row(R.drawable.ic_timer, 30, night ? Color.rgb(150, 160, 120)
+                : Color.rgb(196, 214, 160));
+        mEvent = row(R.drawable.ic_event, 24, quiet);
+        mAlarm = row(R.drawable.ic_alarm, 24, quiet);
+        mPlaying = row(R.drawable.ic_music, 24, quiet);
 
         root.addView(mColumn, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -174,6 +188,17 @@ public class Ambient extends DreamService {
     public void onDreamingStopped() {
         mMain.removeCallbacks(mTick);
         super.onDreamingStopped();
+    }
+
+    private TextView row(int icon, int sp, int color) {
+        final TextView t = text(sp, color);
+        t.setPadding(0, dp(22), 0, 0);
+        t.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
+        t.setCompoundDrawablePadding(dp(12));
+        t.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(mQuiet));
+        t.setVisibility(View.GONE);
+        mColumn.addView(t);
+        return t;
     }
 
     private TextView text(int sp, int color) {
@@ -199,27 +224,42 @@ public class Ambient extends DreamService {
             // A little elsewhere every minute: nothing stays on the same pixels.
             mColumn.animate().translationX(dp(mRandom.nextInt(41) - 20))
                     .translationY(dp(mRandom.nextInt(41) - 20)).setDuration(2000);
-            new Thread(this::slowParts, "ONFireAI-ambient").start();
+            // Into the night and out of it while it runs: dim, or bright again.
+            if (night() != mNight) {
+                mNight = night();
+                setScreenBright(!mNight);
+                mRoot.animate().alpha(mNight ? 0.6f : 1f).setDuration(3000);
+            }
+            once(mSlowBusy, this::slowParts);
         }
-        if (now - mWeatherAt > WEATHER_EVERY) {
+        if (now - mWeatherAt > WEATHER_EVERY && once(mWeatherBusy, this::weather)) {
             mWeatherAt = now;
-            new Thread(this::weather, "ONFireAI-ambient-weather").start();
         }
         // The clock app is asked every 5 s, in the background; in between it counts here.
-        if (now - mTimersAt > 5000) {
+        if (now - mTimersAt > 5000 && once(mTimersBusy, this::fetchTimers)) {
             mTimersAt = now;
-            new Thread(this::fetchTimers, "ONFireAI-ambient-timers").start();
         }
         showTimers(now);
         if (now / 1000 % 2 == 0) {
-            showPlaying();
+            once(mPlayingBusy, this::showPlaying);
         }
     }
 
     /** Once a minute: the next appointment (not at the lock screen: it is personal). */
     private void slowParts() {
         final String event = Tools.locked(this) ? "" : Calendars.next(this, 12);
+        // The next alarm clock (the clock app's or a wake-up): "07:00" today, "Di 07:00" later.
+        String alarm = "";
+        final android.app.AlarmManager.AlarmClockInfo next =
+                getSystemService(android.app.AlarmManager.class).getNextAlarmClock();
+        if (next != null && next.getTriggerTime() - System.currentTimeMillis() < 24 * 3600_000L) {
+            alarm = android.text.format.DateFormat.getTimeFormat(this).format(
+                    new java.util.Date(next.getTriggerTime()));
+        }
+        final String nextAlarm = alarm;
         mMain.post(() -> {
+            mAlarm.setText(nextAlarm);
+            mAlarm.setVisibility(nextAlarm.isEmpty() ? View.GONE : View.VISIBLE);
             mEvent.setText(event.isEmpty() ? "" : event.replaceFirst("^\\w+ \\d{4}-\\d{2}-\\d{2} ",
                     ""));
             mEvent.setVisibility(event.isEmpty() ? View.GONE : View.VISIBLE);
@@ -245,7 +285,26 @@ public class Ambient extends DreamService {
         });
     }
 
+    /** Runs the look-up in the background unless one of its kind still runs. */
+    private boolean once(java.util.concurrent.atomic.AtomicBoolean busy, Runnable what) {
+        if (!busy.compareAndSet(false, true)) {
+            return false;
+        }
+        new Thread(() -> {
+            try {
+                what.run();
+            } finally {
+                busy.set(false);
+            }
+        }, "ONFireAI-ambient").start();
+        return true;
+    }
+
     private void fetchTimers() {
+        // The lock screen may come up while it shows: the appointment goes at once.
+        if (Tools.locked(this)) {
+            mMain.post(() -> mEvent.setVisibility(View.GONE));
+        }
         final long now = System.currentTimeMillis();
         final List<long[]> times = new ArrayList<>();
         final List<String> names = new ArrayList<>();
@@ -297,8 +356,11 @@ public class Ambient extends DreamService {
             }
         } catch (SecurityException ignored) {
         }
-        mPlaying.setText(shown);
-        mPlaying.setVisibility(shown.isEmpty() ? View.GONE : View.VISIBLE);
+        final String playing = shown;
+        mMain.post(() -> {
+            mPlaying.setText(playing);
+            mPlaying.setVisibility(playing.isEmpty() ? View.GONE : View.VISIBLE);
+        });
     }
 
     private int dp(int v) {

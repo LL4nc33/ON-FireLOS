@@ -86,6 +86,8 @@ final class WhisperInput implements Listening {
     private volatile int mGeneration;
     /** The recording whose live transcript may still show; -1 once it is being finished. */
     private volatile int mLiveFor = -1;
+    /** This recording began with the wake word (its run-up holds the word itself). */
+    private volatile boolean mFromWake;
     private volatile boolean mPartialBusy;
     /** A server too slow for a live transcript is spared it until the app restarts. */
     private static volatile boolean sPartialSlow;
@@ -252,6 +254,9 @@ final class WhisperInput implements Listening {
         int blips = 0;
         int nextPartial = 0;
         final Segments segments = local(mContext) ? new Segments(g) : null;
+        mFromWake = handoff != null;
+        // In a follow-up a short "ja" or "nein" is an answer, not a click.
+        final int minVoiced = quietLimit < 8 * 50 ? 6 : MIN_VOICED;
         mLiveFor = g;
         try {
             post(g, mCallback::onReadyForSpeech);
@@ -296,7 +301,7 @@ final class WhisperInput implements Listening {
                     }
                 }
                 if (speech && quiet >= END_SILENCE) {
-                    if (voiced >= MIN_VOICED) {
+                    if (voiced >= minVoiced) {
                         break;
                     }
                     // Only a blip (the chime's echo, a click): still waiting for the question.
@@ -328,8 +333,13 @@ final class WhisperInput implements Listening {
                     break;
                 }
                 if (!speech && frames >= quietLimit) {
-                    fail(g, SpeechRecognizer.ERROR_SPEECH_TIMEOUT);
-                    return;
+                    // After the wake word, or with something heard that looked too short
+                    // ("Stopp", "Licht an" said quickly): read it anyway rather than drop it.
+                    if (handoff == null && blips == 0) {
+                        fail(g, SpeechRecognizer.ERROR_SPEECH_TIMEOUT);
+                        return;
+                    }
+                    break;
                 }
                 if (frames >= MAX_FRAMES) {
                     break;
@@ -428,7 +438,7 @@ final class WhisperInput implements Listening {
                     synchronized (mTexts) {
                         mTexts.add(text);
                     }
-                    final String shown = join("");
+                    final String shown = clean(join(""));
                     mMain.post(() -> {
                         if (mLiveFor == mFor && current(mFor)) {
                             mCallback.onPartial(shown);
@@ -573,10 +583,15 @@ final class WhisperInput implements Listening {
     }
 
     /** Whisper fills silence with lines it learned from subtitles; those are not speech. */
-    private static String clean(String text) {
-        // The wake word itself, heard again in the run-up, is not part of the question.
-        String t = text.trim().replaceFirst(
-                "(?i)^((hey|hei|he|hay)[\\s,.!]*)?(fire|feuer|fayer|fair|faia)\\b[\\s,.!]*", "");
+    private String clean(String text) {
+        String t = text.trim();
+        // After the wake word, the word itself heard again in the run-up is not part of the
+        // question (said otherwise, "Feuer in der Küche" keeps its first word).
+        if (mFromWake) {
+            t = t.replaceFirst(
+                    "(?i)^((hey|hei|he|hay)[\\s,.!]*)?(fire|feuer|fayer|fair|faia)\\b[\\s,.!]*",
+                    "");
+        }
         if (!t.isEmpty()) {
             t = Character.toUpperCase(t.charAt(0)) + t.substring(1);
         }

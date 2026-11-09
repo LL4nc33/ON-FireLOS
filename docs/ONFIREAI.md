@@ -39,6 +39,14 @@ Opened without a server, ON-FireAI goes straight into a short guided setup
   and goes out when done; what was said shows as a bubble, done things as chips
   with a tick
 
+## On the charger
+
+ON-FireAI's view is the screen saver (set once; changeable in Settings > Display >
+Screen saver): the time large, the date, the weather, the next appointment (not at
+the lock screen), running timers counting down and what is playing. It drifts a
+little every minute so nothing burns in, and dims from 22:00 to 6:00. "Hey Fire"
+works on top of it; a tap ends it.
+
 ## At the lock screen
 
 The sheet comes up over the lock screen too (the wake word on a charging tablet
@@ -68,6 +76,14 @@ Asked for those, it says to unlock first; the settings button asks to unlock, to
   next/previous track, louder, quieter, "timer 5 minutes".
 - A change of design (light/dark) or an app a tool opened does not cut an
   answer short: the conversation lives apart from the sheet.
+- Whatever else plays (a video in the browser, music, the radio, sleep sounds)
+  goes down to a fifth the moment the wake word is heard, stays down while
+  ON-FireAI listens, thinks and speaks, and comes back 1.2s after the
+  conversation ends; a follow-up question right after keeps it down. Android
+  does this for every player that holds the audio focus; ON-FireAI's own radio
+  and sounds turn themselves down.
+- A video or station ON-FireAI starts waits until its short answer ("Okay, hier
+  ist ...") is said, so the two never play over each other (12s at the most).
 
 ## Answer cards
 
@@ -80,6 +96,9 @@ gist:
 - alarms: their times, days and whether they are on
 - reminders and appointments: a neat list
 - what is playing: cover, title and buttons, from the player itself
+- videos: up to 6 YouTube suggestions side by side with picture, length,
+  title, channel and views; a tap opens one in the YouTube web app, "das
+  zweite" by voice too
 
 ## What it can do (tools)
 
@@ -93,6 +112,12 @@ gist:
 | media, now playing | play, pause, next, previous in any player |
 | play music | by search in Spotify (or another player that can) |
 | radio | internet radio by the station's name ("play FM4"), found in the free radio-browser.info directory and played by ON-FireAI with a notification and a media session |
+| timers by name | several at once, each named after what it is for ("Nudeln"); "wie lange noch für die Nudeln", "stopp den Nudel-Timer" find it by its name; without a name nothing acts on all timers unless all are meant |
+| wake up with radio | "weck mich um 7 mit Ö3", once or on weekdays: rings as an alarm clock (on time while asleep), the station fades in at the alarm volume over a minute; without network or station the alarm sound after 20s. A large window over the lock screen: snooze (9 minutes) or off, by voice too |
+| sleep sounds | rain, sea, rushing, deep hum, made on the tablet (no download), fading in and out, optionally for a number of minutes |
+| sleep timer | "mach in 30 Minuten aus": whatever plays (music, radio, sounds) fades out over 8s and stops; the volume is back for the next day |
+| YouTube, play | "spiel ein Video über ...": finds the best match itself and opens it in the browser's YouTube web app once the answer is said; it starts at once, and one real tap on the player turns on the sound YouTube leaves off when nobody touched the page |
+| YouTube, suggest | "zeig mir Videos über ...": the video card, nothing plays until one is chosen; found on YouTube directly, without a search server of your own |
 | news | the headlines of the region's public broadcaster (ORF, Tagesschau, SRF, BBC by time zone and language; a feed of one's own possible), summed up |
 | volume, brightness | media volume, screen brightness |
 | light/dark | the system design |
@@ -100,7 +125,6 @@ gist:
 | open app | by name, web apps on the home screen included |
 | open page | in its installed web app where there is one, else the browser |
 | web search | results from a SearXNG of your own to answer from, or the browser |
-| YouTube | find videos (with SearXNG), open them in the YouTube web app |
 | weather | Open-Meteo, here (the time zone's city) or any place, up to 7 days |
 | memory | keep, find and delete notes; search earlier conversations |
 | notifications | read and sum up what is new (when turned on; Android asks once for notification access) |

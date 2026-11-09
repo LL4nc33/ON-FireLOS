@@ -52,8 +52,12 @@ public class Wakeup extends Service {
 
     private static final String TAG = "ONFireAI";
     private static final String KEY = "wakeups";
-    private static final String CHANNEL = "wakeup";
+    /** Quiet in the shade: the window over the lock screen is where it is answered. */
+    private static final String CHANNEL = "wakeup_quiet";
     private static final String EXTRA_ID = "id";
+    private static final String EXTRA_SNOOZED = "snoozed";
+    private static final String KEY_SNOOZE = "wakeup_snooze";
+    private static final String KEY_VOLUME = "wakeup_volume";
     static final String ACTION_RING = "org.onfirelos.ai.wakeup.RING";
     static final String ACTION_STOP = "org.onfirelos.ai.wakeup.STOP";
     static final String ACTION_SNOOZE = "org.onfirelos.ai.wakeup.SNOOZE";
@@ -67,6 +71,8 @@ public class Wakeup extends Service {
     private MediaPlayer mPlayer;
     private PowerManager.WakeLock mLock;
     private final Handler mMain = new Handler(Looper.getMainLooper());
+    private final Object mRamp = new Object();
+    private android.media.ToneGenerator mBeeper;
     private int mVolumeBefore = -1;
 
     // ---------------------------------------------------------------- the tools
@@ -100,6 +106,9 @@ public class Wakeup extends Service {
             final JSONObject w = new JSONObject().put("id", id).put("time", time)
                     .put("days", days).put("station", args.optString("station").trim())
                     .put("label", args.optString("label").trim());
+            if (days.length() == 0) {
+                w.put("at", next(w, System.currentTimeMillis()));
+            }
             all.put(w);
             save(context, all);
             scheduleAll(context);
@@ -223,6 +232,13 @@ public class Wakeup extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    /** The snooze carries the wake-up itself: a one-time one is gone from the list by then. */
+    private static PendingIntent snoozeIntent(Context context, JSONObject w) {
+        return PendingIntent.getForegroundService(context, SNOOZE_CODE, new Intent(context,
+                Wakeup.class).setAction(ACTION_RING).putExtra(EXTRA_ID, w.optInt("id"))
+                .putExtra(EXTRA_SNOOZED, w.toString()), PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     /** As an alarm clock: shown in the status bar, and on time even when the tablet sleeps. */
     static void scheduleAll(Context context) {
         final AlarmManager alarms = context.getSystemService(AlarmManager.class);
@@ -233,9 +249,22 @@ public class Wakeup extends Service {
         final long now = System.currentTimeMillis();
         final PendingIntent show = PendingIntent.getActivity(context, 0,
                 new Intent(context, SettingsActivity.class), 0);
+        // A one-time wake-up whose moment passed while the tablet was off is over: it does
+        // not ring a day late.
+        final JSONArray kept = new JSONArray();
         for (int i = 0; i < all.length(); i++) {
             final JSONObject w = all.optJSONObject(i);
-            final long at = w == null ? -1 : next(w, now);
+            if (w != null && !(w.optLong("at", 0) > 0 && w.optLong("at") < now - 60_000)) {
+                kept.put(w);
+            }
+        }
+        if (kept.length() != all.length()) {
+            save(context, kept);
+        }
+        for (int i = 0; i < kept.length(); i++) {
+            final JSONObject w = kept.optJSONObject(i);
+            final long at = w == null ? -1 : w.optLong("at", 0) > 0 ? w.optLong("at")
+                    : next(w, now);
             if (at > 0) {
                 alarms.setAlarmClock(new AlarmManager.AlarmClockInfo(at, show),
                         ringIntent(context, 7000 + w.optInt("id") % (MAX * 2), w.optInt("id")));
@@ -255,9 +284,18 @@ public class Wakeup extends Service {
         final String action = intent == null ? null : intent.getAction();
         if (ACTION_RING.equals(action)) {
             final int id = intent.getIntExtra(EXTRA_ID, 0);
-            JSONObject w = byId(this, id);
+            JSONObject w = null;
+            try {
+                if (intent.hasExtra(EXTRA_SNOOZED)) {
+                    w = new JSONObject(intent.getStringExtra(EXTRA_SNOOZED));
+                }
+            } catch (JSONException ignored) {
+            }
+            Prefs.get(this).edit().remove(KEY_SNOOZE).apply();
             if (w == null) {
-                // A snooze outlives a deleted wake-up; it rings with the alarm sound.
+                w = byId(this, id);
+            }
+            if (w == null) {
                 w = new JSONObject();
             }
             ring(w);
@@ -266,8 +304,9 @@ public class Wakeup extends Service {
         if (ACTION_SNOOZE.equals(action) && sRinging != null) {
             final long at = System.currentTimeMillis() + SNOOZE_MINUTES * 60_000L;
             getSystemService(AlarmManager.class).setAlarmClock(
-                    new AlarmManager.AlarmClockInfo(at, null),
-                    ringIntent(this, SNOOZE_CODE, sRinging.optInt("id")));
+                    new AlarmManager.AlarmClockInfo(at, null), snoozeIntent(this, sRinging));
+            // Kept, so a restart meanwhile does not lose it.
+            Prefs.get(this).edit().putString(KEY_SNOOZE, at + " " + sRinging).apply();
         }
         silence();
         stopSelf();
@@ -276,6 +315,9 @@ public class Wakeup extends Service {
 
     private void ring(JSONObject w) {
         sRinging = w;
+        if (mLock != null && mLock.isHeld()) {
+            mLock.release();
+        }
         mLock = getSystemService(PowerManager.class).newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK, "ONFireAI:wakeup");
         mLock.acquire(15 * 60_000L);
@@ -343,7 +385,10 @@ public class Wakeup extends Service {
         final AudioManager audio = getSystemService(AudioManager.class);
         if (mVolumeBefore < 0) {
             mVolumeBefore = audio.getStreamVolume(AudioManager.STREAM_ALARM);
+            // Remembered: if the app dies while it rings, the next start puts it back.
+            Prefs.get(this).edit().putInt(KEY_VOLUME, mVolumeBefore).apply();
         }
+        mMain.removeCallbacksAndMessages(mRamp);
         final int target = Math.max(mVolumeBefore,
                 audio.getStreamMaxVolume(AudioManager.STREAM_ALARM) * 2 / 3);
         audio.setStreamVolume(AudioManager.STREAM_ALARM, 1, 0);
@@ -357,30 +402,74 @@ public class Wakeup extends Service {
             mPlayer.setOnPreparedListener(MediaPlayer::start);
             mPlayer.setOnErrorListener((p, what, extra) -> {
                 Log.w(TAG, "wake-up sound " + what + "/" + extra);
-                if (!loop) {
-                    mMain.post(this::playSound);
-                }
+                mMain.post(loop ? this::beep : this::playSound);
                 return true;
             });
             mPlayer.prepareAsync();
         } catch (Exception e) {
             Log.w(TAG, "wake-up", e);
-            if (!loop) {
+            if (loop) {
+                beep();
+            } else {
                 playSound();
             }
             return;
         }
         for (int step = 1; step <= target; step++) {
             final int v = step;
-            mMain.postDelayed(() -> {
+            mMain.postAtTime(() -> {
                 if (sRinging != null) {
                     audio.setStreamVolume(AudioManager.STREAM_ALARM, v, 0);
                 }
-            }, 60_000L * step / Math.max(1, target));
+            }, mRamp, android.os.SystemClock.uptimeMillis() + 60_000L * step
+                    / Math.max(1, target));
+        }
+    }
+
+    /** The last resort when even the alarm sound will not play: beeps until answered. */
+    private void beep() {
+        release();
+        if (sRinging == null) {
+            return;
+        }
+        try {
+            if (mBeeper == null) {
+                mBeeper = new android.media.ToneGenerator(AudioManager.STREAM_ALARM, 100);
+            }
+            mBeeper.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 1500);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "wake-up beep", e);
+        }
+        mMain.postDelayed(this::beep, 2500);
+    }
+
+    /** After a restart: the volume an interrupted wake-up left low, and a pending snooze. */
+    static void restore(Context context) {
+        final int volume = Prefs.get(context).getInt(KEY_VOLUME, -1);
+        if (volume >= 0 && sRinging == null) {
+            context.getSystemService(AudioManager.class).setStreamVolume(
+                    AudioManager.STREAM_ALARM, volume, 0);
+            Prefs.get(context).edit().remove(KEY_VOLUME).apply();
+        }
+        final String snooze = Prefs.get(context).getString(KEY_SNOOZE, "");
+        final int space = snooze.indexOf(' ');
+        if (space > 0) {
+            try {
+                final long at = Math.max(Long.parseLong(snooze.substring(0, space)),
+                        System.currentTimeMillis() + 5000);
+                context.getSystemService(AlarmManager.class).setAlarmClock(
+                        new AlarmManager.AlarmClockInfo(at, null), snoozeIntent(context,
+                                new JSONObject(snooze.substring(space + 1))));
+            } catch (NumberFormatException | JSONException e) {
+                Prefs.get(context).edit().remove(KEY_SNOOZE).apply();
+            }
         }
     }
 
     private void release() {
+        if (mBeeper != null) {
+            mBeeper.stopTone();
+        }
         if (mPlayer != null) {
             try {
                 mPlayer.release();
@@ -398,6 +487,11 @@ public class Wakeup extends Service {
             getSystemService(AudioManager.class).setStreamVolume(AudioManager.STREAM_ALARM,
                     mVolumeBefore, 0);
             mVolumeBefore = -1;
+            Prefs.get(this).edit().remove(KEY_VOLUME).apply();
+        }
+        if (mBeeper != null) {
+            mBeeper.release();
+            mBeeper = null;
         }
         if (mLock != null && mLock.isHeld()) {
             mLock.release();
@@ -408,8 +502,9 @@ public class Wakeup extends Service {
 
     private Notification notification(JSONObject w) {
         final NotificationManager nm = getSystemService(NotificationManager.class);
+        nm.deleteNotificationChannel("wakeup");
         final NotificationChannel channel = new NotificationChannel(CHANNEL,
-                getString(R.string.wakeup_channel), NotificationManager.IMPORTANCE_HIGH);
+                getString(R.string.wakeup_channel), NotificationManager.IMPORTANCE_LOW);
         channel.setSound(null, null);
         nm.createNotificationChannel(channel);
         final PendingIntent full = PendingIntent.getActivity(this, 3,
@@ -427,7 +522,7 @@ public class Wakeup extends Service {
                 .setContentText(station.isEmpty() ? getString(R.string.wakeup_sound) : station)
                 .setColor(getColor(R.color.accent))
                 .setCategory(Notification.CATEGORY_ALARM)
-                .setFullScreenIntent(full, true)
+                .setContentIntent(full)
                 .setOngoing(true)
                 .addAction(new Notification.Action.Builder(null,
                         getString(R.string.wakeup_snooze), snooze).build())

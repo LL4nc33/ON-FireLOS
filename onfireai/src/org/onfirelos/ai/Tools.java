@@ -88,7 +88,8 @@ final class Tools {
      * anyone in the room may ask.
      */
     static final java.util.Set<String> PERSONAL = new java.util.HashSet<>(java.util.Arrays.asList(
-            "open_app", "open_url", "youtube_play", "remember", "recall", "forget",
+            "open_app", "open_url", "youtube_play", "youtube_search", "remember", "recall",
+            "forget",
             "list_reminders", "cancel_reminder", "calendar_events", "add_event",
             "show_list", "check_off", "clear_list", "create_routine", "list_routines",
             "delete_routine", "alarms", "alarm_control", "wakeups", "delete_wakeup",
@@ -104,7 +105,8 @@ final class Tools {
 
     /** Not for a routine running at its time: no one there to watch the screen being used. */
     private static final java.util.Set<String> WATCHED = new java.util.HashSet<>(
-            java.util.Arrays.asList("open_url", "screen_read", "screen_tap", "screen_type",
+            java.util.Arrays.asList("open_url", "youtube_play", "youtube_search",
+                    "screen_read", "screen_tap", "screen_type",
                     "screen_scroll", "screen_key", "create_routine", "delete_routine"));
 
     /**
@@ -174,9 +176,15 @@ final class Tools {
             tools.put(tool("web_search", "Search the web. Returns results to answer from, or"
                             + " opens the browser.",
                     props().put("query", string("Search words")), "query"));
-            tools.put(tool("youtube_search", "Find YouTube videos. Returns titles and links.",
+            tools.put(tool("youtube_search", "Find YouTube videos: they show in the chat"
+                            + " as pictures the user can tap to watch. For 'zeig mir Videos"
+                            + " über ...', suggestions, or when unsure which one; then say in"
+                            + " a few words what is there. Play directly (youtube_play) only"
+                            + " when the user wants one played now.",
                     props().put("query", string("Search words")), "query"));
-            tools.put(tool("youtube_play", "Open a YouTube video or a YouTube search.",
+            tools.put(tool("youtube_play", "Play a YouTube video now in the browser (it"
+                            + " starts with sound): a url from youtube_search, e.g. 'das"
+                            + " zweite', or words to find the best match.",
                     props().put("url", string("Video link from youtube_search"))
                             .put("query", string("Or: words to search for"))));
             tools.put(tool("weather", "Weather now and the next days.",
@@ -913,6 +921,10 @@ final class Tools {
     }
 
     private Result youtubeSearch(String query) {
+        final Result direct = youtubeCards(query);
+        if (direct != null) {
+            return direct;
+        }
         if (!searx().isEmpty()) {
             try {
                 return new Result(searxResults(query + " site:youtube.com", "videos", 6),
@@ -921,36 +933,48 @@ final class Tools {
                 Log.w(TAG, "youtube search", e);
             }
         }
-        // Without a search server: YouTube's own results page, read for the first videos.
+        // A search never plays anything by itself.
+        return new Result("no videos found for " + query + " right now; say so, or try other"
+                + " words", null);
+    }
+
+    /** YouTube's own results: a row of pictures to tap, and the model knows them too. */
+    private Result youtubeCards(String query) {
         try {
-            final String found = youtubeDirect(query);
-            if (!found.isEmpty()) {
-                return new Result("videos (play one with youtube_play and its link):\n" + found,
-                        s(R.string.chip_search, query));
+            JSONArray videos = youtubeDirect(query);
+            if (videos.length() == 0) {
+                // YouTube answers differently now and then: once more.
+                videos = youtubeDirect(query);
+            }
+            if (videos.length() > 0) {
+                final StringBuilder out = new StringBuilder("These videos are on screen as"
+                        + " pictures to tap. Do NOT list them: answer in one short sentence"
+                        + " (e.g. that here are some, or name the one that fits best). To"
+                        + " play one when asked ('das zweite'), youtube_play with its url:\n");
+                for (int i = 0; i < videos.length(); i++) {
+                    final JSONObject v = videos.getJSONObject(i);
+                    out.append(i + 1).append(". ").append(v.optString("title")).append(" - ")
+                            .append(v.optString("channel")).append(", ")
+                            .append(v.optString("length")).append(" - ")
+                            .append(v.optString("url")).append('\n');
+                }
+                return new Result(out.toString(), s(R.string.chip_search, query),
+                        new JSONObject().put("type", "videos").put("videos", videos));
             }
         } catch (Exception e) {
             Log.w(TAG, "youtube search: " + e);
         }
-        return youtubePlay(new JSONObject() {
-            {
-                try {
-                    put("query", query);
-                } catch (JSONException ignored) {
-                }
-            }
-        });
+        return null;
     }
 
-    private static final java.util.regex.Pattern VIDEO = java.util.regex.Pattern.compile(
-            "\"videoRenderer\":\\{\"videoId\":\"([\\w-]{11})\".{0,900}?"
-                    + "\"title\":\\{\"runs\":\\[\\{\"text\":\"((?:[^\"\\\\]|\\\\.)*)\"",
-            java.util.regex.Pattern.DOTALL);
-
-    /** The first videos YouTube lists for the words: "title - link" lines. */
-    private static String youtubeDirect(String query) throws Exception {
+    /**
+     * The first videos YouTube lists for the words, each with its title, channel, length,
+     * views and picture: read from the JSON its results page carries.
+     */
+    private static JSONArray youtubeDirect(String query) throws Exception {
         final java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(
-                "https://www.youtube.com/results?hl=de&search_query=" + Uri.encode(query))
-                .openConnection();
+                "https://www.youtube.com/results?hl=" + Locale.getDefault().getLanguage()
+                        + "&search_query=" + Uri.encode(query)).openConnection();
         final String page;
         try {
             c.setConnectTimeout(6000);
@@ -965,20 +989,108 @@ final class Tools {
         } finally {
             c.disconnect();
         }
-        final StringBuilder out = new StringBuilder();
-        final java.util.regex.Matcher m = VIDEO.matcher(page);
-        int n = 0;
-        while (m.find() && n < 6) {
-            String title = m.group(2);
+        final JSONArray videos = new JSONArray();
+        if (!page.contains("\"videoRenderer\":{")) {
+            Log.w(TAG, "youtube: a page of " + page.length() + " characters without results"
+                    + (page.contains("consent") ? " (consent page)" : ""));
+        }
+        int at = 0;
+        while (videos.length() < 6) {
+            at = page.indexOf("\"videoRenderer\":{", at);
+            if (at < 0) {
+                break;
+            }
+            final int open = page.indexOf('{', at);
+            final int close = closingBrace(page, open);
+            at = open + 1;
+            if (close < 0) {
+                break;
+            }
             try {
-                title = new JSONArray("[\"" + title + "\"]").getString(0);
+                final JSONObject v = new JSONObject(page.substring(open, close + 1));
+                final String id = v.optString("videoId");
+                if (id.length() != 11) {
+                    continue;
+                }
+                videos.put(new JSONObject()
+                        .put("id", id)
+                        .put("title", runs(v.optJSONObject("title")))
+                        .put("channel", runs(v.optJSONObject("ownerText")))
+                        .put("length", simple(v.optJSONObject("lengthText")))
+                        .put("views", simple(v.optJSONObject("shortViewCountText")))
+                        .put("url", "https://m.youtube.com/watch?v=" + id));
+                at = close;
             } catch (JSONException ignored) {
             }
-            out.append("- ").append(title).append(" - https://m.youtube.com/watch?v=")
-                    .append(m.group(1)).append('\n');
-            n++;
+        }
+        return videos;
+    }
+
+    /** Where the JSON object opening at {@code open} ends (strings and escapes skipped). */
+    private static int closingBrace(String s, int open) {
+        int depth = 0;
+        boolean inString = false;
+        for (int i = open; i < s.length() && i < open + 200_000; i++) {
+            final char ch = s.charAt(i);
+            if (inString) {
+                if (ch == '\\') {
+                    i++;
+                } else if (ch == '"') {
+                    inString = false;
+                }
+            } else if (ch == '"') {
+                inString = true;
+            } else if (ch == '{') {
+                depth++;
+            } else if (ch == '}' && --depth == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String runs(JSONObject text) {
+        if (text == null) {
+            return "";
+        }
+        final JSONArray runs = text.optJSONArray("runs");
+        if (runs == null) {
+            return text.optString("simpleText");
+        }
+        final StringBuilder out = new StringBuilder();
+        for (int i = 0; i < runs.length(); i++) {
+            out.append(runs.optJSONObject(i).optString("text"));
         }
         return out.toString();
+    }
+
+    private static String simple(JSONObject text) {
+        return text == null ? "" : text.has("simpleText") ? text.optString("simpleText")
+                : runs(text);
+    }
+
+    /**
+     * Opens a video in the browser's YouTube app, playing at once; when it starts muted (no
+     * touch on the page), the screen agent's one tap turns the sound on.
+     */
+    static boolean openVideo(Context context, String url) {
+        final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .putExtra("org.lineageos.jelly.extra.PREFER_WEBAPP", true)
+                .putExtra("org.lineageos.jelly.extra.AUTOPLAY", true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            if (context.getPackageManager().getLaunchIntentForPackage(BROWSER) != null) {
+                intent.setPackage(BROWSER);
+            }
+            context.startActivity(intent);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        final ScreenAgent agent = ScreenAgent.get();
+        if (agent != null && url.contains("/watch")) {
+            new Thread(agent::unmuteWebVideo, "ONFireAI-unmute").start();
+        }
+        return true;
     }
 
     private Result youtubePlay(JSONObject args) {
@@ -986,6 +1098,17 @@ final class Tools {
         final String query = args.optString("query", "");
         if (url.isEmpty() && query.isEmpty()) {
             return new Result("error: give url or query", null);
+        }
+        if (url.isEmpty()) {
+            // Only words: the best match plays, as asked; the results page only without one.
+            try {
+                final JSONArray found = youtubeDirect(query);
+                if (found.length() > 0) {
+                    url = found.getJSONObject(0).optString("url");
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "youtube: " + e);
+            }
         }
         if (url.isEmpty()) {
             url = "https://m.youtube.com/results?search_query=" + Uri.encode(query);
@@ -1000,16 +1123,12 @@ final class Tools {
         }
         // Opened for the user to see a video: it may start without a touch (also a video
         // picked from search results in this window).
-        final boolean opened = view(url, true);
-        if (opened && url.contains("/watch") && ScreenAgent.get() != null) {
-            final ScreenAgent agent = ScreenAgent.get();
-            new Thread(agent::unmuteWebVideo, "ONFireAI-unmute").start();
-        }
-        return opened
-                ? new Result("opened " + url + (url.contains("/watch")
-                        ? "; it starts playing by itself" : ""), s(R.string.chip_opened,
-                        "YouTube"))
-                : new Result("error: no browser", null);
+        // After the short answer is said: not the video and the voice at once.
+        final String video = url;
+        Session.afterAnswer(() -> openVideo(mContext, video));
+        return new Result("opening " + url + " once you have answered; say only a few words"
+                + " like 'Okay, hier ist ...'" + (url.contains("/watch")
+                ? "; it starts playing by itself" : ""), s(R.string.chip_opened, "YouTube"));
     }
 
     // ---------------------------------------------------------------- memory

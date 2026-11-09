@@ -65,6 +65,8 @@ final class Prefs {
     static final String SETUP_DONE = "setup_done";
     /** When the sleep timer stops what plays (epoch ms); absent when none is set. */
     static final String SLEEP_AT = "sleep_at";
+    /** The music volume while the sleep timer fades it out, to restore after a restart. */
+    static final String SLEEP_VOLUME = "sleep_volume";
     /** ON-FireAI's screen was made the one shown while charging (once; changeable after). */
     static final String AMBIENT_SET = "ambient_set";
 

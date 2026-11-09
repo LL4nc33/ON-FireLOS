@@ -359,6 +359,14 @@ public class WakeWord extends Service {
         return h;
     }
 
+    /** Listening goes another way (Android's recognition): nothing is handed over. */
+    static void dropHandoff() {
+        final Handoff h = sHandoff;
+        if (h != null) {
+            h.done = true;
+        }
+    }
+
     /** The sheet has what it needs: the microphone goes back to listening for the word. */
     static void endHandoff(Handoff h) {
         h.done = true;
@@ -560,6 +568,8 @@ public class WakeWord extends Service {
     private void wake() {
         // The pause set on hearing it ends once the sheet listens (which pauses anyway).
         mMain.postDelayed(() -> sPaused = false, 3000);
+        // Down at once, before the sheet is even there; the sheet keeps it so.
+        Duck.set(this, true, 10_000);
         Chime.play();
         if (WhisperInput.local(this)) {
             // The model loads while the sheet comes up.

@@ -340,4 +340,16 @@
     <string name="wakeup_off">Aus</string>
     <string name="ambient_name">ON-FireAI-Ansicht</string>
     <string name="ambient_timer">Timer</string>
+    <string name="wakeup_day">Guten Tag</string>
+    <string name="wakeup_evening">Guten Abend</string>
+    <string name="suggest_weather_today">Wetter heute</string>
+    <string name="suggest_weather_today_ask">Wie wird das Wetter heute?</string>
+    <string name="suggest_today">Was steht heute an?</string>
+    <string name="suggest_today_ask">Was steht heute in meinem Kalender?</string>
+    <string name="suggest_tomorrow">Was steht morgen an?</string>
+    <string name="suggest_tomorrow_ask">Was steht morgen in meinem Kalender?</string>
+    <string name="suggest_headlines">Nachrichten</string>
+    <string name="suggest_headlines_ask">Was sind die Nachrichten?</string>
+    <string name="suggest_rain">Regengeräusche</string>
+    <string name="suggest_rain_ask">Spiel Regengeräusche für 30 Minuten.</string>
 </resources>

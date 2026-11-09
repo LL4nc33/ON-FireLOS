@@ -34,13 +34,21 @@ public class BootReceiver extends BroadcastReceiver {
         final String action = String.valueOf(intent.getAction());
         // Alarms do not outlast a restart or an update; the reminders do. A routine at
         // 7:00 is meant in the time zone one is in now.
-        try {
-            Reminders.rescheduleAll(context);
-            Routines.scheduleAll(context);
-            Wakeup.scheduleAll(context);
-            Ambient.becomeDefault(context);
-        } catch (RuntimeException e) {
-            android.util.Log.w("ONFireAI", "reschedule", e);
+        // Each on its own: one that fails does not keep the others from their alarms.
+        final Runnable[] steps = {
+            () -> Reminders.rescheduleAll(context),
+            () -> Routines.scheduleAll(context),
+            () -> Wakeup.scheduleAll(context),
+            () -> Wakeup.restore(context),
+            () -> Sounds.restore(context),
+            () -> Ambient.becomeDefault(context),
+        };
+        for (Runnable step : steps) {
+            try {
+                step.run();
+            } catch (RuntimeException e) {
+                android.util.Log.w("ONFireAI", "after start", e);
+            }
         }
         if (Intent.ACTION_TIMEZONE_CHANGED.equals(action)
                 || Intent.ACTION_TIME_CHANGED.equals(action)) {

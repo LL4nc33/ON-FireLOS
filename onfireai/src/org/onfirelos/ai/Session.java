@@ -17,6 +17,8 @@
 package org.onfirelos.ai;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
 
@@ -60,6 +62,39 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     private static Session sInstance;
 
+    /**
+     * What a tool started that should wait for the answer to be said (a video, a station):
+     * first "Okay, hier ist ...", then the sound - not both at once.
+     */
+    private static Runnable sAfterAnswer;
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final Runnable AFTER_ANSWER_LATEST = Session::runAfterAnswer;
+
+    /** Any thread. Runs after the answer has been said, or after 12 s at the latest. */
+    static void afterAnswer(Runnable what) {
+        MAIN.post(() -> {
+            sAfterAnswer = what;
+            MAIN.removeCallbacks(AFTER_ANSWER_LATEST);
+            MAIN.postDelayed(AFTER_ANSWER_LATEST, 12_000);
+        });
+    }
+
+    private static void runAfterAnswer() {
+        MAIN.removeCallbacks(AFTER_ANSWER_LATEST);
+        final Runnable what = sAfterAnswer;
+        sAfterAnswer = null;
+        if (what != null) {
+            // Its own sound starts at full volume, not turned down with the rest.
+            Duck.upNow();
+            what.run();
+        }
+    }
+
+    /** Whatever else plays is quieter while ON-FireAI listens, thinks or speaks. */
+    private void duck() {
+        Duck.set(mContext, state != State.IDLE || mSpeaker.speaking(), 180_000);
+    }
+
     /** Whether ON-FireAI is listening right now (the wake word leaves the microphone to it). */
     static boolean listening() {
         final Session s = sInstance;
@@ -91,6 +126,11 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     private boolean mVoiceTurn;
     private boolean mFollowUp;
     private Item mLive;
+
+    /** The words of a question still being spoken (shown paler until they are final). */
+    boolean isLive(Item item) {
+        return item != null && item == mLive;
+    }
     private Item mAnswer;
     private final StringBuilder mAnswerText = new StringBuilder();
     private java.util.function.Consumer<Boolean> mPendingConfirm;
@@ -277,6 +317,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     private void changed(boolean whole) {
         mLastChange = System.currentTimeMillis();
+        // Every change of state passes here: whatever else plays follows it.
+        duck();
         if (mUi != null) {
             mUi.onSessionChanged(whole);
         }
@@ -397,6 +439,9 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         mSpeaker.stop();
         mFollowUp = followUp;
         mListening = useWhisper() ? mWhisper : mGoogle;
+        if (mListening == mGoogle) {
+            WakeWord.dropHandoff();
+        }
         if (!mListening.start(followUp)) {
             setup(R.string.recognizer_missing);
             setState(State.IDLE);
@@ -609,6 +654,10 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     public void onDone(String answer) {
         setState(State.IDLE);
         mSpeaker.end();
+        // Nothing to be said aloud: it starts at once.
+        if (!Prefs.flag(mContext, Prefs.SPEAK)) {
+            runAfterAnswer();
+        }
         if (!mVisible && !answer.isEmpty()) {
             pill(answer);
             final ScreenAgent agent = ScreenAgent.get();
@@ -722,6 +771,13 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     public void onSpoken() {
         trace("spoken visible=" + mVisible + " state=" + state + " confirm="
                 + (mPendingConfirm != null) + " voice=" + mVoiceTurn);
+        duck();
+        // Said: now what was waiting for it starts (the video, the station); no follow-up
+        // listening over it.
+        final boolean started = sAfterAnswer != null && state == State.IDLE;
+        if (started) {
+            runAfterAnswer();
+        }
         if (!mVisible) {
             // Said while another app is in front: when the work is done too, the sheet has
             // done its part.
@@ -731,6 +787,9 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
                     mUi.onSessionClosed();
                 }
             }
+            return;
+        }
+        if (started) {
             return;
         }
         if ((mVoiceTurn || mPendingConfirm != null) && (state == State.IDLE

@@ -345,4 +345,16 @@
     <string name="wakeup_off">Off</string>
     <string name="ambient_name">ON-FireAI view</string>
     <string name="ambient_timer">Timer</string>
+    <string name="wakeup_day">Good day</string>
+    <string name="wakeup_evening">Good evening</string>
+    <string name="suggest_weather_today">Weather today</string>
+    <string name="suggest_weather_today_ask">What is the weather today?</string>
+    <string name="suggest_today">What\'s on today?</string>
+    <string name="suggest_today_ask">What is in my calendar today?</string>
+    <string name="suggest_tomorrow">What\'s on tomorrow?</string>
+    <string name="suggest_tomorrow_ask">What is in my calendar tomorrow?</string>
+    <string name="suggest_headlines">News</string>
+    <string name="suggest_headlines_ask">What is in the news?</string>
+    <string name="suggest_rain">Rain sounds</string>
+    <string name="suggest_rain_ask">Play rain sounds for 30 minutes.</string>
 </resources>

@@ -236,7 +236,8 @@ final class Agent {
                 for (int i = 0; i < result.toolCalls.length(); i++) {
                     final JSONObject fn = result.toolCalls.getJSONObject(i)
                             .optJSONObject("function");
-                    if (fn == null || !doneCalls.contains(callKey(fn))) {
+                    if (fn == null || !REPEAT_FREE.contains(fn.optString("name"))
+                            || !doneCalls.contains(callKey(fn))) {
                         onlyRepeats = false;
                     }
                 }
@@ -263,7 +264,7 @@ final class Agent {
                     final JSONObject tc = result.toolCalls.getJSONObject(i);
                     final JSONObject fn = tc.getJSONObject("function");
                     final String toolName = fn.optString("name");
-                    if (!doneCalls.add(callKey(fn))) {
+                    if (REPEAT_FREE.contains(toolName) && !doneCalls.add(callKey(fn))) {
                         // The same again: its result is above already.
                         turn.add(new JSONObject().put("role", "tool")
                                 .put("tool_call_id", tc.optString("id"))
@@ -366,6 +367,15 @@ final class Agent {
             return "";
         }
     }
+
+    /**
+     * Tools that only look something up: asked the same twice in one turn, the answer is
+     * the same. Anything that acts or looks at a changing screen may well be meant twice.
+     */
+    private static final java.util.Set<String> REPEAT_FREE = new java.util.HashSet<>(
+            java.util.Arrays.asList("weather", "news", "web_search", "youtube_search",
+                    "calendar_events", "recall", "wakeups", "alarms", "list_reminders",
+                    "show_list", "list_routines", "home_state", "notifications", "fetch_page"));
 
     /** A tool call by name and arguments, the order of the arguments aside. */
     private static String callKey(JSONObject fn) {
