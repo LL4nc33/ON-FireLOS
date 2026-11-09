@@ -22,7 +22,7 @@ LOCAL_CERTIFICATE := platform
 LOCAL_PRIVATE_PLATFORM_APIS := true
 LOCAL_PROGUARD_ENABLED := disabled
 ifneq ($(ONFIREAI_KWS),)
-LOCAL_JNI_SHARED_LIBRARIES := libsherpa-onnx-jni
+LOCAL_JNI_SHARED_LIBRARIES := libsherpa-onnx-jni libonfireai-aec
 LOCAL_MULTILIB := 64
 endif
 
@@ -39,3 +39,19 @@ LOCAL_MODULE_TARGET_ARCH := arm64
 LOCAL_STRIP_MODULE := false
 include $(BUILD_PREBUILT)
 endif
+
+# The echo canceller for the wake word: Speex's (BSD, jni/speex) and its JNI side.
+include $(CLEAR_VARS)
+LOCAL_MODULE := libonfireai-aec
+LOCAL_SRC_FILES := jni/aec/aec_jni.c \
+    jni/speex/mdf.c \
+    jni/speex/preprocess.c \
+    jni/speex/fftwrap.c \
+    jni/speex/smallft.c \
+    jni/speex/filterbank.c
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/jni/aec $(LOCAL_PATH)/jni/speex $(LOCAL_PATH)/jni/speex/include
+LOCAL_CFLAGS := -DHAVE_CONFIG_H -O2 -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+LOCAL_SHARED_LIBRARIES := liblog
+LOCAL_SDK_VERSION := 28
+LOCAL_MULTILIB := 64
+include $(BUILD_SHARED_LIBRARY)

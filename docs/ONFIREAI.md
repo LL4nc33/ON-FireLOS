@@ -162,14 +162,38 @@ nothing is sent anywhere before it. On it, a short sound, and the sheet comes up
 listening.
 
 - It listens only while the tablet charges, unless that is turned off - it keeps
-  one of the four cores about a quarter busy (measured on my device) and needs
-  about 100MB of memory.
+  one of the four cores 38% busy with its two listeners (measured on my device;
+  one listener was about 25%) and needs about 100MB of memory.
 - It pauses only while ON-FireAI itself listens. Said while ON-FireAI speaks, it
   cuts the answer short and ON-FireAI listens (to the answer of its own question,
   if one is open).
 - The model knows English sounds; English-sounding words of two or three
   syllables work best. A word of one's own is split into the model's pieces on
   the tablet.
+- Two listeners hear the same sound, the second 130ms later: whether the model
+  hears a word depends on where it falls in its processing steps, and what one
+  cuts badly the other catches (offline with recorded words: 63 instead of 56
+  of 75). One word heard by both counts once.
+- Over the tablet's own music: the speaker is a few cm from the microphone, so
+  music at half volume arrives louder than a voice across the room (measured
+  on my device: music 600-1000, a voice 450, room 150; without help 7 of 40
+  words heard). ON-FireAI takes what the tablet plays out of the microphone
+  (echo cancellation, as smart speakers do):
+  - ON-FireLOS hands it a copy of what the speaker plays: while it records the
+    remote submix, media plays on the speaker and into the submix at once
+    (audio policy patch in frameworks/av, `persist.audio.submix_tee`; false
+    gives the old casting behaviour back).
+  - The copy only runs while media plays (music, videos, games; not
+    ON-FireAI's own voice) and up to 10s after. Starting it moves the playing
+    sound once, a gap of about a tenth of a second.
+  - The delay between copy and microphone is measured every 3s (it jumps by
+    21ms now and then); Speex's echo canceller (BSD, `onfireai/jni/speex`)
+    then takes the music out, about 9dB at medium volume (measured on my
+    device). Offline with the same recordings that brought 34 instead of 7 of
+    40 words at medium volume; at full volume the speaker distorts too much,
+    and it stays hard.
+- Always works, however loud: a long press on the home bar starts ON-FireAI,
+  and the music goes down just the same.
 
 ## The microphone
 

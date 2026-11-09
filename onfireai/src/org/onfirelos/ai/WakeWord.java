@@ -422,19 +422,25 @@ public class WakeWord extends Service {
     private void run() {
         KeywordSpotter spotter = null;
         OnlineStream stream = null;
+        OnlineStream late = null;
         try {
             spotter = new KeywordSpotter(getAssets(), config());
             final String word = Prefs.get(this).getString(Prefs.WAKE_WORD, PRESETS[0][0]);
             final String tokens = tokens(this, word);
-            stream = spotter.createStream(tokens.isEmpty() ? "" : tokens + " @"
-                    + word.replace(' ', '_'));
+            final String keyword = tokens.isEmpty() ? "" : tokens + " @"
+                    + word.replace(' ', '_');
+            stream = spotter.createStream(keyword);
+            late = spotter.createStream(keyword);
             Log.i(TAG, "wake word '" + word + "' as " + tokens);
-            listen(spotter, stream);
+            listen(spotter, stream, late);
         } catch (Throwable t) {
             Log.e(TAG, "wake word", t);
         } finally {
             if (stream != null) {
                 stream.release();
+            }
+            if (late != null) {
+                late.release();
             }
             if (spotter != null) {
                 spotter.release();
@@ -443,14 +449,42 @@ public class WakeWord extends Service {
         }
     }
 
-    private void listen(KeywordSpotter spotter, OnlineStream stream) {
+    /** The word, when the stream heard it in what it has so far (it starts over then). */
+    private static String decode(KeywordSpotter spotter, OnlineStream stream) {
+        String heard = null;
+        while (spotter.isReady(stream)) {
+            spotter.decode(stream);
+            final KeywordSpotterResult result = spotter.getResult(stream);
+            if (result != null && result.keyword != null && !result.keyword.isEmpty()) {
+                spotter.reset(stream);
+                heard = result.keyword;
+            }
+        }
+        return heard;
+    }
+
+    /**
+     * Two listeners on the same sound, the second 130 ms later: the model hears a word or not
+     * depending on where it falls in its processing steps, and what one cuts badly the other
+     * catches (measured offline: 63 instead of 56 of 75 words, over music 49 instead of 36).
+     */
+    private static final int LATE = RATE * 13 / 100;
+    /** One word heard by both listeners counts once. */
+    private static final long AGAIN_AFTER = 2000;
+
+    private void listen(KeywordSpotter spotter, OnlineStream stream, OnlineStream late) {
         final short[] pcm = new short[RATE / 10];
         final float[] samples = new float[pcm.length];
+        final float[] delayed = new float[LATE + pcm.length];
+        long heardAt = 0;
         final short[][] recent = new short[PREROLL_CHUNKS][];
         final float[] levels = new float[AMBIENT_CHUNKS];
         int count = 0;
         java.io.InputStream test = null;
         AudioRecord record = null;
+        // The tablet's own music out of the microphone, where the ROM hands a copy of it.
+        final EchoCanceller echo = EchoCanceller.available(this) ? new EchoCanceller(this)
+                : null;
         try {
             while (mRunning) {
                 final Handoff handoff = sHandoff;
@@ -467,6 +501,9 @@ public class WakeWord extends Service {
                         record.stop();
                         record.release();
                         record = null;
+                    }
+                    if (echo != null) {
+                        echo.stop();
                     }
                     Thread.sleep(500);
                     continue;
@@ -500,6 +537,8 @@ public class WakeWord extends Service {
                     }
                     record.startRecording();
                     spotter.reset(stream);
+                    spotter.reset(late);
+                    java.util.Arrays.fill(delayed, 0f);
                 }
                 n = record.read(pcm, 0, pcm.length);
                 if (n <= 0) {
@@ -511,45 +550,63 @@ public class WakeWord extends Service {
                     continue;
                 }
                 }
+                short[] heard = pcm;
+                if (echo != null && test == null) {
+                    final boolean was = echo.cleaning();
+                    heard = echo.process(pcm, n);
+                    // Cleaned audio is from a moment earlier: the word starts over there.
+                    if (echo.cleaning() != was) {
+                        spotter.reset(stream);
+                        spotter.reset(late);
+                    }
+                }
                 if (capturing) {
-                    handoff.chunks.offer(java.util.Arrays.copyOf(pcm, n));
+                    handoff.chunks.offer(java.util.Arrays.copyOf(heard, n));
                     continue;
                 }
-                recent[count % PREROLL_CHUNKS] = java.util.Arrays.copyOf(pcm, n);
-                levels[count % AMBIENT_CHUNKS] = db(pcm, n);
+                recent[count % PREROLL_CHUNKS] = java.util.Arrays.copyOf(heard, n);
+                levels[count % AMBIENT_CHUNKS] = db(heard, n);
                 count++;
                 int peak = 0;
                 for (int i = 0; i < n; i++) {
-                    samples[i] = pcm[i] / 32768f;
-                    peak = Math.max(peak, Math.abs(pcm[i]));
+                    samples[i] = heard[i] / 32768f;
+                    peak = Math.max(peak, Math.abs(heard[i]));
                 }
                 if (Log.isLoggable(TAG, Log.DEBUG)) {
                     Log.d(TAG, "wake word level " + peak);
                 }
-                stream.acceptWaveform(n == samples.length ? samples
-                        : java.util.Arrays.copyOf(samples, n), RATE);
-                while (spotter.isReady(stream)) {
-                    spotter.decode(stream);
-                    final KeywordSpotterResult result = spotter.getResult(stream);
-                    if (result != null && result.keyword != null && !result.keyword.isEmpty()) {
-                        spotter.reset(stream);
-                        Log.i(TAG, "wake word heard: " + result.keyword);
-                        // The room before the word: the quietest of the seconds before it.
-                        float ambient = Float.MAX_VALUE;
-                        for (int k = WORD_CHUNKS; k < Math.min(count, AMBIENT_CHUNKS); k++) {
-                            ambient = Math.min(ambient,
-                                    levels[(count - 1 - k + AMBIENT_CHUNKS) % AMBIENT_CHUNKS]);
-                        }
-                        final int pre = Math.min(count, PREROLL_CHUNKS);
-                        final Handoff h = new Handoff(ambient == Float.MAX_VALUE ? -1 : ambient,
-                                pre * 5);
-                        for (int k = pre; k >= 1; k--) {
-                            h.chunks.offer(recent[(count - k) % PREROLL_CHUNKS]);
-                        }
-                        sHandoff = h;
-                        sPaused = true;
-                        mMain.post(this::wake);
+                final float[] chunk = n == samples.length ? samples
+                        : java.util.Arrays.copyOf(samples, n);
+                stream.acceptWaveform(chunk, RATE);
+                // The late listener: what came LATE samples ago, then the new chunk waits.
+                System.arraycopy(chunk, 0, delayed, LATE, n);
+                late.acceptWaveform(java.util.Arrays.copyOf(delayed, n), RATE);
+                System.arraycopy(delayed, n, delayed, 0, LATE);
+                final String first = decode(spotter, stream);
+                final String second = decode(spotter, late);
+                final String keyword = first != null ? first : second;
+                final long now = android.os.SystemClock.elapsedRealtime();
+                if (keyword != null && now - heardAt > AGAIN_AFTER) {
+                    heardAt = now;
+                    spotter.reset(stream);
+                    spotter.reset(late);
+                    Log.i(TAG, "wake word heard: " + keyword
+                            + (first == null ? " (late listener)" : ""));
+                    // The room before the word: the quietest of the seconds before it.
+                    float ambient = Float.MAX_VALUE;
+                    for (int k = WORD_CHUNKS; k < Math.min(count, AMBIENT_CHUNKS); k++) {
+                        ambient = Math.min(ambient,
+                                levels[(count - 1 - k + AMBIENT_CHUNKS) % AMBIENT_CHUNKS]);
                     }
+                    final int pre = Math.min(count, PREROLL_CHUNKS);
+                    final Handoff h = new Handoff(ambient == Float.MAX_VALUE ? -1 : ambient,
+                            pre * 5);
+                    for (int k = pre; k >= 1; k--) {
+                        h.chunks.offer(recent[(count - k) % PREROLL_CHUNKS]);
+                    }
+                    sHandoff = h;
+                    sPaused = true;
+                    mMain.post(this::wake);
                 }
             }
         } catch (InterruptedException e) {
@@ -560,6 +617,9 @@ public class WakeWord extends Service {
             if (record != null) {
                 record.stop();
                 record.release();
+            }
+            if (echo != null) {
+                echo.stop();
             }
         }
     }

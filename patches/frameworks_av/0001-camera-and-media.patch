@@ -3537,6 +3537,49 @@ index 4993420..6d990e2 100644
          // Use this to track timestamp information
          // ALOGD("%s", mTimestamp.toString().c_str());
  
+diff --git a/services/audiopolicy/enginedefault/src/Engine.cpp b/services/audiopolicy/enginedefault/src/Engine.cpp
+index c1026a5..94eb4e0 100644
+--- a/services/audiopolicy/enginedefault/src/Engine.cpp
++++ b/services/audiopolicy/enginedefault/src/Engine.cpp
+@@ -31,6 +31,7 @@
+ #include <policy.h>
+ #include <utils/String8.h>
+ #include <utils/Log.h>
++#include <cutils/properties.h>
+ 
+ namespace android
+ {
+@@ -521,11 +522,18 @@ audio_devices_t Engine::getDeviceForStrategyInt(routing_strategy strategy,
+     case STRATEGY_REROUTING:
+     case STRATEGY_MEDIA: {
+         uint32_t device2 = AUDIO_DEVICE_NONE;
++        bool submixTee = false;
+         if (strategy != STRATEGY_SONIFICATION) {
+             // no sonification on remote submix (e.g. WFD)
+             if (availableOutputDevices.getDevice(AUDIO_DEVICE_OUT_REMOTE_SUBMIX,
+                                                  String8("0")) != 0) {
+-                device2 = availableOutputDevices.types() & AUDIO_DEVICE_OUT_REMOTE_SUBMIX;
++                // ON-FireLOS: keep the normal device and add the submix (echo
++                // reference for the assistant's wake word), unless disabled.
++                if (property_get_bool("persist.audio.submix_tee", true)) {
++                    submixTee = (outputDeviceTypesToIgnore & AUDIO_DEVICE_OUT_REMOTE_SUBMIX) == 0;
++                } else {
++                    device2 = availableOutputDevices.types() & AUDIO_DEVICE_OUT_REMOTE_SUBMIX;
++                }
+             }
+         }
+         if (isInCall() && (strategy == STRATEGY_MEDIA)) {
+@@ -599,6 +607,10 @@ audio_devices_t Engine::getDeviceForStrategyInt(routing_strategy strategy,
+         }
+ 
+         device2 |= device3;
++        // ON-FireLOS: only speaker alone has a duplicated output with the submix
++        if (submixTee && (device | device2) == AUDIO_DEVICE_OUT_SPEAKER) {
++            device2 |= AUDIO_DEVICE_OUT_REMOTE_SUBMIX;
++        }
+         // device is DEVICE_OUT_SPEAKER if we come from case STRATEGY_SONIFICATION or
+         // STRATEGY_ENFORCED_AUDIBLE, AUDIO_DEVICE_NONE otherwise
+         device |= device2;
 diff --git a/services/camera/libcameraservice/Android.mk b/services/camera/libcameraservice/Android.mk
 index 4686881..b8afbcb 100644
 --- a/services/camera/libcameraservice/Android.mk
