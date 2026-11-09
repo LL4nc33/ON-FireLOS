@@ -23,6 +23,16 @@ tree by `scripts/onfireai-into-tree.sh`.
   and goes out when done; what was said shows as a bubble, done things as chips
   with a tick
 
+## At the lock screen
+
+The sheet comes up over the lock screen too (the wake word on a charging tablet
+is the common case). Anyone in the room may be asking then, so ON-FireAI answers
+general questions and uses timer, alarm, media, volume, light/dark, weather and
+the like, but keeps everything personal out until the tablet is unlocked: no
+notes, no notifications, no earlier conversation (on screen or for the model),
+no operating the screen, no opening apps, no MCP servers. Asked for those, it
+says to unlock first; the settings button asks to unlock, too.
+
 ## A conversation
 
 - What you say goes to the model with a short context: date and time, battery,
@@ -40,7 +50,9 @@ tree by `scripts/onfireai-into-tree.sh`.
 
 | Tool | Does |
 |---|---|
-| timer, alarm | the clock app, without opening it |
+| timer, alarm | the clock app, without opening it; timers listed with the time left, paused, resumed, a minute more, stopped, deleted; alarms listed, on, off, deleted (through a small interface ON-FireLOS gives the clock app, open only to apps signed like the system) |
+| reminders | "remind me at six to ...": a notification and said aloud at the time, after a soft chime; listed and deleted by voice; they outlast a restart |
+| calendar | what is coming up (from every calendar on the tablet), new appointments; without an account they go into a calendar "Tablet" on the device, which the calendar app shows too; the next appointment within 12 hours goes with each question |
 | media, now playing | play, pause, next, previous in any player |
 | play music | by search in Spotify (or another player that can) |
 | volume, brightness | media volume, screen brightness |

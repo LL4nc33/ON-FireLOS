@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- The clock's timers and alarms (ON-FireLOS' clock app, signature only). -->
+    <uses-permission android:name="org.onfirelos.permission.CLOCK" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -43,6 +47,8 @@
         <activity
             android:name=".AssistActivity"
             android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:launchMode="singleTask"
             android:taskAffinity="org.onfirelos.ai.sheet"
             android:theme="@style/Theme.Sheet"
@@ -137,6 +143,10 @@
             android:exported="false" />
 
         <!-- Makes it the assistant on first start, when none is chosen. -->
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false" />
+
         <receiver android:name=".BootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

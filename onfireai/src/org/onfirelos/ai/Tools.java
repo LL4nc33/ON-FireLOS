@@ -76,6 +76,40 @@ final class Tools {
 
     // ---------------------------------------------------------------- descriptions
 
+    /**
+     * Tools that show what is the user's or open apps: not while the tablet is locked, when
+     * anyone in the room may ask.
+     */
+    static final java.util.Set<String> PERSONAL = new java.util.HashSet<>(java.util.Arrays.asList(
+            "open_app", "open_url", "youtube_play", "remember", "recall", "forget",
+            "list_reminders", "cancel_reminder", "calendar_events", "add_event",
+            "notifications", "screen_read", "screen_tap", "screen_type", "screen_scroll",
+            "screen_key"));
+
+    /** Whether the lock screen is up: then ON-FireAI answers, but keeps the personal out. */
+    static boolean locked(Context context) {
+        final android.app.KeyguardManager keyguard =
+                context.getSystemService(android.app.KeyguardManager.class);
+        return keyguard != null && keyguard.isKeyguardLocked();
+    }
+
+    /** The tools the model may use now: all of them, or without the personal ones. */
+    static JSONArray available(Context context, boolean locked) {
+        final JSONArray all = definitions(context);
+        if (!locked) {
+            return all;
+        }
+        final JSONArray open = new JSONArray();
+        for (int i = 0; i < all.length(); i++) {
+            final JSONObject t = all.optJSONObject(i);
+            final JSONObject fn = t == null ? null : t.optJSONObject("function");
+            if (fn != null && !PERSONAL.contains(fn.optString("name"))) {
+                open.put(t);
+            }
+        }
+        return open;
+    }
+
     static JSONArray definitions(Context context) {
         final JSONArray tools = new JSONArray();
         try {
@@ -127,6 +161,41 @@ final class Tools {
             tools.put(tool("weather", "Weather now and the next days.",
                     props().put("place", string("City; empty for here"))
                             .put("days", integer("1-7, default 3"))));
+            tools.put(tool("timers", "The clock's timers: state and time left, with ids.",
+                    props()));
+            tools.put(tool("timer_control", "Act on a timer of the clock: pause, resume,"
+                            + " add_minute, stop (silence a ringing one or end it) or delete.",
+                    props().put("id", string("Timer id from timers, or 'all'"))
+                            .put("action", new JSONObject().put("type", "string")
+                                    .put("enum", new JSONArray().put("pause").put("resume")
+                                            .put("add_minute").put("stop").put("delete"))),
+                    "action"));
+            tools.put(tool("alarms", "The clock's alarms, on and off, with ids.", props()));
+            tools.put(tool("alarm_control", "Turn an alarm on or off, or delete it.",
+                    props().put("id", integer("Alarm id from alarms"))
+                            .put("action", new JSONObject().put("type", "string")
+                                    .put("enum", new JSONArray().put("on").put("off")
+                                            .put("delete"))),
+                    "id", "action"));
+            tools.put(tool("set_reminder", "Remind the user of something at a time: a"
+                            + " notification, and said aloud then. For 'remind me ...'.",
+                    props().put("text", string("What to remind of, short, in the user's"
+                                    + " language"))
+                            .put("at", string("Local date and time, YYYY-MM-DDTHH:MM"))
+                            .put("in_minutes", integer("Or: in how many minutes")), "text"));
+            tools.put(tool("list_reminders", "The reminders still to come, with their ids.",
+                    props()));
+            tools.put(tool("cancel_reminder", "Delete a reminder.",
+                    props().put("id", integer("Id from list_reminders")), "id"));
+            tools.put(tool("calendar_events", "Appointments in the tablet's calendar.",
+                    props().put("date", string("First day, YYYY-MM-DD; today if left out"))
+                            .put("days", integer("How many days, 1-31; 1 if left out"))));
+            tools.put(tool("add_event", "Put an appointment into the tablet's calendar.",
+                    props().put("title", string("What"))
+                            .put("start", string("YYYY-MM-DDTHH:MM, or YYYY-MM-DD for all day"))
+                            .put("end", string("YYYY-MM-DDTHH:MM, optional"))
+                            .put("minutes", integer("Or: how long, 60 if left out"))
+                            .put("location", string("Where, optional")), "title", "start"));
             tools.put(tool("remember", "Keep a note for later conversations (facts about the"
                             + " user, wishes, things to remember).",
                     props().put("text", string("The note, short, in the user's language and"
@@ -200,6 +269,10 @@ final class Tools {
     // ---------------------------------------------------------------- running
 
     Result run(String name, String arguments) {
+        if (PERSONAL.contains(name) && locked(mContext)) {
+            return new Result("error: the tablet is locked; ask the user to unlock it first",
+                    null);
+        }
         JSONObject args;
         try {
             args = arguments == null || arguments.trim().isEmpty()
@@ -227,6 +300,15 @@ final class Tools {
                 case "youtube_play": return youtubePlay(args);
                 case "weather": return Weather.forTool(mContext, args.optString("place", ""),
                         args.optInt("days", 3));
+                case "timers": return Clock.timers(mContext);
+                case "timer_control": return Clock.timer(mContext, args);
+                case "alarms": return Clock.alarms(mContext);
+                case "alarm_control": return Clock.alarm(mContext, args);
+                case "set_reminder": return Reminders.set(mContext, args);
+                case "list_reminders": return Reminders.list(mContext);
+                case "cancel_reminder": return Reminders.cancel(mContext, args.optLong("id", -1));
+                case "calendar_events": return Calendars.events(mContext, args);
+                case "add_event": return Calendars.add(mContext, args);
                 case "remember": return remember(args.optString("text"));
                 case "recall": return recall(args.optString("query"));
                 case "forget": return forget(args.optLong("id", -1));

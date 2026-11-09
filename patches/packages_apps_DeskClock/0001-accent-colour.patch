@@ -11,20 +11,25 @@ index 91cec2d..37613d7 100644
 +
  include $(BUILD_PACKAGE)
 diff --git a/AndroidManifest.xml b/AndroidManifest.xml
-index 9cfa6ef..f02978b 100644
+index 9cfa6ef..761d68d 100644
 --- a/AndroidManifest.xml
 +++ b/AndroidManifest.xml
-@@ -25,6 +25,9 @@
+@@ -25,6 +25,14 @@
      <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="25" />
  
      <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++
++    <!-- ON-FireLOS: timers and alarms for the system's own apps (ON-FireAI). -->
++    <permission
++        android:name="org.onfirelos.permission.CLOCK"
++        android:protectionLevel="signature" />
 +    <!-- ON-FireLOS: the weather, once turned on (Open-Meteo, rough location). -->
 +    <uses-permission android:name="android.permission.INTERNET" />
 +    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
      <uses-permission android:name="android.permission.WAKE_LOCK" />
      <uses-permission android:name="android.permission.VIBRATE" />
      <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-@@ -254,6 +257,12 @@
+@@ -254,6 +262,12 @@
          <!-- App widget components.                                         -->
          <!-- ============================================================== -->
  
@@ -37,7 +42,7 @@ index 9cfa6ef..f02978b 100644
          <receiver
              android:name="com.android.alarmclock.AnalogAppWidgetProvider"
              android:label="@string/analog_gadget">
-@@ -269,6 +278,42 @@
+@@ -269,6 +283,42 @@
                  android:resource="@xml/analog_appwidget" />
          </receiver>
  
@@ -80,7 +85,7 @@ index 9cfa6ef..f02978b 100644
          <receiver
              android:name="com.android.alarmclock.DigitalAppWidgetProvider"
              android:label="@string/digital_gadget">
-@@ -283,6 +328,7 @@
+@@ -283,6 +333,7 @@
                  <action android:name="com.android.deskclock.ALARM_CHANGED" />
                  <action android:name="com.android.deskclock.ON_DAY_CHANGE" />
                  <action android:name="com.android.deskclock.WORLD_CITIES_CHANGED" />
@@ -88,7 +93,7 @@ index 9cfa6ef..f02978b 100644
              </intent-filter>
              <meta-data
                  android:name="android.appwidget.provider"
-@@ -293,5 +339,15 @@
+@@ -293,5 +344,20 @@
              android:name="com.android.alarmclock.DigitalAppWidgetCityService"
              android:permission="android.permission.BIND_REMOTEVIEWS" />
  
@@ -102,6 +107,11 @@ index 9cfa6ef..f02978b 100644
 +            </intent-filter>
 +        </service>
 +
++        <provider
++            android:name=".OnfirelosApi"
++            android:authorities="org.onfirelos.deskclock.api"
++            android:exported="true"
++            android:permission="org.onfirelos.permission.CLOCK" />
      </application>
  </manifest>
 diff --git a/res/color/tab_tint_color.xml b/res/color/tab_tint_color.xml
@@ -6665,6 +6675,247 @@ index afee29d..23bc463 100644
          if (mDropShadowController != null) {
              mDropShadowController.stop();
              mDropShadowController = null;
+diff --git a/src/com/android/deskclock/OnfirelosApi.java b/src/com/android/deskclock/OnfirelosApi.java
+new file mode 100644
+index 0000000..ea0dbd7
+--- /dev/null
++++ b/src/com/android/deskclock/OnfirelosApi.java
+@@ -0,0 +1,235 @@
++/*
++ * Copyright (C) 2026 ON-FireLOS
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.deskclock;
++
++import android.content.ContentProvider;
++import android.content.ContentResolver;
++import android.content.ContentValues;
++import android.content.Context;
++import android.database.Cursor;
++import android.net.Uri;
++import android.os.Bundle;
++import android.os.Handler;
++import android.os.Looper;
++
++import com.android.deskclock.alarms.AlarmStateManager;
++import com.android.deskclock.data.DataModel;
++import com.android.deskclock.data.Timer;
++import com.android.deskclock.provider.Alarm;
++import com.android.deskclock.provider.AlarmInstance;
++
++import java.util.ArrayList;
++import java.util.Calendar;
++import java.util.concurrent.FutureTask;
++import java.util.concurrent.TimeUnit;
++
++/**
++ * ON-FireLOS: the clock's timers and alarms for the system's own apps, through
++ * ContentResolver.call(). Methods: "timers"; "timer" with arg = id or "all" and the extra
++ * "action" (pause, resume, add_minute, stop, delete); "alarms"; "alarm" with arg = id and
++ * "action" (on, off, delete). Each answer is a Bundle; "error" says what went wrong.
++ */
++public class OnfirelosApi extends ContentProvider {
++
++    private final Handler mMain = new Handler(Looper.getMainLooper());
++
++    @Override
++    public boolean onCreate() {
++        return true;
++    }
++
++    @Override
++    public Bundle call(String method, String arg, Bundle extras) {
++        final String action = extras == null ? "" : extras.getString("action", "");
++        // The clock's data model lives on its main thread.
++        final FutureTask<Bundle> task = new FutureTask<>(() -> {
++            switch (method) {
++                case "timers": return timers();
++                case "timer": return timer(arg, action);
++                case "alarms": return alarms();
++                case "alarm": return alarm(arg, action);
++                default: return error("no method " + method);
++            }
++        });
++        mMain.post(task);
++        try {
++            return task.get(5, TimeUnit.SECONDS);
++        } catch (Exception e) {
++            return error(String.valueOf(e));
++        }
++    }
++
++    private static Bundle error(String message) {
++        final Bundle b = new Bundle();
++        b.putString("error", message);
++        return b;
++    }
++
++    // ---------------------------------------------------------------- timers
++
++    private static Bundle timers() {
++        final ArrayList<Bundle> list = new ArrayList<>();
++        for (Timer t : DataModel.getDataModel().getTimers()) {
++            final Bundle b = new Bundle();
++            b.putInt("id", t.getId());
++            b.putString("label", t.getLabel());
++            b.putString("state", t.getState().name().toLowerCase());
++            b.putLong("remaining", t.getRemainingTime());
++            b.putLong("length", t.getLength());
++            list.add(b);
++        }
++        final Bundle out = new Bundle();
++        out.putParcelableArrayList("timers", list);
++        return out;
++    }
++
++    private static Bundle timer(String arg, String action) {
++        final DataModel model = DataModel.getDataModel();
++        final ArrayList<Timer> targets = new ArrayList<>();
++        if ("all".equals(arg)) {
++            targets.addAll(model.getTimers());
++        } else {
++            final Timer t;
++            try {
++                t = model.getTimer(Integer.parseInt(arg));
++            } catch (NumberFormatException e) {
++                return error("no timer " + arg);
++            }
++            if (t == null) {
++                return error("no timer " + arg);
++            }
++            targets.add(t);
++        }
++        for (Timer t : targets) {
++            switch (action) {
++                case "pause":
++                    if (t.isRunning()) {
++                        model.pauseTimer(t);
++                    }
++                    break;
++                case "resume":
++                    if (t.isPaused() || t.isReset()) {
++                        model.startTimer(t);
++                    }
++                    break;
++                case "add_minute":
++                    model.addTimerMinute(t);
++                    break;
++                case "stop":
++                    // A ringing one is silenced; one made just for this goes away.
++                    model.resetOrDeleteTimer(t, R.string.label_intent);
++                    break;
++                case "delete":
++                    model.removeTimer(t);
++                    break;
++                default:
++                    return error("no action " + action);
++            }
++        }
++        final Bundle out = timers();
++        out.putInt("changed", targets.size());
++        return out;
++    }
++
++    // ---------------------------------------------------------------- alarms
++
++    private Bundle alarms() {
++        final ArrayList<Bundle> list = new ArrayList<>();
++        for (Alarm a : Alarm.getAlarms(getContext().getContentResolver(), null)) {
++            final Bundle b = new Bundle();
++            b.putLong("id", a.id);
++            b.putInt("hour", a.hour);
++            b.putInt("minute", a.minutes);
++            b.putBoolean("on", a.enabled);
++            b.putString("label", a.label);
++            final ArrayList<Integer> days = new ArrayList<>();
++            for (int day = Calendar.SUNDAY; day <= Calendar.SATURDAY; day++) {
++                if (a.daysOfWeek.isBitOn(day)) {
++                    days.add(day);
++                }
++            }
++            b.putIntegerArrayList("days", days);
++            list.add(b);
++        }
++        final Bundle out = new Bundle();
++        out.putParcelableArrayList("alarms", list);
++        return out;
++    }
++
++    private Bundle alarm(String arg, String action) {
++        final Context context = getContext();
++        final ContentResolver cr = context.getContentResolver();
++        final Alarm alarm;
++        try {
++            alarm = Alarm.getAlarm(cr, Long.parseLong(arg));
++        } catch (NumberFormatException e) {
++            return error("no alarm " + arg);
++        }
++        if (alarm == null) {
++            return error("no alarm " + arg);
++        }
++        switch (action) {
++            case "delete":
++                AlarmStateManager.deleteAllInstances(context, alarm.id);
++                Alarm.deleteAlarm(cr, alarm.id);
++                break;
++            case "on":
++            case "off":
++                // As the clock's own switch does: the alarm, then its next instance anew.
++                alarm.enabled = "on".equals(action);
++                Alarm.updateAlarm(cr, alarm);
++                AlarmStateManager.deleteAllInstances(context, alarm.id);
++                if (alarm.enabled) {
++                    AlarmInstance next = alarm.createInstanceAfter(Calendar.getInstance());
++                    next = AlarmInstance.addInstance(cr, next);
++                    AlarmStateManager.registerInstance(context, next, true);
++                }
++                break;
++            default:
++                return error("no action " + action);
++        }
++        return alarms();
++    }
++
++    // ---------------------------------------------------------------- not a table
++
++    @Override
++    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
++            String sortOrder) {
++        return null;
++    }
++
++    @Override
++    public String getType(Uri uri) {
++        return null;
++    }
++
++    @Override
++    public Uri insert(Uri uri, ContentValues values) {
++        return null;
++    }
++
++    @Override
++    public int delete(Uri uri, String selection, String[] selectionArgs) {
++        return 0;
++    }
++
++    @Override
++    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
++        return 0;
++    }
++}
 diff --git a/src/com/android/deskclock/Screensaver.java b/src/com/android/deskclock/Screensaver.java
 index 427885e..4f63f69 100644
 --- a/src/com/android/deskclock/Screensaver.java

@@ -32,6 +32,8 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         WakeWord.apply(context);
+        // Alarms do not outlast a restart or an update; the reminders do.
+        Reminders.rescheduleAll(context);
         // An update of the app takes the screen agent off Android's list; what the user
         // turned on stays on. Only then: turned off on Android's own page, it stays off.
         if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())

@@ -104,9 +104,14 @@ final class FastTrack {
                 if (n == null || n <= 0 || n > 1440) {
                     return null;
                 }
-                final String unit = m.group(2);
-                final int factor = unit.startsWith("s") ? 1 : unit.startsWith("m") ? 60 : 3600;
+                String unit = m.group(2);
+                // "Stunden" starts with an s too: seconds are only "Sekunden" and "seconds".
+                final int factor = unit.startsWith("se") ? 1 : unit.startsWith("m") ? 60 : 3600;
                 result = tools.run("set_timer", "{\"seconds\":" + (n * factor) + "}");
+                // German nouns are written large ("2 Stunden"), as the user would.
+                if ("de".equals(java.util.Locale.getDefault().getLanguage())) {
+                    unit = Character.toUpperCase(unit.charAt(0)) + unit.substring(1);
+                }
                 spoken = context.getString(R.string.fast_timer, n, unit);
             }
         }

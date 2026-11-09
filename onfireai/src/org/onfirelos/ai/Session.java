@@ -89,6 +89,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     private Item mConfirmItem;
     /** When something last happened, so a conversation long gone starts afresh on screen. */
     private long mLastChange;
+    /** The sheet was last shown at the lock screen. */
+    private boolean mShownLocked;
     private static final long QUIET = 30 * 60 * 1000;
 
     private Session(Context context) {
@@ -104,6 +106,14 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     void attach(Ui ui) {
         mUi = ui;
+        // At the lock screen the sheet does not show what was said while unlocked.
+        final boolean locked = Tools.locked(mContext);
+        if (locked && !mShownLocked && !busy()) {
+            items.clear();
+            chips.clear();
+            status = "";
+        }
+        mShownLocked = locked;
         // A conversation that went quiet long ago starts afresh on screen too.
         if (state == State.IDLE && !mSpeaker.speaking()
                 && System.currentTimeMillis() - mLastChange > QUIET) {
@@ -171,6 +181,13 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             return;
         }
         pill(text);
+    }
+
+    /** Said aloud without a question, after a soft chime (a reminder that is due). */
+    void announce(String text) {
+        Chime.play();
+        new android.os.Handler(android.os.Looper.getMainLooper())
+                .postDelayed(() -> mSpeaker.say(text), 550);
     }
 
     /** The user closed the sheet: everything stops. */

@@ -60,6 +60,32 @@ final class Store extends SQLiteOpenHelper {
         }
     }
 
+    static final class Reminder {
+        final long id;
+        final String text;
+        final long at;
+        final boolean fired;
+
+        Reminder(long id, String text, long at, boolean fired) {
+            this.id = id;
+            this.text = text;
+            this.at = at;
+            this.fired = fired;
+        }
+    }
+
+    static final class Item {
+        final long id;
+        final String text;
+        final boolean done;
+
+        Item(long id, String text, boolean done) {
+            this.id = id;
+            this.text = text;
+            this.done = done;
+        }
+    }
+
     private static Store sInstance;
     private final Context mContext;
 
@@ -71,7 +97,7 @@ final class Store extends SQLiteOpenHelper {
     }
 
     private Store(Context context) {
-        super(context, "onfireai.db", null, 2);
+        super(context, "onfireai.db", null, 3);
         mContext = context;
     }
 
@@ -82,6 +108,16 @@ final class Store extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE log (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL,"
                 + " time INTEGER NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL)");
         db.execSQL("CREATE INDEX log_day ON log (day)");
+        createVersion3(db);
+    }
+
+    /** Version 3: reminders, and lists (shopping, to do ...). */
+    private static void createVersion3(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE reminders (id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + " text TEXT NOT NULL, at INTEGER NOT NULL, fired INTEGER NOT NULL DEFAULT 0)");
+        db.execSQL("CREATE TABLE items (id INTEGER PRIMARY KEY AUTOINCREMENT, list TEXT NOT NULL,"
+                + " text TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)");
+        db.execSQL("CREATE INDEX items_list ON items (list)");
     }
 
     @Override
@@ -90,6 +126,103 @@ final class Store extends SQLiteOpenHelper {
             // Version 2: a vector per note, for the search by meaning.
             db.execSQL("ALTER TABLE notes ADD COLUMN vec BLOB");
         }
+        if (oldVersion < 3) {
+            createVersion3(db);
+        }
+    }
+
+    // ---------------------------------------------------------------- reminders
+
+    long addReminder(String text, long at) {
+        final ContentValues values = new ContentValues();
+        values.put("text", text);
+        values.put("at", at);
+        return getWritableDatabase().insert("reminders", null, values);
+    }
+
+    /** Pending ones (not yet said), soonest first; or all. */
+    List<Reminder> reminders(boolean pendingOnly) {
+        final List<Reminder> out = new ArrayList<>();
+        try (Cursor c = getReadableDatabase().query("reminders",
+                new String[] { "id", "text", "at", "fired" }, pendingOnly ? "fired = 0" : null,
+                null, null, null, "at ASC")) {
+            while (c.moveToNext()) {
+                out.add(new Reminder(c.getLong(0), c.getString(1), c.getLong(2),
+                        c.getInt(3) != 0));
+            }
+        }
+        return out;
+    }
+
+    Reminder reminder(long id) {
+        try (Cursor c = getReadableDatabase().query("reminders",
+                new String[] { "id", "text", "at", "fired" }, "id = ?",
+                new String[] { String.valueOf(id) }, null, null, null)) {
+            return c.moveToFirst() ? new Reminder(c.getLong(0), c.getString(1), c.getLong(2),
+                    c.getInt(3) != 0) : null;
+        }
+    }
+
+    void markFired(long id) {
+        final ContentValues values = new ContentValues();
+        values.put("fired", 1);
+        getWritableDatabase().update("reminders", values, "id = ?",
+                new String[] { String.valueOf(id) });
+    }
+
+    void deleteReminder(long id) {
+        getWritableDatabase().delete("reminders", "id = ?", new String[] { String.valueOf(id) });
+    }
+
+    // ---------------------------------------------------------------- lists
+
+    long addItem(String list, String text) {
+        final ContentValues values = new ContentValues();
+        values.put("list", list);
+        values.put("text", text);
+        values.put("created", System.currentTimeMillis());
+        return getWritableDatabase().insert("items", null, values);
+    }
+
+    List<Item> items(String list) {
+        final List<Item> out = new ArrayList<>();
+        try (Cursor c = getReadableDatabase().query("items",
+                new String[] { "id", "text", "done" }, "list = ?", new String[] { list },
+                null, null, "done ASC, created ASC")) {
+            while (c.moveToNext()) {
+                out.add(new Item(c.getLong(0), c.getString(1), c.getInt(2) != 0));
+            }
+        }
+        return out;
+    }
+
+    /** The names of the lists there are, with how many open items each has. */
+    List<String[]> lists() {
+        final List<String[]> out = new ArrayList<>();
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT list, SUM(done = 0) FROM items"
+                + " GROUP BY list ORDER BY MAX(created) DESC", null)) {
+            while (c.moveToNext()) {
+                out.add(new String[] { c.getString(0), String.valueOf(c.getInt(1)) });
+            }
+        }
+        return out;
+    }
+
+    boolean setDone(long id, boolean done) {
+        final ContentValues values = new ContentValues();
+        values.put("done", done ? 1 : 0);
+        return getWritableDatabase().update("items", values, "id = ?",
+                new String[] { String.valueOf(id) }) > 0;
+    }
+
+    boolean deleteItem(long id) {
+        return getWritableDatabase().delete("items", "id = ?",
+                new String[] { String.valueOf(id) }) > 0;
+    }
+
+    int clearList(String list, boolean doneOnly) {
+        return getWritableDatabase().delete("items", doneOnly ? "list = ? AND done = 1"
+                : "list = ?", new String[] { list });
     }
 
     // ---------------------------------------------------------------- notes

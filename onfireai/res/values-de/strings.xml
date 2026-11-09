@@ -189,4 +189,24 @@
     <string name="step_videos">Ich suche Videos…</string>
     <string name="step_recall">Ich schaue in meine Notizen…</string>
     <string name="step_notifications">Ich lese deine Benachrichtigungen…</string>
+    <string name="suggest_time">Wie spät ist es?</string>
+    <string name="suggest_time_ask">Wie spät ist es?</string>
+    <string name="chip_reminder">Erinnerung %1$s</string>
+    <string name="chip_reminders">Erinnerungen</string>
+    <string name="chip_reminder_gone">Erinnerung gelöscht</string>
+    <string name="chip_calendar">Kalender</string>
+    <string name="chip_event">Termin %1$s</string>
+    <string name="reminders_channel">Erinnerungen</string>
+    <string name="reminder_title">Erinnerung</string>
+    <string name="reminder_say">Erinnerung: %1$s</string>
+    <string name="calendar_local">Tablet</string>
+    <string name="chip_timers">Timer</string>
+    <string name="chip_timer_paused">Timer angehalten</string>
+    <string name="chip_timer_resumed">Timer läuft weiter</string>
+    <string name="chip_timer_minute">Eine Minute mehr</string>
+    <string name="chip_timer_stopped">Timer gestoppt</string>
+    <string name="chip_alarms">Wecker</string>
+    <string name="chip_alarm_on">Wecker an</string>
+    <string name="chip_alarm_off">Wecker aus</string>
+    <string name="chip_alarm_deleted">Wecker gelöscht</string>
 </resources>

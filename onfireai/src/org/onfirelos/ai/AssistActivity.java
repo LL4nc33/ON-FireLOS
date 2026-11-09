@@ -89,10 +89,10 @@ public class AssistActivity extends Activity implements Session.Ui {
 
         mSession = Session.get(this);
         findViewById(R.id.root).setOnClickListener(v -> close());
-        findViewById(R.id.settings).setOnClickListener(v -> {
+        findViewById(R.id.settings).setOnClickListener(v -> unlockThen(() -> {
             startActivity(new Intent(this, SettingsActivity.class));
             close();
-        });
+        }));
         findViewById(R.id.new_conversation).setOnClickListener(v -> mSession.newConversation());
         mMic.setOnClickListener(v -> {
             if (mSession.state == Session.State.IDLE && !haveMic()) {
@@ -209,6 +209,23 @@ public class AssistActivity extends Activity implements Session.Ui {
     @Override
     public void onBackPressed() {
         close();
+    }
+
+    /** At the lock screen the user unlocks first (settings are personal); else at once. */
+    private void unlockThen(Runnable then) {
+        final android.app.KeyguardManager keyguard =
+                getSystemService(android.app.KeyguardManager.class);
+        if (keyguard == null || !keyguard.isKeyguardLocked()) {
+            then.run();
+            return;
+        }
+        keyguard.requestDismissKeyguard(this,
+                new android.app.KeyguardManager.KeyguardDismissCallback() {
+                    @Override
+                    public void onDismissSucceeded() {
+                        then.run();
+                    }
+                });
     }
 
     private void close() {
@@ -371,11 +388,14 @@ public class AssistActivity extends Activity implements Session.Ui {
             return;
         }
         final LinearLayout row = new LinearLayout(this);
-        final boolean news = Prefs.get(this).getBoolean(Prefs.NOTIFICATIONS, false)
+        final boolean locked = Tools.locked(this);
+        final boolean news = !locked && Prefs.get(this).getBoolean(Prefs.NOTIFICATIONS, false)
                 && NotificationWatcher.get() != null;
+        // At the lock screen nothing personal is on offer.
         final int[][] ideas = {
             { R.string.suggest_weather, R.string.suggest_weather_ask },
-            news ? new int[] { R.string.suggest_news, R.string.suggest_news_ask }
+            locked ? new int[] { R.string.suggest_time, R.string.suggest_time_ask }
+                    : news ? new int[] { R.string.suggest_news, R.string.suggest_news_ask }
                     : new int[] { R.string.suggest_memory, R.string.suggest_memory_ask },
             { R.string.suggest_fact, R.string.suggest_fact_ask },
         };

@@ -194,4 +194,24 @@
     <string name="step_videos">Looking for videos…</string>
     <string name="step_recall">Looking through my notes…</string>
     <string name="step_notifications">Reading your notifications…</string>
+    <string name="suggest_time">What time is it?</string>
+    <string name="suggest_time_ask">What time is it?</string>
+    <string name="chip_reminder">Reminder %1$s</string>
+    <string name="chip_reminders">Reminders</string>
+    <string name="chip_reminder_gone">Reminder deleted</string>
+    <string name="chip_calendar">Calendar</string>
+    <string name="chip_event">Appointment %1$s</string>
+    <string name="reminders_channel">Reminders</string>
+    <string name="reminder_title">Reminder</string>
+    <string name="reminder_say">Reminder: %1$s</string>
+    <string name="calendar_local">Tablet</string>
+    <string name="chip_timers">Timers</string>
+    <string name="chip_timer_paused">Timer paused</string>
+    <string name="chip_timer_resumed">Timer running again</string>
+    <string name="chip_timer_minute">One minute more</string>
+    <string name="chip_timer_stopped">Timer stopped</string>
+    <string name="chip_alarms">Alarms</string>
+    <string name="chip_alarm_on">Alarm on</string>
+    <string name="chip_alarm_off">Alarm off</string>
+    <string name="chip_alarm_deleted">Alarm deleted</string>
 </resources>
