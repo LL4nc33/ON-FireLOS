@@ -55,6 +55,13 @@ final class Calendars {
                 Manifest.permission.WRITE_CALENDAR }) {
             if (context.checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
                 try {
+                    // Taken away by the user in the settings: that stays so.
+                    if ((context.getPackageManager().getPermissionFlags(p,
+                            context.getPackageName(), Process.myUserHandle())
+                            & (PackageManager.FLAG_PERMISSION_USER_SET
+                                    | PackageManager.FLAG_PERMISSION_USER_FIXED)) != 0) {
+                        return false;
+                    }
                     context.getPackageManager().grantRuntimePermission(context.getPackageName(),
                             p, Process.myUserHandle());
                 } catch (RuntimeException e) {
@@ -86,10 +93,14 @@ final class Calendars {
         from.set(Calendar.MILLISECOND, 0);
         final int days = Math.max(1, Math.min(31, args.optInt("days", 1)));
         final long begin = from.getTimeInMillis();
-        final long end = begin + days * 24L * 3600 * 1000;
-        final String list = describe(context, begin, end, 30);
+        // By the calendar, not by 24 hours: a day of a clock change has 23 or 25.
+        from.add(Calendar.DAY_OF_YEAR, days);
+        final long end = from.getTimeInMillis();
+        final java.util.List<String[]> rows = new java.util.ArrayList<>();
+        final String list = describe(context, begin, end, 30, rows);
         return new Tools.Result(list.isEmpty() ? "no appointments in that time" : list,
-                context.getString(R.string.chip_calendar));
+                context.getString(R.string.chip_calendar),
+                rows.isEmpty() ? null : Cards.listCard("event", rows));
     }
 
     /** The next appointment within a few hours, for the context; "" when there is none. */
@@ -99,27 +110,38 @@ final class Calendars {
             return "";
         }
         final long now = System.currentTimeMillis();
-        final String list = describe(context, now, now + hours * 3600 * 1000, 1);
+        final String list = describe(context, now, now + hours * 3600 * 1000, 1, null);
         return list.trim();
     }
 
-    private static String describe(Context context, long begin, long end, int max) {
+    private static String describe(Context context, long begin, long end, int max,
+            java.util.List<String[]> rows) {
         final Uri.Builder uri = CalendarContract.Instances.CONTENT_URI.buildUpon();
         ContentUris.appendId(uri, begin);
         ContentUris.appendId(uri, end);
         final StringBuilder out = new StringBuilder();
         final SimpleDateFormat day = new SimpleDateFormat("EEE yyyy-MM-dd", Locale.ENGLISH);
         final SimpleDateFormat time = new SimpleDateFormat("HH:mm", Locale.ROOT);
+        // Whole days are kept from UTC midnight to UTC midnight; they are read as such.
+        final SimpleDateFormat utcDay = new SimpleDateFormat("EEE yyyy-MM-dd", Locale.ENGLISH);
+        utcDay.setTimeZone(TimeZone.getTimeZone("UTC"));
+        final long firstDay = utcMidnight(begin);
+        final long afterLast = utcMidnight(end);
         try (Cursor c = context.getContentResolver().query(uri.build(), new String[] {
                 CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN,
                 CalendarContract.Instances.END, CalendarContract.Instances.ALL_DAY,
                 CalendarContract.Instances.EVENT_LOCATION }, null, null,
                 CalendarContract.Instances.BEGIN + " ASC")) {
             int n = 0;
-            while (c != null && c.moveToNext() && n++ < max) {
+            while (c != null && c.moveToNext() && n < max) {
                 final boolean allDay = c.getInt(3) != 0;
+                // Yesterday's whole day reaches into today's first local hours: not today's.
+                if (allDay && (c.getLong(2) <= firstDay || c.getLong(1) >= afterLast)) {
+                    continue;
+                }
+                n++;
                 final Date start = new Date(c.getLong(1));
-                out.append(day.format(start)).append(' ');
+                out.append(allDay ? utcDay.format(start) : day.format(start)).append(' ');
                 if (allDay) {
                     out.append("all day");
                 } else {
@@ -132,11 +154,38 @@ final class Calendars {
                     out.append(" @ ").append(where);
                 }
                 out.append('\n');
+                if (rows != null) {
+                    final java.text.DateFormat t = android.text.format.DateFormat
+                            .getTimeFormat(context);
+                    // "Tue 15:00 – 15:30", or for a whole day "Tue" (or "Today").
+                    final SimpleDateFormat weekday = new SimpleDateFormat("EEEE",
+                            Locale.getDefault());
+                    weekday.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    final String when = allDay
+                            ? (c.getLong(1) == utcMidnight(System.currentTimeMillis())
+                                    ? context.getString(R.string.card_today)
+                                    : weekday.format(start))
+                            : Reminders.shortTime(context, c.getLong(1),
+                                    System.currentTimeMillis()) + " – "
+                                    + t.format(new Date(c.getLong(2)));
+                    rows.add(new String[] { when, c.getString(0) == null ? "" : c.getString(0) });
+                }
             }
         } catch (RuntimeException e) {
             Log.w(TAG, "calendar", e);
         }
         return out.toString();
+    }
+
+    /** UTC midnight of the local date at that moment: where that whole day is kept. */
+    private static long utcMidnight(long at) {
+        final Calendar local = Calendar.getInstance();
+        local.setTimeInMillis(at);
+        final Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        utc.clear();
+        utc.set(local.get(Calendar.YEAR), local.get(Calendar.MONTH),
+                local.get(Calendar.DAY_OF_MONTH));
+        return utc.getTimeInMillis();
     }
 
     // ---------------------------------------------------------------- writing
@@ -160,7 +209,8 @@ final class Calendars {
         } else {
             begin = Reminders.parseWhen(start, now);
             final String until = args.optString("end").trim();
-            end = until.isEmpty() ? begin + Math.max(5, args.optInt("minutes", 60)) * 60_000L
+            final int minutes = args.optInt("minutes", 0);
+            end = until.isEmpty() ? begin + (minutes > 0 ? Math.max(5, minutes) : 60) * 60_000L
                     : Reminders.parseWhen(until, now);
         }
         if (begin < 0 || end <= begin) {
@@ -197,8 +247,11 @@ final class Calendars {
         if (row == null) {
             return new Tools.Result("error: the calendar did not take it", null);
         }
+        final java.util.List<String[]> rows = new java.util.ArrayList<>();
+        rows.add(new String[] { Reminders.shortTime(context, begin, now), title });
         return new Tools.Result("added: " + title + " " + Reminders.describe(begin, now),
-                context.getString(R.string.chip_event, Reminders.shortTime(context, begin, now)));
+                context.getString(R.string.chip_event, Reminders.shortTime(context, begin, now)),
+                Cards.listCard("event", rows));
     }
 
     /** The first calendar one may write into; else the tablet's own, made now. */

@@ -27,6 +27,11 @@ public class ReminderReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final long id = intent.getLongExtra(Reminders.EXTRA_ID, -1);
         if (id >= 0) {
+            // The alarm keeps the tablet awake only until here; saying it takes a while
+            // (the voice may come from a server).
+            context.getSystemService(android.os.PowerManager.class)
+                    .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "ONFireAI:reminder")
+                    .acquire(30_000);
             Reminders.fire(context, id);
         }
     }

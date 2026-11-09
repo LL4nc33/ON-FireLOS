@@ -54,8 +54,9 @@ final class Reminders {
         }
         final long now = System.currentTimeMillis();
         long at = -1;
-        if (args.has("in_minutes")) {
-            at = now + Math.max(1, args.optInt("in_minutes", 0)) * 60_000L;
+        // A model may fill "in_minutes": 0 next to the time it means.
+        if (args.optInt("in_minutes", 0) > 0) {
+            at = now + args.optInt("in_minutes", 0) * 60_000L;
         } else if (!args.optString("at").isEmpty()) {
             at = parseWhen(args.optString("at"), now);
         }
@@ -65,8 +66,11 @@ final class Reminders {
         }
         final long id = Store.get(context).addReminder(text, at);
         schedule(context, id, at);
+        final java.util.List<String[]> rows = new java.util.ArrayList<>();
+        rows.add(new String[] { shortTime(context, at, now), text });
         return new Tools.Result("reminder " + id + " set for " + describe(at, now),
-                context.getString(R.string.chip_reminder, shortTime(context, at, now)));
+                context.getString(R.string.chip_reminder, shortTime(context, at, now)),
+                Cards.listCard("reminder", rows));
     }
 
     static Tools.Result list(Context context) {
@@ -76,11 +80,14 @@ final class Reminders {
             return new Tools.Result("no reminders", null);
         }
         final StringBuilder out = new StringBuilder();
+        final java.util.List<String[]> rows = new java.util.ArrayList<>();
         for (Store.Reminder r : pending) {
             out.append("[").append(r.id).append("] ").append(describe(r.at, now)).append(": ")
                     .append(r.text).append('\n');
+            rows.add(new String[] { shortTime(context, r.at, now), r.text });
         }
-        return new Tools.Result(out.toString(), context.getString(R.string.chip_reminders));
+        return new Tools.Result(out.toString(), context.getString(R.string.chip_reminders),
+                Cards.listCard("reminder", rows));
     }
 
     static Tools.Result cancel(Context context, long id) {
@@ -110,8 +117,10 @@ final class Reminders {
     /** After a start: the alarms are gone, the reminders not; one missed meanwhile comes now. */
     static void rescheduleAll(Context context) {
         final long now = System.currentTimeMillis();
+        int missed = 0;
         for (Store.Reminder r : Store.get(context).reminders(true)) {
-            schedule(context, r.id, Math.max(r.at, now + 5000));
+            // Several missed ones one after the other, not all at once.
+            schedule(context, r.id, r.at > now ? r.at : now + 5000 + 20_000L * missed++);
         }
     }
 
@@ -136,6 +145,13 @@ final class Reminders {
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .setColor(context.getColor(R.color.accent))
                 .setAutoCancel(true)
+                // At the lock screen only that there is one, not what it says.
+                .setVisibility(Notification.VISIBILITY_PRIVATE)
+                .setPublicVersion(new Notification.Builder(context, CHANNEL)
+                        .setSmallIcon(R.drawable.ic_spark)
+                        .setContentTitle(context.getString(R.string.reminder_title))
+                        .setColor(context.getColor(R.color.accent))
+                        .build())
                 .build();
         nm.notify("reminder", (int) id, n);
         if (nm.getCurrentInterruptionFilter() == NotificationManager.INTERRUPTION_FILTER_ALL

@@ -61,10 +61,17 @@ final class Tools {
     static final class Result {
         final String content;
         final String chip;
+        /** An answer card for the sheet (Cards), or null. */
+        final JSONObject card;
 
         Result(String content, String chip) {
+            this(content, chip, null);
+        }
+
+        Result(String content, String chip, JSONObject card) {
             this.content = content;
             this.chip = chip;
+            this.card = card;
         }
     }
 
@@ -83,6 +90,8 @@ final class Tools {
     static final java.util.Set<String> PERSONAL = new java.util.HashSet<>(java.util.Arrays.asList(
             "open_app", "open_url", "youtube_play", "remember", "recall", "forget",
             "list_reminders", "cancel_reminder", "calendar_events", "add_event",
+            "show_list", "check_off", "clear_list", "create_routine", "list_routines",
+            "delete_routine", "alarms", "alarm_control", "wakeups", "delete_wakeup",
             "notifications", "screen_read", "screen_tap", "screen_type", "screen_scroll",
             "screen_key"));
 
@@ -93,17 +102,27 @@ final class Tools {
         return keyguard != null && keyguard.isKeyguardLocked();
     }
 
-    /** The tools the model may use now: all of them, or without the personal ones. */
-    static JSONArray available(Context context, boolean locked) {
+    /** Not for a routine running at its time: no one there to watch the screen being used. */
+    private static final java.util.Set<String> WATCHED = new java.util.HashSet<>(
+            java.util.Arrays.asList("open_url", "screen_read", "screen_tap", "screen_type",
+                    "screen_scroll", "screen_key", "create_routine", "delete_routine"));
+
+    /**
+     * The tools the model may use now: all of them, or without the personal ones at the lock
+     * screen, or without those that need someone watching.
+     */
+    static JSONArray available(Context context, boolean locked, boolean unattended) {
         final JSONArray all = definitions(context);
-        if (!locked) {
+        if (!locked && !unattended) {
             return all;
         }
         final JSONArray open = new JSONArray();
         for (int i = 0; i < all.length(); i++) {
             final JSONObject t = all.optJSONObject(i);
             final JSONObject fn = t == null ? null : t.optJSONObject("function");
-            if (fn != null && !PERSONAL.contains(fn.optString("name"))) {
+            final String name = fn == null ? "" : fn.optString("name");
+            if (fn != null && !(locked && PERSONAL.contains(name))
+                    && !(unattended && WATCHED.contains(name))) {
                 open.put(t);
             }
         }
@@ -113,9 +132,11 @@ final class Tools {
     static JSONArray definitions(Context context) {
         final JSONArray tools = new JSONArray();
         try {
-            tools.put(tool("set_timer", "Start a countdown timer.",
+            tools.put(tool("set_timer", "Start a countdown timer. Several may run at once;"
+                            + " name each after what it is for when the user says (Nudeln,"
+                            + " Pizza, Wäsche).",
                     props().put("seconds", integer("Length in seconds"))
-                            .put("label", string("Optional name")),
+                            .put("label", string("Its name, e.g. Nudeln; optional")),
                     "seconds"));
             tools.put(tool("set_alarm", "Set an alarm clock.",
                     props().put("hour", integer("0-23"))
@@ -165,7 +186,9 @@ final class Tools {
                     props()));
             tools.put(tool("timer_control", "Act on a timer of the clock: pause, resume,"
                             + " add_minute, stop (silence a ringing one or end it) or delete.",
-                    props().put("id", string("Timer id from timers, or 'all'"))
+                    props().put("id", string("Timer id from timers, or 'all' (only when the"
+                                    + " user means all); leave out to use label"))
+                            .put("label", string("The timer's name, e.g. Nudeln"))
                             .put("action", new JSONObject().put("type", "string")
                                     .put("enum", new JSONArray().put("pause").put("resume")
                                             .put("add_minute").put("stop").put("delete"))),
@@ -177,6 +200,90 @@ final class Tools {
                                     .put("enum", new JSONArray().put("on").put("off")
                                             .put("delete"))),
                     "id", "action"));
+            if (HomeAssistant.configured(context)) {
+                tools.put(tool("home_state", "Home Assistant: the state of things in the house"
+                                + " (lights, plugs, heating, windows, sensors) with their"
+                                + " entity ids. Filter by domain and words.",
+                        props().put("domain", string("e.g. light, switch, climate, sensor,"
+                                        + " binary_sensor, cover, media_player; optional"))
+                                .put("search", string("Words of the name, e.g. wohnzimmer;"
+                                        + " optional"))));
+                tools.put(tool("home_control", "Home Assistant: call a service, e.g. light"
+                                + " turn_on with brightness_pct, climate set_temperature,"
+                                + " scene turn_on. Find the entity with home_state first.",
+                        props().put("domain", string("e.g. light, switch, climate, scene"))
+                                .put("service", string("e.g. turn_on, turn_off, toggle,"
+                                        + " set_temperature"))
+                                .put("entity_id", string("The entity id"))
+                                .put("data", new JSONObject().put("type", "object")
+                                        .put("description", "More service data, optional")),
+                        "domain", "service"));
+            }
+            tools.put(tool("set_wakeup", "Wake the user at a time with a radio station"
+                            + " (\"weck mich um 7 mit Ö3\") or, without one, the alarm sound;"
+                            + " rings over the lock screen, snooze and off by voice too."
+                            + " For a plain alarm without a station, set_alarm.",
+                    props().put("time", string("HH:MM"))
+                            .put("station", string("Radio station's name; optional"))
+                            .put("label", string("Optional name"))
+                            .put("days", new JSONObject().put("type", "array")
+                                    .put("items", integer("1=Sunday ... 7=Saturday; once if"
+                                            + " left out"))), "time"));
+            tools.put(tool("wakeups", "The wake-ups set with set_wakeup, with ids.", props()));
+            tools.put(tool("delete_wakeup", "Delete a wake-up.",
+                    props().put("id", integer("Id from wakeups; -1 for all")), "id"));
+            tools.put(tool("wakeup_control", "While a wake-up rings: snooze it (9 minutes) or"
+                            + " turn it off.",
+                    props().put("action", new JSONObject().put("type", "string")
+                            .put("enum", new JSONArray().put("snooze").put("off"))), "action"));
+            tools.put(tool("play_sounds", "Sounds to fall asleep or relax to, made on the"
+                            + " tablet: rain, sea (waves), noise (rushing) or hum (deep).",
+                    props().put("kind", new JSONObject().put("type", "string")
+                                    .put("enum", new JSONArray().put("rain").put("sea")
+                                            .put("noise").put("hum")))
+                            .put("minutes", integer("Stop after so many minutes; optional"))));
+            tools.put(tool("stop_sounds", "Stop the sleep sounds.", props()));
+            tools.put(tool("sleep_timer", "Stop whatever plays (music, radio, sounds) in so"
+                            + " many minutes, fading out; 0 turns the sleep timer off.",
+                    props().put("minutes", integer("Minutes from now; 0 = off")), "minutes"));
+            tools.put(tool("play_radio", "Play an internet radio station by its name (e.g."
+                            + " Ö3, FM4, Radio Wien, BBC Radio 1). Stop or pause with media.",
+                    props().put("station", string("The station's name")), "station"));
+            tools.put(tool("news", "The latest news headlines from the public broadcaster"
+                            + " of the region; sum them up in a few sentences.",
+                    props().put("topic", string("Only news about this, optional"))));
+            tools.put(tool("create_routine", "Keep a routine: when the user says one of its"
+                            + " phrases (or at a time of day), its instruction is carried out"
+                            + " with the tools. For 'when I say good morning, tell me ...'.",
+                    props().put("name", string("Short name, e.g. Guten Morgen"))
+                            .put("phrases", new JSONObject().put("type", "array")
+                                    .put("items", string("What the user will say")))
+                            .put("instruction", string("What to do, as one would tell a person"))
+                            .put("time", string("Optional time of day HH:MM to run on its own"))
+                            .put("days", new JSONObject().put("type", "array")
+                                    .put("items", integer("1=Sunday ... 7=Saturday; all if"
+                                            + " left out"))), "name", "instruction"));
+            tools.put(tool("list_routines", "The routines kept.", props()));
+            tools.put(tool("delete_routine", "Delete a routine.",
+                    props().put("name", string("Its name")), "name"));
+            tools.put(tool("add_to_list", "Put items on a list kept on the tablet: shopping"
+                            + " (the default), to do, or any list the user names.",
+                    props().put("list", string("shopping, todo or another name"))
+                            .put("items", new JSONObject().put("type", "array")
+                                    .put("items", string("One item each, short"))), "items"));
+            tools.put(tool("show_list", "What is on a list; without list: which lists there"
+                    + " are.", props().put("list", string("shopping, todo or another name"))));
+            tools.put(tool("check_off", "Tick items off a list (bought, done), or delete them.",
+                    props().put("list", string("shopping, todo or another name"))
+                            .put("items", new JSONObject().put("type", "array")
+                                    .put("items", string("Item id or words of it")))
+                            .put("action", new JSONObject().put("type", "string")
+                                    .put("enum", new JSONArray().put("check").put("delete"))),
+                    "items"));
+            tools.put(tool("clear_list", "Clear a list: the ticked items, or with all=true"
+                            + " everything.",
+                    props().put("list", string("shopping, todo or another name"))
+                            .put("all", new JSONObject().put("type", "boolean"))));
             tools.put(tool("set_reminder", "Remind the user of something at a time: a"
                             + " notification, and said aloud then. For 'remind me ...'.",
                     props().put("text", string("What to remind of, short, in the user's"
@@ -304,6 +411,25 @@ final class Tools {
                 case "timer_control": return Clock.timer(mContext, args);
                 case "alarms": return Clock.alarms(mContext);
                 case "alarm_control": return Clock.alarm(mContext, args);
+                case "home_state": return HomeAssistant.states(mContext, args);
+                case "home_control": return HomeAssistant.call(mContext, args);
+                case "play_radio": return Radio.play(mContext, args.optString("station"));
+                case "set_wakeup": return Wakeup.set(mContext, args);
+                case "wakeups": return Wakeup.list(mContext);
+                case "delete_wakeup": return Wakeup.delete(mContext, args.optInt("id", -2));
+                case "wakeup_control": return Wakeup.control(mContext, args.optString("action"));
+                case "play_sounds": return Sounds.play(mContext, args.optString("kind"),
+                        args.optInt("minutes", 0));
+                case "stop_sounds": return Sounds.stop(mContext);
+                case "sleep_timer": return Sounds.sleepTimer(mContext, args.optInt("minutes", 0));
+                case "news": return News.headlines(mContext, args.optString("topic"));
+                case "create_routine": return Routines.create(mContext, args);
+                case "list_routines": return Routines.list(mContext);
+                case "delete_routine": return Routines.delete(mContext, args.optString("name"));
+                case "add_to_list": return Lists.add(mContext, args);
+                case "show_list": return Lists.show(mContext, args);
+                case "check_off": return Lists.check(mContext, args);
+                case "clear_list": return Lists.clear(mContext, args);
                 case "set_reminder": return Reminders.set(mContext, args);
                 case "list_reminders": return Reminders.list(mContext);
                 case "cancel_reminder": return Reminders.cancel(mContext, args.optLong("id", -1));
@@ -344,7 +470,11 @@ final class Tools {
     }
 
     private Result setTimer(JSONObject args) {
-        final int seconds = Math.max(1, args.optInt("seconds", 60));
+        final int seconds = args.optInt("seconds", 60);
+        // The clock takes no timer of a day or more (and none of no time at all).
+        if (seconds < 1 || seconds >= 24 * 3600) {
+            return new Result("error: a timer runs from 1 second to under 24 hours", null);
+        }
         final Intent intent = new Intent(AlarmClock.ACTION_SET_TIMER)
                 .putExtra(AlarmClock.EXTRA_LENGTH, seconds)
                 .putExtra(AlarmClock.EXTRA_SKIP_UI, true);
@@ -355,8 +485,16 @@ final class Tools {
         if (!start(intent)) {
             return new Result("error: no clock app", null);
         }
+        JSONObject card = null;
+        try {
+            card = new JSONObject().put("type", "timers").put("timers", new JSONArray().put(
+                    new JSONObject().put("label", label).put("state", "running")
+                            .put("end", System.currentTimeMillis() + seconds * 1000L)
+                            .put("length", seconds * 1000L)));
+        } catch (JSONException ignored) {
+        }
         return new Result("timer started: " + seconds + " s", s(R.string.chip_timer,
-                duration(seconds)));
+                duration(seconds)), card);
     }
 
     private static String duration(int seconds) {
@@ -372,6 +510,9 @@ final class Tools {
     private Result setAlarm(JSONObject args) {
         final int hour = args.optInt("hour", 7);
         final int minute = args.optInt("minute", 0);
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            return new Result("error: no such time " + hour + ":" + minute, null);
+        }
         final Intent intent = new Intent(AlarmClock.ACTION_SET_ALARM)
                 .putExtra(AlarmClock.EXTRA_HOUR, hour)
                 .putExtra(AlarmClock.EXTRA_MINUTES, minute)
@@ -451,18 +592,23 @@ final class Tools {
         return new Result("sent to the last media app", chip);
     }
 
+    /** A result about the player shows what plays, with its cover and buttons. */
+    private static Result withMedia(Result r) {
+        return r.content.startsWith("error") ? r : new Result(r.content, r.chip, Cards.mediaCard());
+    }
+
     private Result nowPlaying() {
         final MediaController c = activeController();
         if (c == null || c.getMetadata() == null) {
-            return new Result("nothing is playing", null);
+            return withMedia(new Result("nothing is playing", null));
         }
         final MediaMetadata m = c.getMetadata();
         final PlaybackState state = c.getPlaybackState();
         final boolean playing = state != null && state.getState() == PlaybackState.STATE_PLAYING;
-        return new Result((playing ? "playing" : "paused") + ": "
+        return withMedia(new Result((playing ? "playing" : "paused") + ": "
                 + nonNull(m.getString(MediaMetadata.METADATA_KEY_TITLE)) + " - "
                 + nonNull(m.getString(MediaMetadata.METADATA_KEY_ARTIST))
-                + " (" + appName(c.getPackageName()) + ")", null);
+                + " (" + appName(c.getPackageName()) + ")", null));
     }
 
     static String describePlaying(Context context) {
@@ -684,8 +830,14 @@ final class Tools {
 
     /** A link opens in its installed web app where there is one, else in the browser. */
     private boolean view(String address) {
+        return view(address, false);
+    }
+
+    /** In the browser (its web app when installed); a video may start without a touch. */
+    private boolean view(String address, boolean autoplay) {
         final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(address))
-                .putExtra("org.lineageos.jelly.extra.PREFER_WEBAPP", true);
+                .putExtra("org.lineageos.jelly.extra.PREFER_WEBAPP", true)
+                .putExtra("org.lineageos.jelly.extra.AUTOPLAY", autoplay);
         if (installed(BROWSER)) {
             intent.setPackage(BROWSER);
         }
@@ -769,6 +921,16 @@ final class Tools {
                 Log.w(TAG, "youtube search", e);
             }
         }
+        // Without a search server: YouTube's own results page, read for the first videos.
+        try {
+            final String found = youtubeDirect(query);
+            if (!found.isEmpty()) {
+                return new Result("videos (play one with youtube_play and its link):\n" + found,
+                        s(R.string.chip_search, query));
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "youtube search: " + e);
+        }
         return youtubePlay(new JSONObject() {
             {
                 try {
@@ -777,6 +939,46 @@ final class Tools {
                 }
             }
         });
+    }
+
+    private static final java.util.regex.Pattern VIDEO = java.util.regex.Pattern.compile(
+            "\"videoRenderer\":\\{\"videoId\":\"([\\w-]{11})\".{0,900}?"
+                    + "\"title\":\\{\"runs\":\\[\\{\"text\":\"((?:[^\"\\\\]|\\\\.)*)\"",
+            java.util.regex.Pattern.DOTALL);
+
+    /** The first videos YouTube lists for the words: "title - link" lines. */
+    private static String youtubeDirect(String query) throws Exception {
+        final java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(
+                "https://www.youtube.com/results?hl=de&search_query=" + Uri.encode(query))
+                .openConnection();
+        final String page;
+        try {
+            c.setConnectTimeout(6000);
+            c.setReadTimeout(10000);
+            // The desktop page carries the results as plain JSON; the cookie skips the
+            // consent page shown in the EU.
+            c.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                    + " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36");
+            c.setRequestProperty("Accept-Language", Locale.getDefault().toLanguageTag());
+            c.setRequestProperty("Cookie", "SOCS=CAI; CONSENT=YES+cb");
+            page = LlmClient.readAll(c.getInputStream());
+        } finally {
+            c.disconnect();
+        }
+        final StringBuilder out = new StringBuilder();
+        final java.util.regex.Matcher m = VIDEO.matcher(page);
+        int n = 0;
+        while (m.find() && n < 6) {
+            String title = m.group(2);
+            try {
+                title = new JSONArray("[\"" + title + "\"]").getString(0);
+            } catch (JSONException ignored) {
+            }
+            out.append("- ").append(title).append(" - https://m.youtube.com/watch?v=")
+                    .append(m.group(1)).append('\n');
+            n++;
+        }
+        return out.toString();
     }
 
     private Result youtubePlay(JSONObject args) {
@@ -796,8 +998,17 @@ final class Tools {
                 url = "https://m.youtube.com/watch?v=" + u.getLastPathSegment();
             }
         }
-        return view(url)
-                ? new Result("opened " + url, s(R.string.chip_opened, "YouTube"))
+        // Opened for the user to see a video: it may start without a touch (also a video
+        // picked from search results in this window).
+        final boolean opened = view(url, true);
+        if (opened && url.contains("/watch") && ScreenAgent.get() != null) {
+            final ScreenAgent agent = ScreenAgent.get();
+            new Thread(agent::unmuteWebVideo, "ONFireAI-unmute").start();
+        }
+        return opened
+                ? new Result("opened " + url + (url.contains("/watch")
+                        ? "; it starts playing by itself" : ""), s(R.string.chip_opened,
+                        "YouTube"))
                 : new Result("error: no browser", null);
     }
 

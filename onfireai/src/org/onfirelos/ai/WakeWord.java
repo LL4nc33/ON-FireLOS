@@ -322,8 +322,92 @@ public class WakeWord extends Service {
         return config;
     }
 
+    /**
+     * What the microphone heard from just before the word on, handed to the sheet: who says
+     * "Hey Fire, wie spät ist es" in one breath is heard whole, without the gap it takes the
+     * sheet to come up and open the microphone itself.
+     */
+    static final class Handoff {
+        final java.util.concurrent.LinkedBlockingQueue<short[]> chunks =
+                new java.util.concurrent.LinkedBlockingQueue<>();
+        /** The room's noise before the word, as the sheet measures loudness. */
+        final float ambientDb;
+        /** How much at the start is from before the word was recognised (frames of 20 ms). */
+        final int prerollFrames;
+        final long since = android.os.SystemClock.elapsedRealtime();
+        volatile boolean claimed;
+        volatile boolean done;
+
+        Handoff(float ambientDb, int prerollFrames) {
+            this.ambientDb = ambientDb;
+            this.prerollFrames = prerollFrames;
+        }
+    }
+
+    private static volatile Handoff sHandoff;
+    private static final int PREROLL_CHUNKS = 6;     // 0.6 s before the word was recognised
+    private static final int AMBIENT_CHUNKS = 30;    // the last 3 s...
+    private static final int WORD_CHUNKS = 12;       // ...without the word itself
+
+    /** The sheet takes what was heard since the word; null when there is nothing to take. */
+    static Handoff takeHandoff() {
+        final Handoff h = sHandoff;
+        if (h == null || h.claimed || h.done) {
+            return null;
+        }
+        h.claimed = true;
+        return h;
+    }
+
+    /** The sheet has what it needs: the microphone goes back to listening for the word. */
+    static void endHandoff(Handoff h) {
+        h.done = true;
+    }
+
+    private static float db(short[] pcm, int n) {
+        double sum = 0;
+        for (int i = 0; i < n; i++) {
+            sum += (double) pcm[i] * pcm[i];
+        }
+        return (float) (20 * Math.log10(Math.sqrt(sum / Math.max(1, n)) + 1));
+    }
+
+    private java.io.InputStream openTest() {
+        final java.io.File file = new java.io.File(getFilesDir(), "wake-test.wav");
+        if (!file.exists()) {
+            return null;
+        }
+        try {
+            final java.io.InputStream in = new java.io.FileInputStream(file);
+            in.skip(44);
+            return in;
+        } catch (IOException e) {
+            return null;
+        } finally {
+            file.delete();
+        }
+    }
+
+    /** 100 ms of the test recording; 0 at its end. */
+    private static int readTest(java.io.InputStream in, short[] pcm) throws IOException {
+        final byte[] bytes = new byte[pcm.length * 2];
+        int got = 0;
+        while (got < bytes.length) {
+            final int r = in.read(bytes, got, bytes.length - got);
+            if (r < 0) {
+                break;
+            }
+            got += r;
+        }
+        for (int i = 0; i < got / 2; i++) {
+            pcm[i] = (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8));
+        }
+        return got / 2;
+    }
+
     private boolean mayListen() {
-        return !sPaused && (mCharging
+        // Paused only while ON-FireAI itself listens: while it speaks, the word interrupts it.
+        return !sPaused && !Session.listening() && (mCharging
                 || !Prefs.get(this).getBoolean(Prefs.WAKE_CHARGING_ONLY, true));
     }
 
@@ -354,10 +438,23 @@ public class WakeWord extends Service {
     private void listen(KeywordSpotter spotter, OnlineStream stream) {
         final short[] pcm = new short[RATE / 10];
         final float[] samples = new float[pcm.length];
+        final short[][] recent = new short[PREROLL_CHUNKS][];
+        final float[] levels = new float[AMBIENT_CHUNKS];
+        int count = 0;
+        java.io.InputStream test = null;
         AudioRecord record = null;
         try {
             while (mRunning) {
-                if (!mayListen()) {
+                final Handoff handoff = sHandoff;
+                if (handoff != null && !handoff.done) {
+                    final long age = android.os.SystemClock.elapsedRealtime() - handoff.since;
+                    // Not taken up (the sheet listens another way), or long enough.
+                    if ((!handoff.claimed && age > 4000) || age > 20000) {
+                        handoff.done = true;
+                    }
+                }
+                final boolean capturing = handoff != null && !handoff.done;
+                if (!capturing && !mayListen()) {
                     if (record != null) {
                         record.stop();
                         record.release();
@@ -366,6 +463,21 @@ public class WakeWord extends Service {
                     Thread.sleep(500);
                     continue;
                 }
+                // A test recording put in place by hand (root only) is heard instead of the
+                // microphone, once, the whole way: word, hand-over, question.
+                if (test == null) {
+                    test = openTest();
+                }
+                final int n;
+                if (test != null) {
+                    n = readTest(test, pcm);
+                    if (n <= 0) {
+                        test.close();
+                        test = null;
+                        continue;
+                    }
+                    Thread.sleep(100);
+                } else {
                 if (record == null) {
                     record = new AudioRecord(WhisperInput.micSource(this), RATE,
                             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
@@ -381,7 +493,7 @@ public class WakeWord extends Service {
                     record.startRecording();
                     spotter.reset(stream);
                 }
-                final int n = record.read(pcm, 0, pcm.length);
+                n = record.read(pcm, 0, pcm.length);
                 if (n <= 0) {
                     // The microphone did not start (busy elsewhere): try again in a while,
                     // a read that fails at once would keep a core busy.
@@ -390,6 +502,14 @@ public class WakeWord extends Service {
                     Thread.sleep(2000);
                     continue;
                 }
+                }
+                if (capturing) {
+                    handoff.chunks.offer(java.util.Arrays.copyOf(pcm, n));
+                    continue;
+                }
+                recent[count % PREROLL_CHUNKS] = java.util.Arrays.copyOf(pcm, n);
+                levels[count % AMBIENT_CHUNKS] = db(pcm, n);
+                count++;
                 int peak = 0;
                 for (int i = 0; i < n; i++) {
                     samples[i] = pcm[i] / 32768f;
@@ -406,6 +526,19 @@ public class WakeWord extends Service {
                     if (result != null && result.keyword != null && !result.keyword.isEmpty()) {
                         spotter.reset(stream);
                         Log.i(TAG, "wake word heard: " + result.keyword);
+                        // The room before the word: the quietest of the seconds before it.
+                        float ambient = Float.MAX_VALUE;
+                        for (int k = WORD_CHUNKS; k < Math.min(count, AMBIENT_CHUNKS); k++) {
+                            ambient = Math.min(ambient,
+                                    levels[(count - 1 - k + AMBIENT_CHUNKS) % AMBIENT_CHUNKS]);
+                        }
+                        final int pre = Math.min(count, PREROLL_CHUNKS);
+                        final Handoff h = new Handoff(ambient == Float.MAX_VALUE ? -1 : ambient,
+                                pre * 5);
+                        for (int k = pre; k >= 1; k--) {
+                            h.chunks.offer(recent[(count - k) % PREROLL_CHUNKS]);
+                        }
+                        sHandoff = h;
                         sPaused = true;
                         mMain.post(this::wake);
                     }
@@ -413,6 +546,8 @@ public class WakeWord extends Service {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            Log.w(TAG, "wake word test", e);
         } finally {
             if (record != null) {
                 record.stop();
@@ -423,7 +558,13 @@ public class WakeWord extends Service {
 
     /** The word was heard: a short sound, and the sheet comes up listening. */
     private void wake() {
+        // The pause set on hearing it ends once the sheet listens (which pauses anyway).
+        mMain.postDelayed(() -> sPaused = false, 3000);
         Chime.play();
+        if (WhisperInput.local(this)) {
+            // The model loads while the sheet comes up.
+            LocalSpeech.warmUp(this);
+        }
         startActivity(new Intent(this, AssistActivity.class)
                 .setAction(Intent.ACTION_VOICE_COMMAND)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

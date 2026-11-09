@@ -50,6 +50,23 @@ final class Prefs {
     static final String EMBED_MODEL = "embed_model";
     /** Packages the screen agent never reads, separated by commas. */
     static final String SCREEN_BLOCKED = "screen_blocked";
+    /** The voice from a server: "openai" (compatible) or "elevenlabs", and its details. */
+    static final String TTS_PROVIDER = "tts_provider";
+    static final String TTS_URL = "tts_url";
+    static final String TTS_KEY = "tts_key";
+    static final String TTS_VOICE = "tts_voice";
+    static final String TTS_MODEL = "tts_model";
+    /** Home Assistant: its address and a long-lived access token. */
+    static final String HA_URL = "ha_url";
+    static final String HA_TOKEN = "ha_token";
+    /** A news feed of one's own instead of the broadcaster for the region. */
+    static final String NEWS_URL = "news_url";
+    /** The guided first start was offered once; after that only on request. */
+    static final String SETUP_DONE = "setup_done";
+    /** When the sleep timer stops what plays (epoch ms); absent when none is set. */
+    static final String SLEEP_AT = "sleep_at";
+    /** ON-FireAI's screen was made the one shown while charging (once; changeable after). */
+    static final String AMBIENT_SET = "ambient_set";
 
     private Prefs() {
     }

@@ -70,6 +70,9 @@ final class Agent {
 
         void onChip(String chip);
 
+        /** An answer card (JSON for Cards) that a tool brought. */
+        void onCard(String card);
+
         /** A tool round finished; the model writes on. */
         void onToolRound();
 
@@ -148,16 +151,21 @@ final class Agent {
         cancel();
         final Run run = new Run();
         mRun = run;
-        final String fast = FastTrack.handle(mContext, text, mCallback);
-        if (fast != null) {
-            log(text, fast);
-            return;
+        // A routine's phrase stands for its instruction; anything else may be a quick one.
+        final String routine = Routines.match(mContext, text);
+        if (routine == null) {
+            final String fast = FastTrack.handle(mContext, text, mCallback);
+            if (fast != null) {
+                log(text, fast);
+                return;
+            }
         }
         if (!Prefs.configured(mContext)) {
             mCallback.onError(mContext.getString(R.string.not_configured), true);
             return;
         }
-        new Thread(() -> run(run, text), "ONFireAI-agent").start();
+        final String asked = routine != null ? routine : text;
+        new Thread(() -> run(run, asked), "ONFireAI-agent").start();
     }
 
     private void run(Run run, String text) {
@@ -177,11 +185,14 @@ final class Agent {
         }
         try {
             final Tools tools = new Tools(mContext);
-            final JSONArray toolDefs = Tools.available(mContext, locked);
+            final boolean unattended = text.startsWith(Routines.TIMED);
+            final JSONArray toolDefs = Tools.available(mContext, locked, unattended);
             // The tools of the user's MCP servers join the built-in ones (not at the lock
-            // screen: they may reach into the user's home and accounts).
+            // screen, nor for a routine at its time: they may reach into the user's home
+            // and accounts).
             final java.util.Map<String, Mcp.Tool> mcp = new java.util.HashMap<>();
-            for (Mcp.Tool t : locked ? new ArrayList<Mcp.Tool>() : Mcp.tools(mContext)) {
+            for (Mcp.Tool t : locked || unattended ? new ArrayList<Mcp.Tool>()
+                    : Mcp.tools(mContext)) {
                 mcp.put(t.exposedName, t);
                 toolDefs.put(t.definition);
             }
@@ -189,6 +200,8 @@ final class Agent {
             turn.add(new JSONObject().put("role", "user")
                     .put("content", contextBlock(text, locked) + text));
             int limit = MAX_ROUNDS;
+            // What was already done in this turn, by tool and arguments.
+            final java.util.Set<String> doneCalls = new java.util.HashSet<>();
             for (int round = 0; round < limit && !run.cancelled; round++) {
                 final JSONArray messages = new JSONArray();
                 messages.put(new JSONObject().put("role", "system")
@@ -217,6 +230,22 @@ final class Agent {
                     post(run, () -> mCallback.onSentence(rest));
                 }
                 answer.append(result.text);
+                // A model may answer and, in the same breath, ask for the very thing it has
+                // just used again: the answer stands, nothing is done twice or said twice.
+                boolean onlyRepeats = result.toolCalls.length() > 0;
+                for (int i = 0; i < result.toolCalls.length(); i++) {
+                    final JSONObject fn = result.toolCalls.getJSONObject(i)
+                            .optJSONObject("function");
+                    if (fn == null || !doneCalls.contains(callKey(fn))) {
+                        onlyRepeats = false;
+                    }
+                }
+                if (onlyRepeats && result.text.toString().trim().length() > 0) {
+                    Log.i(TAG, "repeated tool call after the answer: done");
+                    turn.add(new JSONObject().put("role", "assistant")
+                            .put("content", result.text.toString()));
+                    break;
+                }
                 if (result.toolCalls.length() == 0 || run.cancelled) {
                     turn.add(new JSONObject().put("role", "assistant")
                             .put("content", result.text.toString()));
@@ -234,6 +263,15 @@ final class Agent {
                     final JSONObject tc = result.toolCalls.getJSONObject(i);
                     final JSONObject fn = tc.getJSONObject("function");
                     final String toolName = fn.optString("name");
+                    if (!doneCalls.add(callKey(fn))) {
+                        // The same again: its result is above already.
+                        turn.add(new JSONObject().put("role", "tool")
+                                .put("tool_call_id", tc.optString("id"))
+                                .put("name", toolName)
+                                .put("content", "already done in this turn; its result is"
+                                        + " above. Do not call it again."));
+                        continue;
+                    }
                     final Mcp.Tool external = mcp.get(toolName);
                     final Tools.Result r;
                     if (toolName.startsWith("screen_")) {
@@ -248,6 +286,14 @@ final class Agent {
                             && !confirm(run, mContext.getString(R.string.confirm_tap,
                                     tapLabel.replace('\n', ' ')))) {
                         r = new Tools.Result(DECLINED, null);
+                    } else if (external == null && "home_control".equals(toolName)
+                            && !HomeAssistant.target(fn.optString("arguments")).free()
+                            && !confirm(run, HomeAssistant.question(mContext,
+                                    fn.optString("arguments")))) {
+                        r = new Tools.Result(DECLINED, null);
+                    } else if (external == null && "create_routine".equals(toolName)
+                            && !confirm(run, routineQuestion(fn.optString("arguments")))) {
+                        r = new Tools.Result(DECLINED, null);
                     } else if (external == null) {
                         r = tools.run(toolName, fn.optString("arguments"));
                     } else if (external.destructive && !confirm(run, mContext.getString(
@@ -260,6 +306,10 @@ final class Agent {
                     // Only the name and the size: what a tool saw on screen or in the
                     // notifications is the user's.
                     Log.i(TAG, "tool " + toolName + " -> " + r.content.length() + " chars");
+                    if (r.card != null) {
+                        final String card = r.card.toString();
+                        post(run, () -> mCallback.onCard(card));
+                    }
                     if (r.chip != null) {
                         post(run, () -> mCallback.onChip(r.chip));
                     }
@@ -317,6 +367,21 @@ final class Agent {
         }
     }
 
+    /** A tool call by name and arguments, the order of the arguments aside. */
+    private static String callKey(JSONObject fn) {
+        final java.util.TreeMap<String, String> sorted = new java.util.TreeMap<>();
+        try {
+            final JSONObject args = new JSONObject(fn.optString("arguments", "{}"));
+            for (java.util.Iterator<String> it = args.keys(); it.hasNext();) {
+                final String k = it.next();
+                sorted.put(k, String.valueOf(args.opt(k)).trim().toLowerCase(Locale.ROOT));
+            }
+        } catch (JSONException e) {
+            return fn.optString("name") + " " + fn.optString("arguments");
+        }
+        return fn.optString("name") + " " + sorted;
+    }
+
     /** "clear_shopping_list" as "Clear shopping list". */
     static String readable(String name) {
         final String s = name.replaceAll("[_-]+", " ").trim();
@@ -336,6 +401,23 @@ final class Agent {
     }
 
     /** Worker thread: waits for the user's yes or no, at most a minute. */
+    /**
+     * A routine does things later, maybe when no one is there; what it will do is said
+     * before it is kept (text from a web page or a message cannot slip one in).
+     */
+    private String routineQuestion(String arguments) {
+        JSONObject a;
+        try {
+            a = new JSONObject(arguments);
+        } catch (JSONException e) {
+            a = new JSONObject();
+        }
+        final String when = a.optString("time").trim();
+        return mContext.getString(R.string.confirm_routine, a.optString("name").trim(),
+                a.optString("instruction").trim().replaceAll("[.!?\\s]+$", "")
+                        + (when.isEmpty() ? "" : " (" + when + ")"));
+    }
+
     private boolean confirm(Run run, String question) {
         final java.util.concurrent.CountDownLatch latch =
                 new java.util.concurrent.CountDownLatch(1);
@@ -409,7 +491,13 @@ final class Agent {
                 + "- Do things with the tools instead of explaining how. After a tool, confirm"
                 + " in a few words.\n"
                 + "- For current facts you are unsure of, use web_search; for weather, weather;"
-                + " for music, play_music; for videos, youtube_search then youtube_play.\n"
+                + " for music, play_music; for radio stations, play_radio; to be woken with"
+                + " a station, set_wakeup; for rain or sea sounds, play_sounds; to stop playing"
+                + " later, sleep_timer; for the news,"
+                + " news; for videos, youtube_search then youtube_play.\n"
+                + "- Weather, timers, alarms, reminders, appointments, lists and what is playing show"
+                + " as a card on the screen: then say only the gist in one sentence, not every"
+                + " number.\n"
                 + "- If a request is unclear, ask one short question back.\n"
                 + "- Write numbers, times and units in digits (14:30, 66%, 3 km); the voice"
                 + " reads them right.\n"
@@ -421,12 +509,15 @@ final class Agent {
                 + (locked ? "- The tablet is locked and anyone nearby may be asking: you have"
                         + " no notes, notifications, apps or screen now. Answer general questions"
                         + " and use the tools you have; for anything personal or to open an app,"
-                        + " say in a few words to unlock the tablet first. Do not offer to keep"
-                        + " notes now.\n" : "")
+                        + " say in a few words to unlock the tablet first (in German: \"das"
+                        + " Tablet entsperren\"). Do not offer to keep notes now.\n" : "")
                 + (!locked && Tools.screenOn(mContext) ? "- To do something in an app: open it, then"
                         + " screen_read, act on the numbered elements and screen_read again to"
                         + " check, step by step until done. Say briefly what you do. Ask before"
                         + " sending, buying, paying or deleting.\n" : "")
+                + (HomeAssistant.configured(mContext) ? "- For lights, plugs, heating,"
+                        + " blinds and the like in the house: home_state to find the thing,"
+                        + " then home_control.\n" : "")
                 + (learn ? "- When the user tells you something worth keeping (names, wishes,"
                         + " habits), keep it with remember, without asking.\n"
                         : "- Keep notes with remember only when the user asks.\n");

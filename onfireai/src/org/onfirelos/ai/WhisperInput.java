@@ -48,9 +48,33 @@ final class WhisperInput implements Listening {
     private static final int SPEECH_FRAMES = 4;      // 80 ms above the noise to count as speech
     private static final int END_SILENCE = 40;       // 800 ms of quiet ends it
     private static final int MAX_FRAMES = 15 * 50;  // 15 s at most
+    private static final int PARTIAL_EVERY = 60;     // a live transcript every 1.2 s
+    private static final long PARTIAL_TOO_SLOW = 2500;
+    /** The chime after the wake word: 0.35 s, a little more for its echo. */
+    private static final int CHIME_FRAMES = 35;
+    /** Less than this much voice (0.3 s) before a pause is a click or an echo, not a question. */
+    private static final int MIN_VOICED = 15;
+    /** On the tablet: a pause this long (300 ms) closes a stretch to be read at once... */
+    private static final int SEGMENT_PAUSE = 15;
+    /** ...when the stretch has at least 1.5 s (enough to read it well), any quiet moment
+     *  after 4 s. */
+    private static final int SEGMENT_MIN = RATE * 2 * 3 / 2;
+    private static final int SEGMENT_MAX = RATE * 2 * 4;
+    /** Small words the model writes capitalised when a stretch begins with them. */
+    private static final java.util.Set<String> SMALL = new java.util.HashSet<>(
+            java.util.Arrays.asList("und", "oder", "aber", "wenn", "weil", "dass", "ob",
+                    "dann", "denn", "als", "wie", "was", "wo", "wann", "mit", "in", "im",
+                    "auf", "an", "am", "zu", "zum", "zur", "für", "von", "vom", "bei", "nach",
+                    "aus", "um", "über", "unter", "vor", "der", "die", "das", "den", "dem",
+                    "des", "ein", "eine", "einen", "einem", "ich", "du", "er", "es", "wir",
+                    "ihr", "mir", "mich", "dir", "dich", "uns", "noch", "auch", "nicht",
+                    "bitte", "so", "and", "or", "but", "the", "to", "of", "with"));
+    /** Whole lines Whisper learned from subtitles, said into silence. */
     private static final String[] HALLUCINATIONS = {
-        "untertitel", "copyright", "vielen dank für ihre aufmerksamkeit",
-        "thanks for watching", "thank you for watching", "amara.org", "swr 20", "zdf"
+        "untertitel im auftrag des zdf", "untertitelung im auftrag des zdf",
+        "untertitel der amara.org-community", "untertitel von stephanie geiges", "amara.org",
+        "copyright wdr", "vielen dank für ihre aufmerksamkeit", "thanks for watching",
+        "thank you for watching", "swr 2020", "swr 2021"
     };
 
     private final Context mContext;
@@ -60,6 +84,11 @@ final class WhisperInput implements Listening {
     private volatile boolean mStop;
     /** Counts the recordings; one that was cancelled finds a newer number and keeps quiet. */
     private volatile int mGeneration;
+    /** The recording whose live transcript may still show; -1 once it is being finished. */
+    private volatile int mLiveFor = -1;
+    private volatile boolean mPartialBusy;
+    /** A server too slow for a live transcript is spared it until the app restarts. */
+    private static volatile boolean sPartialSlow;
     private Thread mThread;
 
     WhisperInput(Context context, Callback callback) {
@@ -83,6 +112,22 @@ final class WhisperInput implements Listening {
         return !Prefs.string(context, Prefs.STT_URL).isEmpty();
     }
 
+    /**
+     * Whether what is said is read here on the tablet: when asked for, or by default when
+     * no server is set.
+     */
+    static boolean local(Context context) {
+        final String mode = Prefs.get(context).getString(Prefs.STT_MODE, "auto");
+        return LocalSpeech.available(context) && ("tablet".equals(mode)
+                || ("auto".equals(mode) && !configured(context)));
+    }
+
+    /** The recording (16-bit PCM) as text, from the tablet's own model or the server. */
+    private String transcribePcm(byte[] pcm) throws IOException {
+        return local(mContext) ? LocalSpeech.transcribe(mContext, pcm, 0)
+                : transcribe(wav(pcm));
+    }
+
     @Override
     public boolean start(boolean followUp) {
         if (mActive) {
@@ -90,6 +135,10 @@ final class WhisperInput implements Listening {
         }
         mActive = true;
         mStop = false;
+        if (local(mContext)) {
+            // Ready by the time the speaker pauses.
+            LocalSpeech.warmUp(mContext);
+        }
         final int generation = ++mGeneration;
         final int quietLimit = (followUp ? 5 : 8) * 50;
         mThread = new Thread(() -> listen(generation, quietLimit), "ONFireAI-whisper");
@@ -141,33 +190,75 @@ final class WhisperInput implements Listening {
     private void listen(int g, int quietLimit) {
         final int min = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT);
-        AudioRecord record;
-        try {
-            record = new AudioRecord(micSource(mContext), RATE,
-                    AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
-                    Math.max(min, RATE));
-        } catch (RuntimeException e) {
+        // A test recording put in place by hand (root only) stands in for the microphone,
+        // once: it is deleted as it is read.
+        final java.io.File testFile = new java.io.File(mContext.getFilesDir(), "test-mic.wav");
+        java.io.InputStream test = null;
+        if (testFile.exists()) {
+            try {
+                test = new java.io.FileInputStream(testFile);
+                test.skip(44);
+            } catch (IOException e) {
+                test = null;
+            }
+            testFile.delete();
+        }
+        // Called by the wake word: what it heard since goes on here, without a gap.
+        final WakeWord.Handoff handoff = test == null ? WakeWord.takeHandoff() : null;
+        final HandoffReader fromWake = handoff == null ? null : new HandoffReader(handoff);
+        // The wake word hands the microphone over within a tenth of a second; until then
+        // it is still taken, and Android lets the second recording start in name only.
+        AudioRecord record = null;
+        for (int attempt = 0; test == null && fromWake == null && attempt < 12 && current(g);
+                attempt++) {
+            try {
+                record = new AudioRecord(micSource(mContext), RATE,
+                        AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                        Math.max(min, RATE));
+                if (record.getState() == AudioRecord.STATE_INITIALIZED) {
+                    record.startRecording();
+                    if (record.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+                        break;
+                    }
+                }
+                record.release();
+            } catch (RuntimeException e) {
+                if (record != null) {
+                    record.release();
+                }
+            }
+            record = null;
+            android.os.SystemClock.sleep(120);
+        }
+        if (record == null && test == null && fromWake == null) {
             fail(g, SpeechRecognizer.ERROR_AUDIO);
             return;
         }
-        if (record.getState() != AudioRecord.STATE_INITIALIZED) {
-            record.release();
-            fail(g, SpeechRecognizer.ERROR_AUDIO);
-            return;
-        }
+        // Before the word and while the chime sounds, loudness is no sign of a question.
+        final int ignoreUntil = handoff == null ? 0 : handoff.prerollFrames + CHIME_FRAMES;
         final ByteArrayOutputStream pcm = new ByteArrayOutputStream(RATE * 2 * 6);
         final short[] frame = new short[FRAME];
         final byte[] bytes = new byte[FRAME * 2];
-        float floor = Float.MAX_VALUE;
+        // Coming from the wake word, the room was measured before it (one may be talking
+        // from the first moment on); otherwise it is learned in the first moments.
+        float floor = handoff != null && handoff.ambientDb > 0 ? handoff.ambientDb
+                : Float.MAX_VALUE;
+        final int learnFrames = handoff != null && handoff.ambientDb > 0 ? 0 : 15;
         int frames = 0;
         int loud = 0;
         int quiet = 0;
         boolean speech = false;
+        int voiced = 0;
+        int blips = 0;
+        int nextPartial = 0;
+        final Segments segments = local(mContext) ? new Segments(g) : null;
+        mLiveFor = g;
         try {
-            record.startRecording();
             post(g, mCallback::onReadyForSpeech);
             while (current(g)) {
-                final int n = record.read(frame, 0, FRAME);
+                final int n = test != null ? readTest(test, frame, bytes)
+                        : fromWake != null ? fromWake.read(frame)
+                        : record.read(frame, 0, FRAME);
                 if (n <= 0) {
                     fail(g, SpeechRecognizer.ERROR_AUDIO);
                     return;
@@ -182,17 +273,21 @@ final class WhisperInput implements Listening {
                 pcm.write(bytes, 0, n * 2);
                 final float db = (float) (20 * Math.log10(Math.sqrt(sum / n) + 1));
                 // The noise floor: the quietest stretch so far, learned in the first moments.
-                if (frames <= 15 || db < floor) {
+                if (frames <= learnFrames || db < floor) {
                     floor = Math.min(floor, db);
                 }
                 final float threshold = Math.max(floor + 12f, 38f);
                 final float level = (db - floor) / 3f - 2f;
                 post(g, () -> mCallback.onLevel(level));
-                if (db > threshold) {
+                if (db > threshold && frames > ignoreUntil) {
                     loud++;
                     quiet = 0;
-                    if (loud >= SPEECH_FRAMES) {
+                    if (speech) {
+                        voiced++;
+                    }
+                    if (loud >= SPEECH_FRAMES && !speech) {
                         speech = true;
+                        nextPartial = frames + PARTIAL_EVERY;
                     }
                 } else {
                     loud = Math.max(0, loud - 1);
@@ -201,7 +296,28 @@ final class WhisperInput implements Listening {
                     }
                 }
                 if (speech && quiet >= END_SILENCE) {
-                    break;
+                    if (voiced >= MIN_VOICED) {
+                        break;
+                    }
+                    // Only a blip (the chime's echo, a click): still waiting for the question.
+                    speech = false;
+                    voiced = 0;
+                    quiet = 0;
+                    loud = 0;
+                    blips++;
+                }
+                if (segments != null) {
+                    // The tablet reads each stretch between short pauses once, while one
+                    // goes on speaking; at the end only the last bit is left to read.
+                    final int length = pcm.size() - segments.cut;
+                    if (speech && LocalSpeech.ready() && !segments.busy()
+                            && ((quiet >= SEGMENT_PAUSE && length >= SEGMENT_MIN)
+                                    || (length >= SEGMENT_MAX && db <= threshold))) {
+                        segments.read(pcm.toByteArray());
+                    }
+                } else if (speech && frames >= nextPartial && !mPartialBusy && !sPartialSlow) {
+                    nextPartial = frames + PARTIAL_EVERY;
+                    partial(g, pcm.toByteArray());
                 }
                 if (mStop) {
                     if (!speech) {
@@ -220,22 +336,59 @@ final class WhisperInput implements Listening {
                 }
             }
         } finally {
-            try {
-                record.stop();
-            } catch (RuntimeException ignored) {
+            if (record != null) {
+                try {
+                    record.stop();
+                } catch (RuntimeException ignored) {
+                }
+                record.release();
             }
-            record.release();
+            if (test != null) {
+                try {
+                    test.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (handoff != null) {
+                WakeWord.endHandoff(handoff);
+            }
         }
+        if (mLiveFor == g) {
+            mLiveFor = -1;
+        }
+        Log.i(TAG, "recording ended after " + frames * 20 + " ms: speech " + speech
+                + ", voice " + voiced * 20 + " ms, blips " + blips + ", floor " + (int) floor
+                + " dB" + (handoff != null ? ", from the wake word" : ""));
         if (!current(g)) {
             return;
         }
         post(g, () -> mCallback.onPartial("…"));
         try {
-            final String text = clean(transcribe(wav(pcm.toByteArray())));
+            final String text;
+            if (segments != null && segments.await()) {
+                final byte[] all = pcm.toByteArray();
+                final long started = android.os.SystemClock.elapsedRealtime();
+                final String tail = all.length - segments.cut >= RATE / 5
+                        ? LocalSpeech.transcribe(mContext, all, segments.cut) : "";
+                Log.i(TAG, "speech read on the tablet: last "
+                        + (all.length - segments.cut) / 32 + " ms of speech in "
+                        + (android.os.SystemClock.elapsedRealtime() - started) + " ms");
+                text = clean(segments.join(tail));
+            } else {
+                text = clean(transcribePcm(pcm.toByteArray()));
+            }
             if (current(g)) {
                 mActive = false;
             }
-            post(g, () -> mCallback.onFinal(text));
+            Log.i(TAG, "heard " + text.length() + " characters" + (handoff != null
+                    ? " after the wake word" : ""));
+            mMain.post(() -> {
+                if (g == mGeneration) {
+                    mCallback.onFinal(text);
+                } else {
+                    Log.w(TAG, "heard text dropped: the listening was cancelled meanwhile");
+                }
+            });
         } catch (IOException e) {
             Log.w(TAG, "whisper", e);
             fail(g, e instanceof LlmClient.ServerException ? SpeechRecognizer.ERROR_SERVER
@@ -243,12 +396,194 @@ final class WhisperInput implements Listening {
         }
     }
 
+    /**
+     * The stretches of one recording read on the tablet, in order: one at a time in the
+     * background, each shown as soon as it is read.
+     */
+    private final class Segments {
+        private final int mFor;
+        private final java.util.List<String> mTexts = new java.util.ArrayList<>();
+        private Thread mThread;
+        private volatile boolean mFailed;
+        /** Where the part not yet handed on begins (bytes of PCM). */
+        int cut;
+
+        Segments(int generation) {
+            mFor = generation;
+        }
+
+        boolean busy() {
+            return mThread != null && mThread.isAlive();
+        }
+
+        void read(byte[] all) {
+            final byte[] part = java.util.Arrays.copyOfRange(all, cut, all.length);
+            cut = all.length;
+            mThread = new Thread(() -> {
+                try {
+                    final String text = LocalSpeech.transcribe(mContext, part, 0).trim();
+                    if (text.isEmpty()) {
+                        return;
+                    }
+                    synchronized (mTexts) {
+                        mTexts.add(text);
+                    }
+                    final String shown = join("");
+                    mMain.post(() -> {
+                        if (mLiveFor == mFor && current(mFor)) {
+                            mCallback.onPartial(shown);
+                        }
+                    });
+                } catch (IOException e) {
+                    mFailed = true;
+                }
+            }, "ONFireAI-asr-segment");
+            mThread.start();
+        }
+
+        /** Waits for the stretch being read; false when one could not be read. */
+        boolean await() {
+            if (mThread != null) {
+                try {
+                    mThread.join();
+                } catch (InterruptedException e) {
+                    return false;
+                }
+            }
+            return !mFailed;
+        }
+
+        /** One text: a full stop where one paused for breath is no end of the sentence. */
+        String join(String tail) {
+            final java.util.List<String> parts = new java.util.ArrayList<>();
+            synchronized (mTexts) {
+                parts.addAll(mTexts);
+            }
+            if (!tail.trim().isEmpty()) {
+                parts.add(tail.trim());
+            }
+            final StringBuilder out = new StringBuilder();
+            for (int i = 0; i < parts.size(); i++) {
+                String piece = parts.get(i);
+                if (i < parts.size() - 1) {
+                    piece = piece.replaceAll("[.,…]+$", "");
+                }
+                if (out.length() > 0 && !out.toString().matches("(?s).*[.?!]$")) {
+                    // Mid-sentence, a small word is not the start of one.
+                    final int space = piece.indexOf(' ');
+                    final String first = space < 0 ? piece : piece.substring(0, space);
+                    if (SMALL.contains(first.toLowerCase(Locale.ROOT))) {
+                        piece = first.toLowerCase(Locale.ROOT)
+                                + (space < 0 ? "" : piece.substring(space));
+                    }
+                }
+                out.append(out.length() == 0 ? "" : " ").append(piece);
+            }
+            String text = out.toString().replaceAll("[,;:]+$", "").trim();
+            if (!text.isEmpty()) {
+                text = Character.toUpperCase(text.charAt(0)) + text.substring(1);
+            }
+            return text;
+        }
+    }
+
+    /** The wake word's chunks (100 ms) as the frames of 20 ms read here. */
+    private static final class HandoffReader {
+        private final WakeWord.Handoff mHandoff;
+        private short[] mChunk;
+        private int mAt;
+
+        HandoffReader(WakeWord.Handoff handoff) {
+            mHandoff = handoff;
+        }
+
+        int read(short[] frame) {
+            int filled = 0;
+            while (filled < frame.length) {
+                if (mChunk == null || mAt >= mChunk.length) {
+                    try {
+                        mChunk = mHandoff.chunks.poll(1, java.util.concurrent.TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        mChunk = null;
+                    }
+                    mAt = 0;
+                    if (mChunk == null) {
+                        return -1;
+                    }
+                }
+                final int take = Math.min(frame.length - filled, mChunk.length - mAt);
+                System.arraycopy(mChunk, mAt, frame, filled, take);
+                mAt += take;
+                filled += take;
+            }
+            return filled;
+        }
+    }
+
+    /** One frame of the test recording at the pace of a microphone; silence after its end. */
+    private static int readTest(java.io.InputStream in, short[] frame, byte[] bytes) {
+        int got = 0;
+        try {
+            while (got < bytes.length) {
+                final int r = in.read(bytes, got, bytes.length - got);
+                if (r < 0) {
+                    break;
+                }
+                got += r;
+            }
+        } catch (IOException ignored) {
+        }
+        for (int i = 0; i < frame.length; i++) {
+            frame[i] = 2 * i + 1 < got
+                    ? (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8)) : 0;
+        }
+        android.os.SystemClock.sleep(20);
+        return frame.length;
+    }
+
+    /**
+     * The words so far, while one is still speaking: the recording up to now goes to the
+     * server on the side. One at a time; what comes back after the end is dropped.
+     */
+    private void partial(int g, byte[] pcm) {
+        mPartialBusy = true;
+        new Thread(() -> {
+            final long started = android.os.SystemClock.elapsedRealtime();
+            try {
+                final String text = clean(transcribePcm(pcm));
+                final long took = android.os.SystemClock.elapsedRealtime() - started;
+                Log.d(TAG, "live transcript: " + took + " ms for " + pcm.length / 32
+                        + " ms of speech");
+                if (took > PARTIAL_TOO_SLOW) {
+                    sPartialSlow = true;
+                }
+                if (!text.isEmpty()) {
+                    mMain.post(() -> {
+                        if (mLiveFor == g && current(g)) {
+                            mCallback.onPartial(text);
+                        }
+                    });
+                }
+            } catch (IOException e) {
+                // The final transcript reports any trouble; a live one just stays away.
+            } finally {
+                mPartialBusy = false;
+            }
+        }, "ONFireAI-whisper-live").start();
+    }
+
     /** Whisper fills silence with lines it learned from subtitles; those are not speech. */
     private static String clean(String text) {
-        final String t = text.trim();
+        // The wake word itself, heard again in the run-up, is not part of the question.
+        String t = text.trim().replaceFirst(
+                "(?i)^((hey|hei|he|hay)[\\s,.!]*)?(fire|feuer|fayer|fair|faia)\\b[\\s,.!]*", "");
+        if (!t.isEmpty()) {
+            t = Character.toUpperCase(t.charAt(0)) + t.substring(1);
+        }
         final String lower = t.toLowerCase(Locale.ROOT);
+        // Only such a line on its own: "Was läuft im ZDF?" is meant.
         for (String h : HALLUCINATIONS) {
-            if (lower.contains(h)) {
+            if (lower.contains(h) && lower.length() <= h.length() + 20) {
                 return "";
             }
         }

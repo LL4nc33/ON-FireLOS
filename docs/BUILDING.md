@@ -25,7 +25,7 @@ scripts/build-skia-stub.sh       # the two libskia stubs, not shipped as binarie
 scripts/fetch-androidx-webkit.sh # androidx.webkit 1.10.0 for the browser, checksum-verified
 scripts/fetch-exoplayer.sh       # ExoPlayer 2.19.1 and Guava for the gallery's video player
 scripts/fetch-store-apps.sh      # Droid-ify, Aurora Store, eSpeak from F-Droid, checksum-verified
-scripts/fetch-onfireai-kws.sh    # ON-FireAI's wake word: sherpa-onnx library and model, checksum-verified
+scripts/fetch-onfireai-kws.sh    # ON-FireAI's wake word and speech recognition: sherpa-onnx library and models, checksum-verified
 scripts/onfireai-into-tree.sh /root/los16   # ON-FireAI (onfireai/) as packages/apps/ONFireAI
 ```
 
@@ -154,7 +154,10 @@ ON-FireAI, the assistant, is source in this repository (`onfireai/`, see
 device's makefile adds it when it is there. Its wake word needs sherpa-onnx's
 Android library (Apache-2.0, with onnxruntime, MIT) and a keyword spotting model
 (Apache-2.0); `scripts/fetch-onfireai-kws.sh` fetches both, checked against pinned
-SHA-256, into `onfireai/jni/` and `onfireai/assets/kws/` (not in the repository).
+SHA-256, into `onfireai/jni/` and `onfireai/assets/kws/` (not in the repository). The
+same script fetches the speech recognition model, NVIDIA's
+`stt_de_fastconformer_hybrid_large_pc` (CC-BY-4.0, about 130MB), into
+`onfireai/assets/asr/` with a NOTICE naming its source and licence.
 Without them ON-FireAI builds and works, without a wake word.
 
 ## Signing keys

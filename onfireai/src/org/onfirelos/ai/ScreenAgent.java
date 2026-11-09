@@ -489,6 +489,48 @@ public class ScreenAgent extends AccessibilityService {
         return ok ? what + " done" : "error: " + what;
     }
 
+    /**
+     * A web video opened by the assistant starts muted (YouTube does so without a touch):
+     * once the page is there, one real tap on the player turns the sound on. Worker thread.
+     */
+    void unmuteWebVideo() {
+        for (int attempt = 0; attempt < 12; attempt++) {
+            SystemClock.sleep(1000);
+            final AccessibilityNodeInfo root = getRootInActiveWindow();
+            final AccessibilityNodeInfo web = root == null ? null : findWebView(root);
+            if (web == null) {
+                continue;
+            }
+            final android.graphics.Rect r = new android.graphics.Rect();
+            web.getBoundsInScreen(r);
+            if (r.width() <= 0) {
+                continue;
+            }
+            // The player sits at the top of the page, 16:9 over the full width.
+            SystemClock.sleep(2500);
+            final int x = r.centerX();
+            final int y = r.top + r.width() * 9 / 32;
+            gesture(x, y, x, y, 60);
+            return;
+        }
+    }
+
+    private static AccessibilityNodeInfo findWebView(AccessibilityNodeInfo node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.getClassName() != null && node.getClassName().toString().contains("WebView")) {
+            return node;
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            final AccessibilityNodeInfo found = findWebView(node.getChild(i));
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
     private boolean gesture(int x1, int y1, int x2, int y2, long ms) {
         final Path path = new Path();
         path.moveTo(x1, y1);

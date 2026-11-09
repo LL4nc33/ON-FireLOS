@@ -216,6 +216,15 @@ final class Page {
         second.setVisibility(TextUtils.isEmpty(summary) ? View.GONE : View.VISIBLE);
     }
 
+    private static final Object QUIET = new Object();
+
+    /** Shows a setting on a switch without acting on it. */
+    static void setQuietly(Switch sw, boolean on) {
+        sw.setTag(QUIET);
+        sw.setChecked(on);
+        sw.setTag(null);
+    }
+
     /** A row with a switch at its end. */
     Switch toggle(CharSequence title, CharSequence summary, boolean on,
             CompoundButton.OnCheckedChangeListener change) {
@@ -232,7 +241,12 @@ final class Page {
             texts.addView(second);
         }
         sw.setChecked(on);
-        sw.setOnCheckedChangeListener(change);
+        // Only the user's own change acts; showing what is set now (setQuietly) does not.
+        sw.setOnCheckedChangeListener((button, checked) -> {
+            if (button.getTag() != QUIET) {
+                change.onCheckedChanged(button, checked);
+            }
+        });
         final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.setMarginStart(dp(16));

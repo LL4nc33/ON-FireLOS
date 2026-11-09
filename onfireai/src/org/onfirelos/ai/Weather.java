@@ -46,13 +46,15 @@ final class Weather {
                 return new Tools.Result("error: place not found: " + where, null);
             }
             final int n = Math.max(1, Math.min(7, days <= 0 ? 3 : days));
+            // The card shows five days whatever the model asked for.
+            final int fetch = Math.max(n, 5);
             final JSONObject json = new JSONObject(get(String.format(Locale.ROOT,
                     "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
                             + "&current=temperature_2m,apparent_temperature,weather_code,"
-                            + "wind_speed_10m,relative_humidity_2m"
+                            + "wind_speed_10m,relative_humidity_2m,is_day"
                             + "&daily=weather_code,temperature_2m_max,temperature_2m_min,"
                             + "precipitation_probability_max,precipitation_sum,sunrise,sunset"
-                            + "&timezone=auto&forecast_days=%d", point[0], point[1], n)));
+                            + "&timezone=auto&forecast_days=%d", point[0], point[1], fetch)));
             final StringBuilder out = new StringBuilder(name).append(": ");
             final JSONObject now = json.optJSONObject("current");
             if (now != null) {
@@ -65,7 +67,7 @@ final class Weather {
             final JSONObject daily = json.optJSONObject("daily");
             if (daily != null) {
                 final JSONArray dates = daily.optJSONArray("time");
-                for (int i = 0; dates != null && i < dates.length(); i++) {
+                for (int i = 0; dates != null && i < Math.min(n, dates.length()); i++) {
                     out.append(dates.optString(i)).append(i == 0 ? " (today)" : i == 1
                             ? " (tomorrow)" : "").append(": ")
                             .append(describe(daily.optJSONArray("weather_code").optInt(i)))
@@ -85,9 +87,36 @@ final class Weather {
                     out.append('\n');
                 }
             }
-            return new Tools.Result(out.toString(), context.getString(R.string.chip_weather, name));
+            return new Tools.Result(out.toString(), context.getString(R.string.chip_weather, name),
+                    card(name, now, daily));
         } catch (Exception e) {
             return new Tools.Result("error: weather unavailable (" + e.getMessage() + ")", null);
+        }
+    }
+
+    /** The answer card: now large, then the next days with their symbols. */
+    private static JSONObject card(String place, JSONObject now, JSONObject daily) {
+        try {
+            final JSONObject card = new JSONObject().put("type", "weather").put("place", place);
+            if (now != null) {
+                card.put("now", round(now.optDouble("temperature_2m")))
+                        .put("feels", round(now.optDouble("apparent_temperature")))
+                        .put("code", now.optInt("weather_code"))
+                        .put("day", now.optInt("is_day", 1) == 1);
+            }
+            final JSONArray days = new JSONArray();
+            final JSONArray dates = daily == null ? null : daily.optJSONArray("time");
+            for (int i = 0; dates != null && i < Math.min(5, dates.length()); i++) {
+                days.put(new JSONObject().put("date", dates.optString(i))
+                        .put("code", daily.optJSONArray("weather_code").optInt(i))
+                        .put("max", round(daily.optJSONArray("temperature_2m_max").optDouble(i)))
+                        .put("min", round(daily.optJSONArray("temperature_2m_min").optDouble(i)))
+                        .put("rain", daily.optJSONArray("precipitation_probability_max")
+                                .optInt(i)));
+            }
+            return card.put("days", days);
+        } catch (org.json.JSONException e) {
+            return null;
         }
     }
 

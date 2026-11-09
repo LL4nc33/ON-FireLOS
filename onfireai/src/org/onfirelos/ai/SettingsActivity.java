@@ -53,7 +53,17 @@ public class SettingsActivity extends Activity {
     private TextView mSttModel;
     private TextView mMemory;
     private Switch mAssistant;
+    private TextView mVoiceProvider;
+    private TextView mVoiceUrl;
+    private TextView mVoiceKey;
+    private TextView mVoiceName;
+    private TextView mVoiceModel;
+    private Switch mVoiceSystem;
+    private TextView mHaUrl;
+    private TextView mHaToken;
+    private TextView mHaTest;
     private Page.Status mStatus;
+    private android.widget.Button mSetup;
     /** Counts the checks, so an old answer does not overwrite a newer one. */
     private int mCheck;
 
@@ -69,6 +79,10 @@ public class SettingsActivity extends Activity {
         tryIt.setOnClickListener(v -> startActivity(new Intent(this, AssistActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
         mStatus.actions.addView(tryIt);
+        mSetup = new android.widget.Button(this, null, 0, R.style.Pill);
+        mSetup.setText(R.string.setup);
+        mSetup.setOnClickListener(v -> startActivity(new Intent(this, SetupActivity.class)));
+        mStatus.actions.addView(mSetup);
 
         mPage.section(R.string.section_model);
         mUrl = mPage.row(getString(R.string.pref_url), "", true, v -> editUrl());
@@ -86,6 +100,30 @@ public class SettingsActivity extends Activity {
                 (b, on) -> Prefs.put(this, Prefs.LISTEN_NOW, on));
         mPage.row(getString(R.string.pref_tts), getString(R.string.pref_tts_summary), false,
                 v -> startActivity(new Intent("com.android.settings.TTS_SETTINGS")));
+
+        mPage.section(R.string.section_own_voice);
+        mVoiceProvider = mPage.row(getString(R.string.pref_voice_provider), "", true,
+                v -> pickVoiceProvider());
+        mVoiceUrl = mPage.row(getString(R.string.pref_voice_url), "", true, v -> ask(
+                R.string.pref_voice_url, getString(R.string.pref_voice_url_help),
+                Prefs.string(this, Prefs.TTS_URL),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI,
+                text -> voiceSet(Prefs.TTS_URL, text)));
+        mVoiceKey = mPage.row(getString(R.string.pref_key), "", true, v -> ask(
+                R.string.pref_key, null, Prefs.string(this, Prefs.TTS_KEY),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                text -> voiceSet(Prefs.TTS_KEY, text)));
+        mVoiceName = mPage.row(getString(R.string.pref_voice_name), "", true, v -> ask(
+                R.string.pref_voice_name, getString(R.string.pref_voice_name_help),
+                Prefs.string(this, Prefs.TTS_VOICE), InputType.TYPE_CLASS_TEXT,
+                text -> voiceSet(Prefs.TTS_VOICE, text)));
+        mVoiceModel = mPage.row(getString(R.string.pref_voice_model), "", true, v -> ask(
+                R.string.pref_voice_model, null, Prefs.string(this, Prefs.TTS_MODEL),
+                InputType.TYPE_CLASS_TEXT, text -> voiceSet(Prefs.TTS_MODEL, text)));
+        mVoiceSystem = mPage.toggle(getString(R.string.pref_voice_system),
+                getString(R.string.pref_voice_system_summary), isSystemVoice(this),
+                (b, on) -> setSystemVoice(on));
+        mPage.row(getString(R.string.pref_voice_try), "", false, v -> tryVoice());
 
         mPage.section(R.string.section_listen);
         mStt = mPage.row(getString(R.string.pref_stt), "", true, v -> pickStt());
@@ -141,6 +179,25 @@ public class SettingsActivity extends Activity {
                         startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
                     }
                 });
+
+        mPage.section(R.string.section_home);
+        mHaUrl = mPage.row(getString(R.string.pref_ha_url), "", true, v -> ask(
+                R.string.pref_ha_url, getString(R.string.pref_ha_url_help),
+                Prefs.string(this, Prefs.HA_URL),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, text -> {
+                    Prefs.put(this, Prefs.HA_URL, text);
+                    refresh();
+                    testHome();
+                }));
+        mHaToken = mPage.row(getString(R.string.pref_ha_token), "", true, v -> ask(
+                R.string.pref_ha_token, getString(R.string.pref_ha_token_help),
+                Prefs.string(this, Prefs.HA_TOKEN),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD, text -> {
+                    Prefs.put(this, Prefs.HA_TOKEN, text);
+                    refresh();
+                    testHome();
+                }));
+        mHaTest = mPage.row(getString(R.string.pref_ha_test), "", false, v -> testHome());
 
         mPage.section(R.string.section_tools);
         mSearch = mPage.row(getString(R.string.pref_search), "", true, v -> editSearch());
@@ -264,15 +321,18 @@ public class SettingsActivity extends Activity {
                 ? getString(R.string.status_wake, Prefs.get(this).getString(Prefs.WAKE_WORD,
                         WakeWord.PRESETS[0][0]))
                 : getString(R.string.status_no_wake);
-        if (!Prefs.configured(this)) {
+        final boolean configured = Prefs.configured(this);
+        // Not set up: the card offers the guided start instead of trying.
+        mSetup.setVisibility(configured ? android.view.View.GONE : android.view.View.VISIBLE);
+        ((android.view.View) mStatus.actions.getChildAt(0)).setVisibility(
+                configured ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (!configured) {
             mStatus.title.setText(R.string.status_setup);
             mStatus.line.setText(R.string.status_setup_line);
-            mStatus.actions.setVisibility(android.view.View.GONE);
             return;
         }
         mStatus.title.setText(R.string.status_checking);
         mStatus.line.setText(wake);
-        mStatus.actions.setVisibility(android.view.View.VISIBLE);
         final LlmClient client = client();
         new Thread(() -> {
             String title;
@@ -311,9 +371,36 @@ public class SettingsActivity extends Activity {
                 ? R.string.key_none : R.string.key_set));
         final String model = Prefs.string(this, Prefs.MODEL);
         Page.setSummary(mModel, model.isEmpty() ? getString(R.string.model_auto) : model);
+        final String haUrl = Prefs.string(this, Prefs.HA_URL);
+        Page.setSummary(mHaUrl, haUrl.isEmpty() ? getString(R.string.ha_url_empty) : haUrl);
+        Page.setSummary(mHaToken, getString(Prefs.string(this, Prefs.HA_TOKEN).isEmpty()
+                ? R.string.key_none : R.string.key_set));
+        if (!HomeAssistant.configured(this)) {
+            Page.setSummary(mHaTest, getString(R.string.ha_not_set));
+        }
+        final boolean eleven = "elevenlabs".equals(Prefs.get(this).getString(Prefs.TTS_PROVIDER,
+                "openai"));
+        Page.setSummary(mVoiceProvider, getString(eleven ? R.string.voice_elevenlabs
+                : R.string.voice_openai));
+        mVoiceUrl.setVisibility(eleven ? android.view.View.GONE : android.view.View.VISIBLE);
+        ((android.view.View) mVoiceUrl.getParent()).setVisibility(eleven ? android.view.View.GONE : android.view.View.VISIBLE);
+        final String voiceUrl = Prefs.string(this, Prefs.TTS_URL);
+        Page.setSummary(mVoiceUrl, voiceUrl.isEmpty() ? getString(R.string.voice_url_empty)
+                : voiceUrl);
+        Page.setSummary(mVoiceKey, getString(Prefs.string(this, Prefs.TTS_KEY).isEmpty()
+                ? R.string.key_none : R.string.key_set));
+        final String voiceName = Prefs.string(this, Prefs.TTS_VOICE);
+        Page.setSummary(mVoiceName, voiceName.isEmpty() ? getString(R.string.voice_name_default)
+                : voiceName);
+        final String voiceModel = Prefs.string(this, Prefs.TTS_MODEL);
+        Page.setSummary(mVoiceModel, voiceModel.isEmpty()
+                ? getString(R.string.voice_model_default) : voiceModel);
+        Page.setQuietly(mVoiceSystem, isSystemVoice(this));
         final String mode = Prefs.get(this).getString(Prefs.STT_MODE, "auto");
         Page.setSummary(mStt, getString("server".equals(mode) ? R.string.stt_server
-                : "google".equals(mode) ? R.string.stt_google : R.string.stt_auto));
+                : "google".equals(mode) ? R.string.stt_google
+                : "tablet".equals(mode) ? R.string.stt_tablet
+                : WhisperInput.local(this) ? R.string.stt_auto_tablet : R.string.stt_auto));
         final String sttUrl = Prefs.string(this, Prefs.STT_URL);
         Page.setSummary(mSttUrl, sttUrl.isEmpty() ? getString(R.string.pref_stt_url_empty)
                 : sttUrl);
@@ -337,9 +424,7 @@ public class SettingsActivity extends Activity {
                 notes) + ", " + getResources().getQuantityString(R.plurals.memory_days, days,
                 days));
         final boolean assistant = isAssistant(this);
-        if (mAssistant.isChecked() != assistant) {
-            mAssistant.setChecked(assistant);
-        }
+        Page.setQuietly(mAssistant, assistant);
     }
 
     // ---------------------------------------------------------------- the assistant
@@ -477,9 +562,14 @@ public class SettingsActivity extends Activity {
     }
 
     private void pickStt() {
-        final String[] modes = { "auto", "google", "server" };
-        final String[] names = { getString(R.string.stt_auto), getString(R.string.stt_google),
-                getString(R.string.stt_server) };
+        final boolean tablet = LocalSpeech.available(this);
+        final String[] modes = tablet ? new String[] { "auto", "tablet", "server", "google" }
+                : new String[] { "auto", "google", "server" };
+        final String[] names = tablet
+                ? new String[] { getString(R.string.stt_auto), getString(R.string.stt_tablet),
+                        getString(R.string.stt_server), getString(R.string.stt_google) }
+                : new String[] { getString(R.string.stt_auto), getString(R.string.stt_google),
+                        getString(R.string.stt_server) };
         final String current = Prefs.get(this).getString(Prefs.STT_MODE, "auto");
         int checked = 0;
         for (int i = 0; i < modes.length; i++) {
@@ -495,6 +585,83 @@ public class SettingsActivity extends Activity {
                     refresh();
                 })
                 .show();
+    }
+
+    /** Reaches Home Assistant and says how many things it knows. */
+    private void testHome() {
+        if (!HomeAssistant.configured(this)) {
+            Page.setSummary(mHaTest, getString(R.string.ha_not_set));
+            return;
+        }
+        Page.setSummary(mHaTest, getString(R.string.testing));
+        new Thread(() -> {
+            String text;
+            try {
+                text = getString(R.string.ha_ok, HomeAssistant.count(this));
+            } catch (Exception e) {
+                text = LlmClient.describe(this, e);
+            }
+            final String shown = text;
+            mMain.post(() -> Page.setSummary(mHaTest, shown));
+        }).start();
+    }
+
+    private void voiceSet(String key, String value) {
+        Prefs.put(this, key, value);
+        Session.get(this).voiceChanged();
+        refresh();
+    }
+
+    private void pickVoiceProvider() {
+        final String[] ids = { "openai", "elevenlabs" };
+        final String[] names = { getString(R.string.voice_openai),
+                getString(R.string.voice_elevenlabs) };
+        final int checked = "elevenlabs".equals(Prefs.get(this).getString(Prefs.TTS_PROVIDER,
+                "openai")) ? 1 : 0;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.pref_voice_provider)
+                .setSingleChoiceItems(names, checked, (d, which) -> {
+                    d.dismiss();
+                    voiceSet(Prefs.TTS_PROVIDER, ids[which]);
+                })
+                .show();
+    }
+
+    static boolean isSystemVoice(Context context) {
+        return context.getPackageName().equals(Settings.Secure.getString(
+                context.getContentResolver(), "tts_default_synth"));
+    }
+
+    /**
+     * The tablet's voice: ON-FireAI's for every app, or back to the one there was (Google's
+     * where it is installed). ON-FireAI may set it as a system app.
+     */
+    private void setSystemVoice(boolean on) {
+        final String before = Settings.Secure.getString(getContentResolver(),
+                "tts_default_synth");
+        if (on) {
+            if (before != null && !before.equals(getPackageName())) {
+                Prefs.put(this, "tts_before", before);
+            }
+            Settings.Secure.putString(getContentResolver(), "tts_default_synth",
+                    getPackageName());
+        } else {
+            final String back = Prefs.string(this, "tts_before");
+            Settings.Secure.putString(getContentResolver(), "tts_default_synth",
+                    back.isEmpty() ? "com.google.android.tts" : back);
+        }
+    }
+
+    /** A sentence in the voice as it is set now. */
+    private void tryVoice() {
+        final android.speech.tts.TextToSpeech[] tts = new android.speech.tts.TextToSpeech[1];
+        tts[0] = new android.speech.tts.TextToSpeech(this, status -> {
+            if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                tts[0].speak(getString(R.string.voice_sample),
+                        android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "try");
+                mMain.postDelayed(() -> tts[0].shutdown(), 20000);
+            }
+        }, ServerVoice.configured(this) ? getPackageName() : null);
     }
 
     private LlmClient client() {
@@ -525,7 +692,7 @@ public class SettingsActivity extends Activity {
             }
             final String[] list = names;
             mMain.post(() -> {
-                if (isFinishing()) {
+                if (isFinishing() || isDestroyed()) {
                     return;
                 }
                 refresh();

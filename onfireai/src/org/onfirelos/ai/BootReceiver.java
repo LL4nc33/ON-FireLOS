@@ -31,9 +31,26 @@ public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        final String action = String.valueOf(intent.getAction());
+        // Alarms do not outlast a restart or an update; the reminders do. A routine at
+        // 7:00 is meant in the time zone one is in now.
+        try {
+            Reminders.rescheduleAll(context);
+            Routines.scheduleAll(context);
+            Wakeup.scheduleAll(context);
+            Ambient.becomeDefault(context);
+        } catch (RuntimeException e) {
+            android.util.Log.w("ONFireAI", "reschedule", e);
+        }
+        if (Intent.ACTION_TIMEZONE_CHANGED.equals(action)
+                || Intent.ACTION_TIME_CHANGED.equals(action)) {
+            return;
+        }
+        if (!Intent.ACTION_BOOT_COMPLETED.equals(action)
+                && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
+            return;
+        }
         WakeWord.apply(context);
-        // Alarms do not outlast a restart or an update; the reminders do.
-        Reminders.rescheduleAll(context);
         // An update of the app takes the screen agent off Android's list; what the user
         // turned on stays on. Only then: turned off on Android's own page, it stays off.
         if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())

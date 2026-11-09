@@ -37,6 +37,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     static final int NOTE = 2;
     static final int SETUP = 3;
     static final int CONFIRM = 4;
+    /** An answer card: text holds its JSON. */
+    static final int CARD = 5;
 
     static final class Item {
         final int type;
@@ -58,6 +60,12 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     private static Session sInstance;
 
+    /** Whether ON-FireAI is listening right now (the wake word leaves the microphone to it). */
+    static boolean listening() {
+        final Session s = sInstance;
+        return s != null && s.state == State.LISTENING;
+    }
+
     static synchronized Session get(Context context) {
         if (sInstance == null) {
             sInstance = new Session(context.getApplicationContext());
@@ -67,7 +75,7 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     private final Context mContext;
     private final Agent mAgent;
-    private final Speaker mSpeaker;
+    private Speaker mSpeaker;
     private final SpeechInput mGoogle;
     private final WhisperInput mWhisper;
     private Listening mListening;
@@ -132,6 +140,21 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     /** The sheet is on screen (or not: another app came up, or it is being rebuilt). */
     void setVisible(boolean visible) {
         mVisible = visible;
+        // Shown again over the lock screen (it locked while the sheet was open): what was
+        // said while unlocked is not for whoever stands there now.
+        if (visible && !mShownLocked && Tools.locked(mContext)) {
+            if (mPendingConfirm != null) {
+                answerConfirm(false);
+            }
+            mAgent.cancel();
+            mSpeaker.stop();
+            items.clear();
+            chips.clear();
+            status = "";
+            state = State.IDLE;
+            mShownLocked = true;
+            changed(true);
+        }
         if (visible && ScreenAgent.get() != null) {
             ScreenAgent.get().hidePill();
         }
@@ -164,6 +187,32 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             case "youtube_search": text = mContext.getString(R.string.step_videos); break;
             case "recall": text = mContext.getString(R.string.step_recall); break;
             case "notifications": text = mContext.getString(R.string.step_notifications); break;
+            case "add_to_list": text = mContext.getString(R.string.step_list_add); break;
+            case "show_list": text = mContext.getString(R.string.step_list_show); break;
+            case "check_off": text = mContext.getString(R.string.step_list_check); break;
+            case "clear_list": text = mContext.getString(R.string.step_list_clear); break;
+            case "set_reminder": text = mContext.getString(R.string.step_reminder); break;
+            case "list_reminders":
+            case "cancel_reminder": text = mContext.getString(R.string.step_reminders); break;
+            case "calendar_events": text = mContext.getString(R.string.step_calendar); break;
+            case "add_event": text = mContext.getString(R.string.step_event); break;
+            case "set_timer":
+            case "timers":
+            case "timer_control": text = mContext.getString(R.string.step_timers); break;
+            case "set_alarm":
+            case "alarms":
+            case "alarm_control": text = mContext.getString(R.string.step_alarms); break;
+            case "remember": text = mContext.getString(R.string.step_remember); break;
+            case "home_state": text = mContext.getString(R.string.step_home_state); break;
+            case "play_radio": text = mContext.getString(R.string.step_radio); break;
+            case "news": text = mContext.getString(R.string.step_news); break;
+            case "home_control": text = mContext.getString(R.string.step_home_control); break;
+            case "create_routine":
+            case "list_routines":
+            case "delete_routine": text = mContext.getString(R.string.step_routine); break;
+            case "play_music":
+            case "media":
+            case "now_playing": text = mContext.getString(R.string.step_music); break;
             case "screen_read": text = mContext.getString(R.string.step_read); break;
             case "screen_tap": text = mContext.getString(R.string.step_tap, detail); break;
             case "screen_type": text = mContext.getString(R.string.step_type, detail); break;
@@ -181,6 +230,12 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             return;
         }
         pill(text);
+    }
+
+    /** The voice was changed in the settings: the next sentence uses the new one. */
+    void voiceChanged() {
+        mSpeaker.shutdown();
+        mSpeaker = new Speaker(mContext, this);
     }
 
     /** Said aloud without a question, after a soft chime (a reminder that is due). */
@@ -259,6 +314,19 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         changed(true);
     }
 
+    /**
+     * The wake word while the sheet is up: whatever it says or thinks stops, and it listens -
+     * for an answer to its question if one is open, else for something new.
+     */
+    void bargeIn() {
+        mSpeaker.stop();
+        if (mPendingConfirm == null) {
+            mAgent.cancel();
+            setState(State.IDLE);
+        }
+        startListening(mPendingConfirm != null);
+    }
+
     void micPressed() {
         switch (state) {
             case LISTENING:
@@ -284,6 +352,7 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     /** The user went to type: the microphone closes. */
     void typing() {
+        Log.i("ONFireAI", "typing: listening " + (state == State.LISTENING ? "stopped" : "not on"));
         if (state == State.LISTENING) {
             mListening.cancel();
             dropLive();
@@ -291,9 +360,28 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         }
     }
 
+    /**
+     * Whether listening can work at all: a Whisper server, or Google's recognition with
+     * Google's services there (without them it cannot connect, see docs). Without either the
+     * microphone opens only when pressed, so the sheet does not keep saying so.
+     */
+    boolean canListen() {
+        if (useWhisper()) {
+            return true;
+        }
+        try {
+            mContext.getPackageManager().getPackageInfo("com.google.android.gms", 0);
+            return true;
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    /** The tablet's own recording (to a server, or read here), rather than Android's. */
     private boolean useWhisper() {
         final String mode = Prefs.get(mContext).getString(Prefs.STT_MODE, "auto");
-        return "server".equals(mode) || ("auto".equals(mode) && WhisperInput.configured(mContext));
+        return "server".equals(mode) || WhisperInput.local(mContext)
+                || ("auto".equals(mode) && WhisperInput.configured(mContext));
     }
 
     /** The caller has made sure of the microphone permission. */
@@ -347,7 +435,16 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     }
 
     private void setup(int message) {
-        items.add(new Item(SETUP, mContext.getString(message)));
+        // The same hint once in a conversation is enough.
+        final String text = mContext.getString(message);
+        for (Item i : items) {
+            if (i.type == SETUP && i.text.equals(text)) {
+                status = "";
+                changed(false);
+                return;
+            }
+        }
+        items.add(new Item(SETUP, text));
         changed(true);
     }
 
@@ -370,6 +467,11 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         if ("…".equals(text)) {
             // The recording is on its way to the Whisper server.
             status = mContext.getString(R.string.transcribing);
+            if (mLive != null && !"…".equals(mLive.text)) {
+                // The live words stay until the final ones replace them.
+                changed(false);
+                return;
+            }
         }
         if (mLive == null) {
             mLive = new Item(USER, text);
@@ -437,7 +539,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
                     setup(R.string.stt_google_unavailable);
                     return;
                 }
-                message = R.string.stt_server_error;
+                message = WhisperInput.local(mContext) ? R.string.stt_local_error
+                        : R.string.stt_server_error;
                 break;
             default:
                 break;
@@ -480,6 +583,13 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         if (Prefs.flag(mContext, Prefs.SPEAK)) {
             mSpeaker.say(sentence);
         }
+    }
+
+    @Override
+    public void onCard(String card) {
+        // Before the words about it, which come after the tool round.
+        items.add(new Item(CARD, card));
+        changed(true);
     }
 
     @Override
@@ -624,7 +734,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             return;
         }
         if ((mVoiceTurn || mPendingConfirm != null) && (state == State.IDLE
-                || mPendingConfirm != null) && Prefs.flag(mContext, Prefs.FOLLOW_UP)) {
+                || mPendingConfirm != null) && Prefs.flag(mContext, Prefs.FOLLOW_UP)
+                && canListen()) {
             if (mUi instanceof AssistActivity && ((AssistActivity) mUi).haveMic()) {
                 startListening(true);
             }

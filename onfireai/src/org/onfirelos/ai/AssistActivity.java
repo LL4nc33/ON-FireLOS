@@ -100,10 +100,13 @@ public class AssistActivity extends Activity implements Session.Ui {
             }
             mSession.micPressed();
         });
-        mInput.setOnFocusChangeListener((v, focused) -> {
-            if (focused) {
+        // Only a finger on the field means typing. The field also gets the focus on its own
+        // when the sheet rebuilds (a heard word appearing), and that must not end listening.
+        mInput.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
                 mSession.typing();
             }
+            return false;
         });
         mInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND || (event != null
@@ -133,8 +136,17 @@ public class AssistActivity extends Activity implements Session.Ui {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        // Called again while open: listen (again).
-        if (!askShared(intent) && mSession.state != Session.State.LISTENING) {
+        // Called again while open: listen (again). The wake word cuts an answer short.
+        if (askShared(intent) || mSession.state == Session.State.LISTENING) {
+            return;
+        }
+        if (Intent.ACTION_VOICE_COMMAND.equals(intent.getAction()) && mSession.busy()
+                && haveMic()) {
+            // Called from behind another app: this comes before onStart, and listening
+            // needs the sheet seen.
+            mSession.setVisible(true);
+            mSession.bargeIn();
+        } else {
             listenOnOpen();
         }
     }
@@ -166,6 +178,13 @@ public class AssistActivity extends Activity implements Session.Ui {
 
     private void listenOnOpen() {
         if (!Prefs.configured(this)) {
+            // The very first time: straight into the guided start, unless the tablet is locked.
+            if (!Prefs.get(this).getBoolean(Prefs.SETUP_DONE, false) && !Tools.locked(this)) {
+                Prefs.put(this, Prefs.SETUP_DONE, true);
+                startActivity(new Intent(this, SetupActivity.class));
+                close();
+                return;
+            }
             if (mSession.items.isEmpty()) {
                 mSession.items.add(new Session.Item(Session.SETUP,
                         getString(R.string.not_configured)));
@@ -173,7 +192,8 @@ public class AssistActivity extends Activity implements Session.Ui {
             }
             return;
         }
-        if (Prefs.flag(this, Prefs.LISTEN_NOW) && !mSession.busy() && haveMic()) {
+        if (Prefs.flag(this, Prefs.LISTEN_NOW) && !mSession.busy() && mSession.canListen()
+                && haveMic()) {
             mSession.startListening(false);
         }
     }
@@ -181,7 +201,6 @@ public class AssistActivity extends Activity implements Session.Ui {
     @Override
     protected void onStart() {
         super.onStart();
-        WakeWord.setPaused(true);
         mSession.setVisible(true);
     }
 
@@ -252,7 +271,9 @@ public class AssistActivity extends Activity implements Session.Ui {
             rebuild();
         } else if (!mSession.items.isEmpty()) {
             final Session.Item last = mSession.items.get(mSession.items.size() - 1);
-            mLast.setText(last.text);
+            if (last.type != Session.CARD) {
+                mLast.setText(last.text);
+            }
         }
         if (mSession.chips.size() != mShownChips) {
             mChips.removeAllViews();
@@ -341,6 +362,15 @@ public class AssistActivity extends Activity implements Session.Ui {
                     mLast = answerView(item.text);
                     addConfirmButtons();
                     break;
+                case Session.CARD: {
+                    final View card = Cards.build(this, item.text);
+                    if (card != null) {
+                        mMessages.addView(card);
+                    }
+                    // Not a text to grow: the next change rebuilds.
+                    mLast = null;
+                    break;
+                }
                 default:
                     mLast = answerView(item.text);
             }
@@ -462,10 +492,12 @@ public class AssistActivity extends Activity implements Session.Ui {
     private void addSetupButton() {
         final Button setup = new Button(this, null, 0, R.style.Pill);
         setup.setText(R.string.setup);
-        setup.setOnClickListener(v -> {
-            startActivity(new Intent(this, SettingsActivity.class));
+        // Not set up yet: the guided first start; else the settings.
+        setup.setOnClickListener(v -> unlockThen(() -> {
+            startActivity(new Intent(this, Prefs.configured(this) ? SettingsActivity.class
+                    : SetupActivity.class));
             close();
-        });
+        }));
         final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(12);

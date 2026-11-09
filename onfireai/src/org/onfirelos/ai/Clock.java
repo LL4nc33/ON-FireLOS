@@ -62,12 +62,39 @@ final class Clock {
         if (out.getString("error") != null) {
             return new Tools.Result("error: " + out.getString("error"), null);
         }
-        return new Tools.Result(describeTimers(out), context.getString(R.string.chip_timers));
+        return new Tools.Result(describeTimers(out), context.getString(R.string.chip_timers),
+                timersCard(out));
     }
 
     static Tools.Result timer(Context context, JSONObject args) {
-        final String id = args.optString("id", "all");
+        String id = args.optString("id", "").trim();
         final String action = args.optString("action");
+        // By its name ("the pasta timer"), or the only one there is; all only when said.
+        if (id.isEmpty() || !id.matches("\\d+|all")) {
+            final String name = (args.optString("label", "") + " "
+                    + (id.matches("\\d+|all") ? "" : id)).trim().toLowerCase(Locale.ROOT);
+            final ArrayList<Bundle> list = call(context, "timers", null, "")
+                    .getParcelableArrayList("timers");
+            if (list == null || list.isEmpty()) {
+                return new Tools.Result("error: no timers", null);
+            }
+            Bundle match = null;
+            int matches = 0;
+            for (Bundle t : list) {
+                final String label = String.valueOf(t.getString("label", ""))
+                        .toLowerCase(Locale.ROOT);
+                if (name.isEmpty() ? list.size() == 1
+                        : !label.isEmpty() && (label.contains(name) || name.contains(label))) {
+                    match = t;
+                    matches++;
+                }
+            }
+            if (matches != 1) {
+                return new Tools.Result("error: which timer? " + describeTimers(
+                        call(context, "timers", null, "")), null);
+            }
+            id = String.valueOf(match.getInt("id"));
+        }
         final Bundle out = call(context, "timer", id.isEmpty() ? "all" : id, action);
         if (out.getString("error") != null) {
             return new Tools.Result("error: " + out.getString("error"), null);
@@ -79,7 +106,60 @@ final class Clock {
             case "add_minute": chip = R.string.chip_timer_minute; break;
             default: chip = R.string.chip_timer_stopped;
         }
-        return new Tools.Result("done; now:\n" + describeTimers(out), context.getString(chip));
+        return new Tools.Result("done; now:\n" + describeTimers(out), context.getString(chip),
+                timersCard(out));
+    }
+
+    private static JSONObject timersCard(Bundle out) {
+        final ArrayList<Bundle> list = out.getParcelableArrayList("timers");
+        try {
+            final org.json.JSONArray a = new org.json.JSONArray();
+            for (int i = 0; list != null && i < list.size(); i++) {
+                final Bundle t = list.get(i);
+                a.put(new JSONObject().put("label", t.getString("label", ""))
+                        .put("state", t.getString("state"))
+                        .put("remaining", t.getLong("remaining"))
+                        .put("end", System.currentTimeMillis() + t.getLong("remaining"))
+                        .put("length", t.getLong("length")));
+            }
+            return a.length() == 0 ? null : new JSONObject().put("type", "timers")
+                    .put("timers", a);
+        } catch (org.json.JSONException e) {
+            return null;
+        }
+    }
+
+    private static JSONObject alarmsCard(Bundle out) {
+        final ArrayList<Bundle> list = out.getParcelableArrayList("alarms");
+        try {
+            final org.json.JSONArray a = new org.json.JSONArray();
+            for (int i = 0; list != null && i < list.size(); i++) {
+                final Bundle b = list.get(i);
+                final org.json.JSONArray days = new org.json.JSONArray();
+                final ArrayList<Integer> d = b.getIntegerArrayList("days");
+                for (int k = 0; d != null && k < d.size(); k++) {
+                    days.put(d.get(k));
+                }
+                a.put(new JSONObject().put("hour", b.getInt("hour"))
+                        .put("minute", b.getInt("minute")).put("on", b.getBoolean("on"))
+                        .put("label", b.getString("label", "")).put("days", days));
+            }
+            return a.length() == 0 ? null : new JSONObject().put("type", "alarms")
+                    .put("alarms", a);
+        } catch (org.json.JSONException e) {
+            return null;
+        }
+    }
+
+    /** The clock's timers as it reports them (off the main thread). */
+    static java.util.List<Bundle> timerList(Context context) {
+        final ArrayList<Bundle> list = call(context, "timers", null, "")
+                .getParcelableArrayList("timers");
+        return list == null ? new ArrayList<>() : list;
+    }
+
+    static String clockText(long ms) {
+        return clock(ms);
     }
 
     private static String describeTimers(Bundle out) {
@@ -118,7 +198,8 @@ final class Clock {
         if (out.getString("error") != null) {
             return new Tools.Result("error: " + out.getString("error"), null);
         }
-        return new Tools.Result(describeAlarms(out), context.getString(R.string.chip_alarms));
+        return new Tools.Result(describeAlarms(out), context.getString(R.string.chip_alarms),
+                alarmsCard(out));
     }
 
     static Tools.Result alarm(Context context, JSONObject args) {
@@ -131,7 +212,8 @@ final class Clock {
         }
         final int chip = "delete".equals(action) ? R.string.chip_alarm_deleted
                 : "on".equals(action) ? R.string.chip_alarm_on : R.string.chip_alarm_off;
-        return new Tools.Result("done; now:\n" + describeAlarms(out), context.getString(chip));
+        return new Tools.Result("done; now:\n" + describeAlarms(out), context.getString(chip),
+                alarmsCard(out));
     }
 
     private static String describeAlarms(Bundle out) {

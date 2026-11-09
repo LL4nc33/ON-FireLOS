@@ -122,6 +122,9 @@ final class FastTrack {
             // Let the model deal with it, it can explain.
             return null;
         }
+        if (result.card != null) {
+            callback.onCard(result.card.toString());
+        }
         if (result.chip != null) {
             callback.onChip(result.chip);
         }

@@ -14,4 +14,9 @@
     <color name="glow_green">#5E8A3A</color>
     <color name="glow_light">#B5CF6B</color>
     <color name="glow_ember">#F0A64A</color>
+    <!-- Weather symbols on the answer cards. -->
+    <color name="weather_sun">#F0A64A</color>
+    <color name="weather_cloud">#9AA393</color>
+    <color name="weather_rain">#5B8DB8</color>
+    <color name="weather_moon">#7C8AA0</color>
 </resources>

@@ -50,6 +50,9 @@ final class Speaker {
 
     Speaker(Context context, Callback callback) {
         mCallback = callback;
+        // With a voice server set, ON-FireAI speaks with it (its own engine falls back to the
+        // tablet's voice by itself); else with the tablet's voice.
+        final String engine = ServerVoice.configured(context) ? context.getPackageName() : null;
         mTts = new TextToSpeech(context.getApplicationContext(), status -> mMain.post(() -> {
             mReady = status == TextToSpeech.SUCCESS;
             mFailed = !mReady;
@@ -86,7 +89,7 @@ final class Speaker {
                 say(text);
             }
             checkDone();
-        }));
+        }), engine);
     }
 
     /** Main thread. A new answer begins. */

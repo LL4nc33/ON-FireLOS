@@ -9,6 +9,22 @@ ROM: addresses and keys are typed in on the tablet and stay there.
 Source: `onfireai/` (a system app, `org.onfirelos.ai`), placed into the build
 tree by `scripts/onfireai-into-tree.sh`.
 
+## The first start
+
+Opened without a server, ON-FireAI goes straight into a short guided setup
+(once; later through *Einrichten* in the sheet or the settings):
+
+1. a welcome: what it is, and that the thinking happens on your own server
+2. the language model: it looks for OpenAI-compatible servers on the usual
+   ports of the home network (11434 Ollama, 1234 LM Studio, 8080 llama.cpp,
+   8000, 5001) and lists them with their model; tap one, or type an address
+   and, if needed, a key. *Verbinden* checks the server at once and goes on
+   only when it answers. The search takes about 25s on my device.
+3. listening: the Whisper server (optional; without it you write) and the
+   wake word, when the build has it
+
+*Fertig* opens the sheet for a first question.
+
 ## Starting it
 
 - the wake word, "Hey Fire" (when turned on, see below)
@@ -27,11 +43,18 @@ tree by `scripts/onfireai-into-tree.sh`.
 
 The sheet comes up over the lock screen too (the wake word on a charging tablet
 is the common case). Anyone in the room may be asking then, so ON-FireAI answers
-general questions and uses timer, alarm, media, volume, light/dark, weather and
-the like, but keeps everything personal out until the tablet is unlocked: no
-notes, no notifications, no earlier conversation (on screen or for the model),
-no operating the screen, no opening apps, no MCP servers. Asked for those, it
-says to unlock first; the settings button asks to unlock, too.
+general questions and uses timer, media, volume, light/dark, weather and the
+like, but keeps everything personal out until the tablet is unlocked: no notes,
+no notifications, no earlier conversation (on screen or for the model), no
+calendar, no alarms, no operating the screen, no opening apps, no MCP servers.
+Asked for those, it says to unlock first; the settings button asks to unlock, too.
+
+- Lists: "put milk on the list" works, but the list itself does not show.
+- Smart home: only lights, media players, heating and fans are switched, and only
+  sensors besides those are read; doors, locks, switches and who is home stay out.
+- A reminder's notification shows only that there is one.
+- When the tablet locks while the sheet is open, the sheet clears as it comes up
+  again over the lock screen, and an answer still being given stops.
 
 ## A conversation
 
@@ -46,15 +69,31 @@ says to unlock first; the settings button asks to unlock, too.
 - A change of design (light/dark) or an app a tool opened does not cut an
   answer short: the conversation lives apart from the sheet.
 
+## Answer cards
+
+Some answers come with a card above the words, and the words then keep to the
+gist:
+
+- weather: now large with its symbol, the next five days with their highs, lows
+  and rain chances
+- timers: counting down while the sheet is open
+- alarms: their times, days and whether they are on
+- reminders and appointments: a neat list
+- what is playing: cover, title and buttons, from the player itself
+
 ## What it can do (tools)
 
 | Tool | Does |
 |---|---|
 | timer, alarm | the clock app, without opening it; timers listed with the time left, paused, resumed, a minute more, stopped, deleted; alarms listed, on, off, deleted (through a small interface ON-FireLOS gives the clock app, open only to apps signed like the system) |
+| lists | shopping (the default), to do, or any list one names: several items at once, ticked off, cleared |
+| routines | "when I say good morning, tell me the weather and my reminders": kept by voice; the phrase then runs it, an instruction the model carries out with all its tools, not a fixed list of steps; optionally on its own at a time of day on chosen weekdays. Before one is kept, it says what it will do and asks ("Routine „Guten Morgen“ anlegen: ...?"). Run at its time, with no one perhaps there, it does not operate the screen, open web pages, use MCP servers or make routines |
 | reminders | "remind me at six to ...": a notification and said aloud at the time, after a soft chime; listed and deleted by voice; they outlast a restart |
 | calendar | what is coming up (from every calendar on the tablet), new appointments; without an account they go into a calendar "Tablet" on the device, which the calendar app shows too; the next appointment within 12 hours goes with each question |
 | media, now playing | play, pause, next, previous in any player |
 | play music | by search in Spotify (or another player that can) |
+| radio | internet radio by the station's name ("play FM4"), found in the free radio-browser.info directory and played by ON-FireAI with a notification and a media session |
+| news | the headlines of the region's public broadcaster (ORF, Tagesschau, SRF, BBC by time zone and language; a feed of one's own possible), summed up |
 | volume, brightness | media volume, screen brightness |
 | light/dark | the system design |
 | Wi-Fi, Bluetooth, do not disturb | on/off |
@@ -66,6 +105,7 @@ says to unlock first; the settings button asks to unlock, too.
 | memory | keep, find and delete notes; search earlier conversations |
 | notifications | read and sum up what is new (when turned on; Android asks once for notification access) |
 | screen | operate apps (when turned on, see below) |
+| smart home | Home Assistant straight through its API (address and a long-lived token in the settings): what lights, heating, windows, sensors are like, and switching them. Lights, media players, heating and fans switch straight away; everything else (switches, scripts, scenes, doors, locks, alarm systems - a garage opener is often just a switch) asks first with the thing's own name ("Garagentor einschalten?", "Haustür aufsperren?") and does nothing at the lock screen |
 | MCP | the tools of your MCP servers |
 
 ## Operating the screen
@@ -100,7 +140,9 @@ listening.
 - It listens only while the tablet charges, unless that is turned off - it keeps
   one of the four cores about a quarter busy (measured on my device) and needs
   about 100MB of memory.
-- It pauses while ON-FireAI itself listens or speaks.
+- It pauses only while ON-FireAI itself listens. Said while ON-FireAI speaks, it
+  cuts the answer short and ON-FireAI listens (to the answer of its own question,
+  if one is open).
 - The model knows English sounds; English-sounding words of two or three
   syllables work best. A word of one's own is split into the model's pieces on
   the tablet.
@@ -120,17 +162,47 @@ built-in ones. As the MCP spec has it, a tool asks before it runs unless the ser
 marks it read-only or not destructive. A server that does not answer is left alone
 for 2 minutes, so it does not slow every question.
 
+## Its own voice
+
+Settings > System > ON-FireAI > Own voice: a voice from a server of one's own -
+any OpenAI-compatible `/v1/audio/speech` (Kokoro, Chatterbox, Piper, LocalAI,
+OpenAI) or ElevenLabs. ON-FireAI speaks with it at once; "for the whole tablet"
+makes it the voice of every app (Android's text-to-speech engine "ON-FireAI
+voice"). When the server cannot be reached, the voice there was before speaks
+instead, so nothing falls silent.
+
+Google's voice on this tablet has no German offline voice (its download needs
+Google's services); it speaks German with its network voice, so only online
+(checked on my device 2026-11-09).
+
 ## Listening
 
-- **Whisper server** (recommended): the tablet records, notices the pause at the end
+- **On the tablet** (the default without a server): NVIDIA's German FastConformer
+  (`stt_de_fastconformer_hybrid_large_pc`, CC-BY-4.0, 115M parameters, int8, about
+  130MB in the app) through sherpa-onnx. Nothing leaves the tablet.
+  - Measured on my device: a 4s sentence in about 1s, with punctuation and capitals; 4
+    other models compared (Canary 180M, Parakeet v3, a multilingual FastConformer,
+    Kroko streaming) were slower, worse in German or not freely licensed.
+  - While you speak, each stretch up to a short pause (300ms, at least 1.5s of speech)
+    is read at once and shows in the bubble; at the end only the last bit is left, so
+    the text is there about 0.5s after you stop.
+  - The model loads in about 4.5s when listening starts (on the wake word already) and
+    is let go 5 minutes after the last use (about 200MB of memory meanwhile).
+- **Whisper server**: the tablet records, notices the pause at the end
   and sends what was said to an OpenAI-compatible `/v1/audio/transcriptions`
   (faster-whisper-server, whisper.cpp with `--inference-path
   /v1/audio/transcriptions`, LocalAI, OpenAI). Works without any of Google's
   software.
+- **Live transcript with a server**: while you speak, what was said so far goes to
+  the server every 1.2s (one request at a time) and the words show in the bubble as
+  they come; the final transcript replaces them. A server that takes more than
+  2.5s for it (Whisper on a CPU) is left alone: then only the final one.
 - **Android's recognition**: Google's speech services, where they are installed. On
   this tablet without Google's services their network recognition cannot connect
-  and their offline pack cannot be downloaded (checked 2026-11-08), so they only
-  give the voice, not the ears.
+  and their offline pack cannot be downloaded (checked 2026-11-08: error 13,
+  LANGUAGE_PACK_ERROR), so they only give the voice, not the ears.
+- Settings > Listening: automatic (a Whisper server when one is set, else the
+  tablet), on the tablet, Whisper server, Android's.
 
 ## Memory
 
@@ -167,4 +239,5 @@ meaning), MCP servers.
 
 ## Not yet
 
-- Talking over an answer to interrupt it (the microphone button does it now).
+- Talking over an answer without the wake word (the wake word or the
+  microphone button do it).

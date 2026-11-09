@@ -142,15 +142,77 @@
             android:name=".WakeWord"
             android:exported="false" />
 
-        <!-- Makes it the assistant on first start, when none is chosen. -->
+        <!-- The first start, in three steps. -->
+        <activity
+            android:name=".SetupActivity"
+            android:excludeFromRecents="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Page"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- ON-FireAI's voice: a text-to-speech engine for the tablet, from a server. -->
+        <service
+            android:name=".ServerVoice"
+            android:exported="true"
+            android:label="@string/voice_engine">
+            <intent-filter>
+                <action android:name="android.intent.action.TTS_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.speech.tts"
+                android:resource="@xml/tts_engine" />
+        </service>
+
+        <!-- Internet radio, with a media session like any player. -->
+        <service
+            android:name=".Radio"
+            android:exported="false" />
+
+        <!-- The screen on the charger: time, weather, next appointment, timers, music. -->
+        <service
+            android:name=".Ambient"
+            android:exported="true"
+            android:label="@string/ambient_name"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- Sounds to fall asleep to, made on the tablet; and the sleep timer. -->
+        <service
+            android:name=".Sounds"
+            android:exported="false" />
+
+        <!-- Waking up with a station or the alarm sound, and its window. -->
+        <service
+            android:name=".Wakeup"
+            android:exported="false" />
+        <activity
+            android:name=".WakeupActivity"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.Page" />
+
         <receiver
             android:name=".ReminderReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".RoutineReceiver"
+            android:exported="false" />
+
+        <!-- Makes it the assistant on first start, when none is chosen; puts alarms back. -->
         <receiver android:name=".BootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
             </intent-filter>
         </receiver>
     </application>

@@ -132,7 +132,18 @@ final class LlmClient {
         if (mBase.equals(sAutoModelFor) && sAutoModel != null) {
             return sAutoModel;
         }
-        final JSONArray models = models();
+        JSONArray models = null;
+        for (int attempt = 1; models == null; attempt++) {
+            try {
+                models = models();
+            } catch (IOException e) {
+                if (!unreachable(e) || mCancelled || attempt == 3) {
+                    throw e;
+                }
+                // Wi-Fi waking up, as in send().
+                android.os.SystemClock.sleep(900L * attempt);
+            }
+        }
         final String first = models.length() > 0 ? models.optJSONObject(0).optString("id") : "";
         sAutoModelFor = mBase;
         sAutoModel = first;
@@ -171,15 +182,8 @@ final class LlmClient {
         } catch (JSONException e) {
             throw new IOException(e.getMessage());
         }
-        final HttpURLConnection c = open(endpoint(mBase, "/chat/completions"), "POST");
-        mConnection = c;
+        final HttpURLConnection c = send(endpoint(mBase, "/chat/completions"), body.toString());
         try {
-            c.setDoOutput(true);
-            c.setRequestProperty("Content-Type", "application/json");
-            c.setRequestProperty("Accept", "text/event-stream");
-            try (OutputStream out = c.getOutputStream()) {
-                out.write(body.toString().getBytes(StandardCharsets.UTF_8));
-            }
             final InputStream in = check(c);
             final Result result = new Result();
             final ThinkFilter filter = new ThinkFilter(listener, result.text);
@@ -299,6 +303,45 @@ final class LlmClient {
     /** A string field; JSON null and a missing field are both empty (optString gives "null"). */
     private static String text(JSONObject o, String key) {
         return o.isNull(key) ? "" : o.optString(key, "");
+    }
+
+    /** The network was not there (yet). */
+    private static boolean unreachable(IOException e) {
+        return e instanceof java.net.ConnectException
+                || e instanceof java.net.NoRouteToHostException
+                || e instanceof java.net.UnknownHostException;
+    }
+
+    /**
+     * Opens the request and sends the body. The tablet's Wi-Fi may doze between questions and
+     * take a moment to wake (measured on my device: the first request after a pause failed to
+     * connect while others on the network reached the server), so it tries again twice.
+     */
+    private HttpURLConnection send(String address, String body) throws IOException {
+        IOException last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            final HttpURLConnection c = open(address, "POST");
+            mConnection = c;
+            try {
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "application/json");
+                c.setRequestProperty("Accept", "text/event-stream");
+                try (OutputStream out = c.getOutputStream()) {
+                    out.write(body.getBytes(StandardCharsets.UTF_8));
+                }
+                return c;
+            } catch (IOException e) {
+                c.disconnect();
+                if (!unreachable(e) || mCancelled) {
+                    throw e;
+                }
+                last = e;
+                if (attempt < 2) {
+                    android.os.SystemClock.sleep(700L * (attempt + 1));
+                }
+            }
+        }
+        throw last;
     }
 
     private HttpURLConnection open(String address, String method) throws IOException {
