@@ -122,8 +122,10 @@ final class Skills {
         if (skills.isEmpty()) {
             return "";
         }
-        final StringBuilder out = new StringBuilder("- Skills: before a task of one of these"
-                + " kinds, load its instructions with use_skill and follow them:\n");
+        // Said plainly: a model left to judge skips them for anything that looks small.
+        final StringBuilder out = new StringBuilder("- Skills: when a request fits one of"
+                + " these, your first step is use_skill with its name (it is quick), then you"
+                + " follow its instructions - also for a short request:\n");
         int n = 0;
         for (Skill s : skills.values()) {
             if (n++ == MAX_LISTED) {

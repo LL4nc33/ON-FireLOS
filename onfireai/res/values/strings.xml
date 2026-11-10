@@ -81,6 +81,7 @@
     <string name="chip_dark_off">Light mode</string>
     <string name="chip_opened">%1$s opened</string>
     <string name="chip_skill">Skill learned</string>
+    <string name="not_finished">I did not quite get that done. Shall I go on?</string>
     <string name="chip_playing">Playing: %1$s</string>
     <string name="chip_paused">Paused</string>
     <string name="chip_next">Next track</string>

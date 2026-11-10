@@ -11660,10 +11660,10 @@ index 887d286..8d7374f 100644
  </menu>
 diff --git a/app/src/main/res/raw/browser_control.js b/app/src/main/res/raw/browser_control.js
 new file mode 100644
-index 0000000..ec00758
+index 0000000..6ec9458
 --- /dev/null
 +++ b/app/src/main/res/raw/browser_control.js
-@@ -0,0 +1,892 @@
+@@ -0,0 +1,902 @@
 +// ON-FireLOS: the page side of the assistant's browser control
 +// (control/Commands.java, protocol in browser-bridge-spec.md).
 +//
@@ -11939,7 +11939,17 @@ index 0000000..ec00758
 +    if (s && kind !== 'field' && kind !== 'textarea' && kind !== 'password'
 +        && kind !== 'select' && ln !== 'input') {
 +      var shown = clean(textIn(el));
-+      if (shown && sIndexOf(sLower(s), sLower(shown)) < 0) s = s + ' (' + shown + ')';
++      if (shown && sIndexOf(sLower(s), sLower(shown)) < 0) {
++        // Long shown text: its start and its end, where a banner's button word sits
++        // ("Die meisten … Installieren"), within the label's 80 characters.
++        var room = 76 - s.length;
++        if (shown.length > room) {
++          var half = ((room - 3) / 2) | 0;
++          shown = half > 6 ? sSlice(shown, 0, half) + ' … ' + sSlice(shown, shown.length - half)
++              : sSlice(shown, shown.length - (room > 8 ? room : 8));
++        }
++        s = s + ' (' + shown + ')';
++      }
 +    }
 +    if (!s && el.labels && el.labels.length) s = clean(textIn(el.labels[0]));
 +    // The text of a field, a text area or a list is its content, not its name.

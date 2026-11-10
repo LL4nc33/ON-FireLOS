@@ -160,7 +160,11 @@ can use (it checks the caller's signature). "Such auf willhaben ein Rad unter
 
 - Tabs: list, bring to the front, close; open a page or a search in a visible
   tab, or for looking something up in an invisible one, while the user does
-  something else (only reading there, never acting).
+  something else (only reading there: clicking, typing and choosing in it are
+  refused, so what acts on a page happens where the user sees it).
+- At the end of its steps the model gets no more tools and is told so: it
+  answers with what it has and says what is still open; a tool call it writes
+  out as text anyway is never shown or said.
 - Reading: title, address, the page's main text (reader mode where it works),
   and every control numbered - links, buttons, fields with their label and
   value, lists with their options, boxes - also those off screen. Where a

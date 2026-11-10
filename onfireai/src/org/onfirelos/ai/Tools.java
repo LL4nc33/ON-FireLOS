@@ -1318,6 +1318,13 @@ final class Tools {
 
     private Result browserAct(JSONObject args) throws JSONException {
         final String action = args.optString("action");
+        // The invisible tab is for looking things up only: what acts on a page happens where
+        // the user can see it.
+        if ("bg".equals(args.optString("tab")) && !"scroll".equals(action)
+                && !"find".equals(action)) {
+            return new Result("error: the invisible tab is only for reading. To act on this"
+                    + " page, open it visibly with browser_open (background = false).", null);
+        }
         final JSONObject r;
         switch (action) {
             case "back":

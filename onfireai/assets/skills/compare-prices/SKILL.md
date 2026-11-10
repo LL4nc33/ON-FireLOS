@@ -6,10 +6,15 @@ description: Find and compare prices for a product, new or used (requests like "
 # Comparing prices
 
 1. Pin down the product: model, size, new or used. If it is unclear, ask one question.
-2. New goods: look on a price comparison site for the country (in Austria geizhals.at,
-   in Germany idealo.de) with browser_open background = true and browser_read.
-   Used goods: the marketplace the user names, or willhaben.at (Austria) /
-   kleinanzeigen.de (Germany).
+2. Open the search results directly by their address, in the background (browser_open
+   background = true), then browser_read what = text - no typing, no clicking, no forms:
+   - new, Austria: https://geizhals.at/?fs=WORDS
+   - new, Germany: https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=WORDS
+   - used, Austria: https://www.willhaben.at/iad/kaufen-und-verkaufen/marktplatz?keyword=WORDS
+   - used, Germany: https://www.kleinanzeigen.de/s-WORDS/k0
+   (WORDS with + between them, e.g. fire+hd+10). If the user names another site, use it.
+   A cookie notice in the text: ignore it and read on; never click it away in the
+   background.
 3. Note the 3 best offers: price, shop or seller, condition, shipping, how far away for
    pick-up.
 4. Answer in 2 or 3 sentences: the cheapest sensible offer, and the one you would

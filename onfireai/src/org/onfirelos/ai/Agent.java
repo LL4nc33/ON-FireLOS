@@ -60,6 +60,9 @@ final class Agent {
     private static final java.util.regex.Pattern LOGIN = java.util.regex.Pattern.compile(
             "(?i)(anmeld|einlogg|log ?in|sign ?in|registrier|register|sign ?up|konto erstell)");
     private static final int MAX_HISTORY = 24;
+    /** The start of a tool call some models write as text when they have no tools. */
+    private static final java.util.regex.Pattern TOOL_MARKUP = java.util.regex.Pattern.compile(
+            "<tool_call>|<function=|\\{\\s*\"name\"\\s*:\\s*\"[a-z_]+\"\\s*,\\s*\"arguments\"");
     /** What the model hears when the user said no: plain enough that it cannot claim success. */
     private static final String DECLINED = "NOT DONE. The user said no, so nothing was done and"
             + " nothing changed. Tell the user in a few words that you left it as it is. Do not"
@@ -221,17 +224,43 @@ final class Agent {
                 for (JSONObject m : turn) {
                     messages.put(m);
                 }
+                final boolean last = round == limit - 1;
+                if (last) {
+                    // No tools in the last round: said so, or the model writes its next tool
+                    // call out as text, and that would be shown and read aloud.
+                    messages.put(new JSONObject().put("role", "system").put("content",
+                            "No more tools now. Answer the user from what you found so far,"
+                                    + " in a few sentences; if the task is not finished, say"
+                                    + " what you have and what is still open."));
+                }
                 final Sentences sentences = new Sentences();
+                final boolean[] markup = {false};
+                final StringBuilder seen = new StringBuilder();
                 final LlmClient.Result result = client.chat(messages,
-                        round < limit - 1 ? toolDefs : null, piece -> {
+                        last ? null : toolDefs, piece -> {
+                            seen.append(piece);
+                            // A tool call written out as text is never shown nor said.
+                            if (markup[0] || TOOL_MARKUP.matcher(seen).find()) {
+                                markup[0] = true;
+                                return;
+                            }
                             post(run, () -> mCallback.onText(piece));
                             for (String s : sentences.add(piece)) {
                                 post(run, () -> mCallback.onSentence(s));
                             }
                         });
                 final String rest = sentences.rest();
-                if (!rest.isEmpty()) {
+                if (!rest.isEmpty() && !markup[0]) {
                     post(run, () -> mCallback.onSentence(rest));
+                }
+                if (markup[0]) {
+                    Log.w(TAG, "tool call written as text: dropped");
+                    final String note = mContext.getString(R.string.not_finished);
+                    post(run, () -> mCallback.onText(note));
+                    post(run, () -> mCallback.onSentence(note));
+                    answer.append(note);
+                    turn.add(new JSONObject().put("role", "assistant").put("content", note));
+                    break;
                 }
                 answer.append(result.text);
                 // A model may answer and, in the same breath, ask for the very thing it has
