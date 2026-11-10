@@ -554,6 +554,7 @@ final class Agent {
                         + " screen_read, act on the numbered elements and screen_read again to"
                         + " check, step by step until done. Say briefly what you do. Ask before"
                         + " sending, buying, paying or deleting.\n" : "")
+                + Skills.promptBlock(mContext)
                 + (HomeAssistant.configured(mContext) ? "- For lights, plugs, heating,"
                         + " blinds and the like in the house: home_state to find the thing,"
                         + " then home_control.\n" : "")

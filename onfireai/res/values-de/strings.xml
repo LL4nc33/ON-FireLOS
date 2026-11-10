@@ -75,6 +75,7 @@
     <string name="chip_dark_on">Dunkelmodus</string>
     <string name="chip_dark_off">Hellmodus</string>
     <string name="chip_opened">%1$s geöffnet</string>
+    <string name="chip_skill">Fähigkeit gelernt</string>
     <string name="chip_playing">Spielt: %1$s</string>
     <string name="chip_paused">Pausiert</string>
     <string name="chip_next">Nächster Titel</string>

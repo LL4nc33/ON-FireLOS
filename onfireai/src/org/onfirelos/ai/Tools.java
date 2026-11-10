@@ -95,7 +95,7 @@ final class Tools {
             "delete_routine", "alarms", "alarm_control", "wakeups", "delete_wakeup",
             "notifications", "screen_read", "screen_tap", "screen_type", "screen_scroll",
             "screen_key", "browser_tabs", "browser_open", "browser_read", "browser_act",
-            "browser_media"));
+            "browser_media", "save_skill"));
 
     /** Whether the lock screen is up: then ON-FireAI answers, but keeps the personal out. */
     static boolean locked(Context context) {
@@ -110,7 +110,7 @@ final class Tools {
                     "screen_read", "screen_tap", "screen_type",
                     "screen_scroll", "screen_key", "create_routine", "delete_routine",
                     "browser_tabs", "browser_open", "browser_read", "browser_act",
-                    "browser_media"));
+                    "browser_media", "save_skill"));
 
     /**
      * The tools the model may use now: all of them, or without the personal ones at the lock
@@ -344,6 +344,20 @@ final class Tools {
                         props().put("key", enumeration("which",
                                 "back", "home", "recents", "notifications")), "key"));
             }
+            tools.put(tool("use_skill", "Load a skill's instructions (the skills are listed in"
+                            + " the system prompt) before a task of its kind, then follow them;"
+                            + " with file: read one of the files the skill brings.",
+                    props().put("name", string("The skill's name"))
+                            .put("file", string("Optional: a file of the skill")), "name"));
+            tools.put(tool("save_skill", "Keep a new skill when the user teaches you how to do"
+                            + " a kind of task (\"merk dir, wie du ...\", \"lern das\"). Only"
+                            + " when asked.",
+                    props().put("name", string("Short name, a few words"))
+                            .put("description", string("One line: what kind of task it is"
+                                    + " for, with example requests"))
+                            .put("instructions", string("Steps for yourself, as the user"
+                                    + " explained them, using your tools")),
+                    "name", "description", "instructions"));
             if (Browser.available(context)) {
                 tools.put(tool("browser_tabs", "The browser's tabs: list them, bring one to"
                                 + " the front, or close one.",
@@ -502,6 +516,11 @@ final class Tools {
                 case "screen_scroll": return screen(a -> a.scroll(args.optInt("n", -1),
                         !"up".equals(args.optString("direction"))));
                 case "screen_key": return screen(a -> a.global(args.optString("key")));
+                case "use_skill": return new Result(Skills.use(mContext,
+                        args.optString("name"), args.optString("file")), null);
+                case "save_skill": return new Result(Skills.save(mContext,
+                        args.optString("name"), args.optString("description"),
+                        args.optString("instructions")), s(R.string.chip_skill));
                 case "browser_tabs": return browser(() -> browserTabs(args));
                 case "browser_open": return browser(() -> browserOpen(args));
                 case "browser_read": return browser(() -> browserRead(args));

@@ -132,6 +132,25 @@ gist:
 | smart home | Home Assistant straight through its API (address and a long-lived token in the settings): what lights, heating, windows, sensors are like, and switching them. Lights, media players, heating and fans switch straight away; everything else (switches, scripts, scenes, doors, locks, alarm systems - a garage opener is often just a switch) asks first with the thing's own name ("Garagentor einschalten?", "Haustür aufsperren?") and does nothing at the lock screen |
 | MCP | the tools of your MCP servers |
 
+## Skills
+
+Know-how for a kind of task, in the format of Anthropic's Agent Skills: a
+folder with a `SKILL.md`, a name and a one-line description at the top, the
+instructions below. The model sees only the names and descriptions and loads a
+skill's instructions (`use_skill`) when a task fits, so many skills keep the
+prompt short; a skill may bring more files it reads the same way.
+
+- Built in: `web-research` (several sources, compared, with where it came
+  from), `fill-form` (asks what is missing, never sends without a yes, never
+  passwords), `cooking` (step by step, a timer with a name for every step with
+  a time), `compare-prices` (geizhals/idealo new, willhaben/kleinanzeigen used).
+- One's own: `ON-FireAI/skills/<name>/SKILL.md` on the tablet's storage, over
+  USB or a file manager; one of the same name wins over a built-in one.
+- Taught by voice: "merk dir, wie du ..." - ON-FireAI writes the steps as a
+  skill of its own (`save_skill`).
+- Skills use the tools ON-FireAI has; they add know-how, not new rights. A
+  skill reads only its own files.
+
 ## Working in the browser
 
 ON-FireLOS's browser lets ON-FireAI work on web pages from the inside, not as
