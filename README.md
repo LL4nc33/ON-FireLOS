@@ -18,10 +18,7 @@ later.
 - **No Amazon:** no apps, no lock screen ads
 - **System updates** built in with what's new and a version history, tested on my device
 - **Fast:** boots in 25s, 1GB compressed RAM
-- Game controllers, edge swipes, battery protection
-- **ON-FireAI**, a built-in assistant with your own AI server: "Hey Fire"
-  recognised offline, even over its own music; timers, reminders, radio, smart
-  home; works in apps and in the browser ([more](docs/ONFIREAI.md))
+- Game controllers, edge swipes, battery protection, an optional [assistant](docs/ONFIREAI.md)
 
 <details>
 <summary>What was tuned under the hood</summary>
