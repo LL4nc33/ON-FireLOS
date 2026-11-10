@@ -70,6 +70,19 @@ Asked for those, it says to unlock first; the settings button asks to unlock, to
   the next alarm, what is playing, notes about you.
 - The answer is shown as it is written and spoken sentence by sentence, so the
   first sentence plays while the model still writes.
+- What the voice reads is the written answer the way one says it: "7°C" is "7
+  Grad" (not "Grad Celsius" each time), "15,50 €" is "15 Euro 50", a bracket is a
+  pause, "Mo–Sa" is "Montag bis Samstag", "-3" is "minus 3", "km/h", "ca.",
+  "z. B." and the like in full, "09:00" without its nought. The screen keeps the
+  written form.
+- A short falling sound when the microphone closes, so one hears that it no
+  longer listens (Settings: listening sounds).
+- A follow-up nobody may have meant is left alone: after an answer that asked
+  nothing, a few words that are no request (a word from the TV, from the room)
+  do not get a "what do you mean?". While music, a video or the radio plays there
+  is no follow-up at all; then the wake word.
+- Place and day carry over within the conversation: "und in Berlin?", "und
+  morgen?", "brauche ich einen Schirm?" after a weather answer.
 - After an answer the microphone stays open a few seconds for a follow-up, and the
   conversation keeps its thread for 30 minutes ("and the day after?").
 - Short commands go without the model, in well under a second: pause, go on,
@@ -84,6 +97,56 @@ Asked for those, it says to unlock first; the settings button asks to unlock, to
   and sounds turn themselves down.
 - A video or station ON-FireAI starts waits until its short answer ("Okay, hier
   ist ...") is said, so the two never play over each other (12s at the most).
+- Facts that change (results, prices, opening hours, people, numbers) are looked
+  up first, every calculation goes through the calculator tool; only what never
+  changes (explanations, meanings) comes from the model itself.
+- Before anything that loses something or cuts it off, it asks: an alarm off or
+  deleted, a list emptied, a wake-up, routine or reminder deleted, a note
+  forgotten, a skill kept, Wi-Fi off. Only a plain yes counts ("ja", "ja bitte",
+  "mach das"); "bitte lösch alles" is no answer to a question.
+
+## German and English
+
+German first, English just as well: a question in English gets its answer in
+English even on a German tablet (the language of the question decides, so a
+small model does not fall back on the language of its instructions), and the
+voice reads it the English way ("7 degrees", "15 euros 50"). Hints, tool choice
+and the search work for both.
+
+## Small models
+
+ON-FireAI is meant to work with a small model on a server of one's own too
+(measured with Qwen3-4B-Instruct, 4-bit, on 25 typical questions, 3 times each,
+2026-11-10):
+
+| | right |
+|---|---|
+| all 58 tools, as before | 44 of 75 |
+| a few tools that fit, and a hint at the question | 74 of 75 |
+
+- Each question gets the always-useful tools (looking up, calculating, weather,
+  news, opening apps, playing) and the groups its words call for (clock, music,
+  lists, calendar, device, routines, memory, browser, screen); groups used in the
+  conversation stay for the follow-ups. A tool the model names that was not
+  offered still runs if it is allowed now.
+- A hint goes with the question where small models go wrong: a calculation, a
+  fact that changes, the news, the calendar (then a tool is required before any
+  answer), "halb sieben" (6:30), "in einer Stunde" (from now, not a date), an
+  alarm to turn off (look it up first), and a few words that make no sense on
+  their own (ask, do nothing).
+- The always-useful tools come first and in the same order every time, the
+  groups after them: the server keeps the unchanged start of the prompt and reads
+  only the rest anew (measured: about 330 instead of 750ms of reading per
+  question, 95ms for a question asked before).
+- With tools the model is held steadier (temperature 0.3). A tool call it writes
+  out as text, or the context it repeats, is never shown or said: it is asked
+  once more with a tool required.
+- A call without what it requires (a time, a length, on or off) is not run on a
+  default but sent back: "ask the user". The same call twice in one answer runs
+  once (looking at a screen or page aside), and a call cut off at the length
+  limit does not run at all.
+- Measuring: `adb shell setprop log.tag.ONFireAI VERBOSE` keeps the last request
+  in the app's cache (`last-request.json`), to be played to a server again.
 
 ## Answer cards
 
@@ -109,7 +172,7 @@ gist:
 | routines | "when I say good morning, tell me the weather and my reminders": kept by voice; the phrase then runs it, an instruction the model carries out with all its tools, not a fixed list of steps; optionally on its own at a time of day on chosen weekdays. Before one is kept, it says what it will do and asks ("Routine „Guten Morgen“ anlegen: ...?"). Run at its time, with no one perhaps there, it does not operate the screen, open web pages, use MCP servers or make routines |
 | reminders | "remind me at six to ...": a notification and said aloud at the time, after a soft chime; listed and deleted by voice; they outlast a restart |
 | calendar | what is coming up (from every calendar on the tablet), new appointments; without an account they go into a calendar "Tablet" on the device, which the calendar app shows too; the next appointment within 12 hours goes with each question |
-| media, now playing | play, pause, next, previous in any player |
+| media, now playing | play, pause, next, previous in any player (the radio and a video in the browser too); forward or back by seconds ("spul 30 Sekunden vor"), from the beginning; what plays with where it is ("at 1:23 of 3:45") |
 | play music | by search in Spotify (or another player that can) |
 | radio | internet radio by the station's name ("play FM4"), found in the free radio-browser.info directory and played by ON-FireAI with a notification and a media session |
 | timers by name | several at once, each named after what it is for ("Nudeln"); "wie lange noch für die Nudeln", "stopp den Nudel-Timer" find it by its name; without a name nothing acts on all timers unless all are meant |
@@ -124,8 +187,12 @@ gist:
 | Wi-Fi, Bluetooth, do not disturb | on/off |
 | open app | by name, web apps on the home screen included |
 | open page | in its installed web app where there is one, else the browser |
-| web search | results from a SearXNG of your own to answer from, or the browser |
-| weather | Open-Meteo, here (the time zone's city) or any place, up to 7 days |
+| web search | the results (from a SearXNG of your own, else DuckDuckGo's plain page, else that page in the browser's invisible tab when DuckDuckGo turns the tablet away as a robot) and, read at the same time, what the best 4 pages say about the question: their closest sentences first, ticket sellers and social media left out. The short descriptions under results seldom hold the answer (opening hours, prices); the pages do. Dates and "heute" are taken out of the search words (they found Christmas markets instead of the cathedral). The answer is one sentence with just what was asked, and says where it is from by a name one can say: a known one (Wikipedia, Reddit, ORF, Stadt Wien ...), the page's own name when it is a name and not a title, else one from the address ("Stephansplatz Wien"); a page with no such name is not named ("Tickets 2026 / Skip-the-Line ..." is no name). Asked when something is open, it says first whether it is open right now ("Laut OFFEN.net hat der Billa am Stephansplatz heute noch offen, bis 21:00 Uhr."); more only when asked. About 1s for the results and up to 7s for the pages, measured on my device |
+| exchange rates | "100 Dollar in Euro": today's rate of the European Central Bank (through frankfurter.dev), not a guess and not a web search (a small model read 1,45 off a page) |
+| public holidays | the next ones for the tablet's country, with their proper names (date.nager.at): "Mariä Empfängnis am 8. Dezember", never one that is past |
+| pictures | "zeig mir Bilder von ...", "wie sieht ... aus": a row of photos to swipe, a tap shows one large with its source; the picture of the best matching Wikipedia article first, then Wikimedia Commons, only photos (no maps, coats of arms or video stills) and only ones named after what was asked |
+| calculate | worked out exactly on the tablet (34 digits): the four rules, powers, percent the calculator's way ("100 + 19%" is 119), roots, factorials, sin/cos/tan in degrees, ln, log; the result as a card, a tap on it (or "zeig das im Rechner") types it into the calculator app and works it out there |
+| weather | Open-Meteo, here (the time zone's city) or any place, up to 7 days; said in at most 2 sentences: now (temperature, sky), the day asked about with high and low, and only what is notable - official warnings first (GeoSphere Austria, the DWD through Bright Sky in Germany), gusts from 50 km/h, rain from 40%. That choice is made in code, not by the model: a small one read out every number ("Wind 4 km/h", "keine Warnung") |
 | memory | keep, find and delete notes; search earlier conversations |
 | notifications | read and sum up what is new (when turned on; Android asks once for notification access) |
 | screen | operate apps (when turned on, see below) |
@@ -159,9 +226,10 @@ can use (it checks the caller's signature). "Such auf willhaben ein Rad unter
 200 Euro", "lies mir den Artikel vor", "mach den zweiten Tab zu".
 
 - Tabs: list, bring to the front, close; open a page or a search in a visible
-  tab, or for looking something up in an invisible one, while the user does
-  something else (only reading there: clicking, typing and choosing in it are
-  refused, so what acts on a page happens where the user sees it).
+  tab, or in an invisible one (a browser without a window) for anything the
+  user need not watch - looking up, filling in, clicking through - while they
+  do something else; the same questions before anything sensitive, the same
+  rule for passwords.
 - At the end of its steps the model gets no more tools and is told so: it
   answers with what it has and says what is still open; a tool call it writes
   out as text anyway is never shown or said.
@@ -303,6 +371,19 @@ Google's services); it speaks German with its network voice, so only online
   LANGUAGE_PACK_ERROR), so they only give the voice, not the ears.
 - Settings > Listening: automatic (a Whisper server when one is set, else the
   tablet), on the tablet, Whisper server, Android's.
+- A pause after a word a sentence does not end on ("Stell den Wecker auf …",
+  "und", "mit", "weil") is taken for thinking: 0.8s more before the recording
+  ends. Elsewhere 0.8s of quiet ends it as before.
+- While ON-FireAI answers, the wake word listens to the microphone with its own
+  voice taken out (the same echo canceller as for music), so it does not take
+  its own words for the wake word.
+- Its own voice is never taken for yours. When the wake word is heard while
+  ON-FireAI speaks, the voice stops at once and everything recorded until it has
+  died away (0.5s after) is left out before anything is read, so its own words,
+  however misheard, never become a question. What still starts with words of its
+  answer loses them too (at least 2 in a row, allowing for mishearing).
+  Measured: before this, its answers came back as questions now and then ("Zwanzig
+  eingestuft.", and one turned an alarm off).
 
 ## Memory
 
@@ -318,12 +399,30 @@ Google's services); it speaks German with its network voice, so only online
 
 ## Settings (Settings > System > ON-FireAI)
 
+Made for whoever uses the tablet, not for one person:
+
+- About you: your name (it calls you by it now and then), your home (the weather
+  and "here" mean it; without one, the city of the time zone).
+- Reminders, wake-ups and routines: all of them on one page, each to delete with
+  a tap and a yes.
+- Skills: each one on or off with its title and what it does in your language.
+  Your own are made right there (a name, what it is for and when, the steps one
+  per line, as you would explain them to someone), changed and deleted; they
+  are kept as ordinary SKILL.md files in ON-FireAI/skills on the storage. By
+  voice too ("merk dir, wie du ..."), after a yes. A built-in skill keeps its
+  name: it can be turned off, not overwritten.
+- Sources: a search server of your own, sources the search reads first, sources
+  it never uses, and a news feed of your own instead of the public broadcaster
+  of the region.
+
+
 A card at the top says how things stand: ready (with the model's short name and
 the wake word), the server not reachable, or what is still to set up; errors read
 in words ("not reachable", "key refused"), not as Java names them.
 
 Language model (address, key, model, connection test), voice (speak answers,
-follow-ups, listen right away, the system voice), listening (Google or Whisper
+follow-ups, talking into an answer without the wake word - off unless turned on,
+as it may take its own voice for a word -, listen right away, the system voice), listening (Google or Whisper
 server, its address and model), start (default assistant), screen (operate the
 screen, blocked apps, read notifications), tools (web search address), memory
 (notes and conversations, remember on its own, keep conversations, search by

@@ -69,6 +69,12 @@ final class Lists {
         int n = 0;
         for (int i = 0; items != null && i < items.length(); i++) {
             final String text = items.optString(i).trim();
+            // A question is no thing to buy: "Was steht auf der Liste?" read as an item.
+            if (text.endsWith("?") || text.toLowerCase(java.util.Locale.ROOT).matches(
+                    "(was|wie|wer|welche\\w*|what|which|how|who)\\b.*")) {
+                return new Tools.Result("error: \"" + text + "\" is a question, not an item;"
+                        + " to read the list use show_list", null);
+            }
             if (!text.isEmpty()) {
                 store.addItem(list, text);
                 n++;

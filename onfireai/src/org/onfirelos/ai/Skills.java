@@ -116,9 +116,47 @@ final class Skills {
         return skills;
     }
 
+    static boolean enabled(Context context, String name) {
+        return !java.util.Arrays.asList(Prefs.string(context, Prefs.SKILLS_OFF).split(","))
+                .contains(name);
+    }
+
+    static void setEnabled(Context context, String name, boolean on) {
+        final java.util.Set<String> off = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+                Prefs.string(context, Prefs.SKILLS_OFF).split(",")));
+        off.remove("");
+        if (on) {
+            off.remove(name);
+        } else {
+            off.add(name);
+        }
+        Prefs.put(context, Prefs.SKILLS_OFF, String.join(",", off));
+    }
+
+    /** One's own skill, folder and all; a built-in one cannot be deleted, only turned off. */
+    static void delete(Skill s) {
+        if (s.dir == null) {
+            return;
+        }
+        final File[] files = s.dir.listFiles();
+        for (File f : files == null ? new File[0] : files) {
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+        }
+        //noinspection ResultOfMethodCallIgnored
+        s.dir.delete();
+    }
+
+    /** The skills that are on. */
+    static Map<String, Skill> active(Context context) {
+        final Map<String, Skill> skills = all(context);
+        skills.keySet().removeIf(name -> !enabled(context, name));
+        return skills;
+    }
+
     /** For the system prompt: what skills there are, one line each; "" without any. */
     static String promptBlock(Context context) {
-        final Map<String, Skill> skills = all(context);
+        final Map<String, Skill> skills = active(context);
         if (skills.isEmpty()) {
             return "";
         }
@@ -138,7 +176,7 @@ final class Skills {
 
     /** A skill's instructions, or one of the files it brings. */
     static String use(Context context, String name, String file) {
-        final Skill s = all(context).get(name.trim());
+        final Skill s = active(context).get(name.trim());
         if (s == null) {
             return "error: no skill " + name;
         }
@@ -169,10 +207,14 @@ final class Skills {
 
     /** A new skill of one's own, from what the user taught; written to the user folder. */
     static String save(Context context, String name, String description, String instructions) {
-        final String id = name.trim().toLowerCase(java.util.Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
+        final String id = id(name);
         if (id.isEmpty() || description.trim().isEmpty() || instructions.trim().isEmpty()) {
             return "error: give a name, a one-line description and the instructions";
+        }
+        // A built-in skill is not overwritten by a misheard request; it can be turned off.
+        final Skill existing = all(context).get(id);
+        if (existing != null && existing.dir == null) {
+            return "error: there is a built-in skill " + id + "; choose another name";
         }
         if (!storage(context)) {
             return "error: no access to the tablet's storage";
@@ -193,6 +235,13 @@ final class Skills {
     }
 
     // ---------------------------------------------------------------- reading
+
+    /** "Gute-Nacht-Ritual für Kinder" as "gute-nacht-ritual-fuer-kinder". */
+    static String id(String name) {
+        return name.trim().toLowerCase(java.util.Locale.ROOT).replace("ä", "ae")
+                .replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+                .replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
+    }
 
     /** Front matter between --- lines: name and description; the rest is the body. */
     private static Skill parse(String folder, String text, File dir) {

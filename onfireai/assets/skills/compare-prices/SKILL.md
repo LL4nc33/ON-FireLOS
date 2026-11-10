@@ -13,8 +13,8 @@ description: Find and compare prices for a product, new or used (requests like "
    - used, Austria: https://www.willhaben.at/iad/kaufen-und-verkaufen/marktplatz?keyword=WORDS
    - used, Germany: https://www.kleinanzeigen.de/s-WORDS/k0
    (WORDS with + between them, e.g. fire+hd+10). If the user names another site, use it.
-   A cookie notice in the text: ignore it and read on; never click it away in the
-   background.
+   A cookie notice that hides the page: choose the button that allows only what is
+   needed ("Nur notwendige", "Ablehnen", "Reject"), never "accept all".
 3. Note the 3 best offers: price, shop or seller, condition, shipping, how far away for
    pick-up.
 4. Answer in 2 or 3 sentences: the cheapest sensible offer, and the one you would

@@ -10,6 +10,21 @@ index e4796b9..6777047 100644
 +LOCAL_AAPT_FLAGS += --version-name "$(PLATFORM_VERSION) · $(ONFIRELOS_APP_VERSION)"
 +
  include $(BUILD_PACKAGE)
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 4c41199..ce2b2c4 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -40,6 +40,10 @@
+                 <category android:name="android.intent.category.LAUNCHER" />
+                 <category android:name="android.intent.category.APP_CALCULATOR" />
+             </intent-filter>
++            <intent-filter>
++                <action android:name="org.onfirelos.calculator.action.CALCULATE" />
++                <category android:name="android.intent.category.DEFAULT" />
++            </intent-filter>
+         </activity>
+ 
+         <activity
 diff --git a/res/layout/pad_numeric.xml b/res/layout/pad_numeric.xml
 index 5810984..76031d1 100644
 --- a/res/layout/pad_numeric.xml
@@ -192,3 +207,64 @@ index 2104fe3..7de301d 100644
      </style>
  
      <style name="Theme.Licenses">
+diff --git a/src/com/android/calculator2/Calculator.java b/src/com/android/calculator2/Calculator.java
+index 81ab1f6..7091a72 100644
+--- a/src/com/android/calculator2/Calculator.java
++++ b/src/com/android/calculator2/Calculator.java
+@@ -435,6 +435,56 @@ public class Calculator extends Activity
+             onInverseToggled(false);
+         }
+         restoreDisplay();
++        if (savedInstanceState == null) {
++            showHandedOver(getIntent());
++        }
++    }
++
++    /** A calculation handed over to be shown (ON-FireAI's "zeig das im Rechner"). */
++    static final String ACTION_CALCULATE = "org.onfirelos.calculator.action.CALCULATE";
++
++    @Override
++    protected void onNewIntent(Intent intent) {
++        super.onNewIntent(intent);
++        showHandedOver(intent);
++    }
++
++    /**
++     * Typed in and worked out, as if by hand: the expression comes with a point for decimals,
++     * whatever the language here.
++     */
++    private void showHandedOver(Intent intent) {
++        if (intent == null || !ACTION_CALCULATE.equals(intent.getAction())) {
++            return;
++        }
++        final String expression = intent.getStringExtra("expression");
++        setIntent(new Intent());
++        if (expression == null || expression.trim().isEmpty()) {
++            return;
++        }
++        if (mDragLayout.isOpen() && getHistoryFragment() != null) {
++            removeHistoryFragment();
++        }
++        cancelIfEvaluating(true);
++        setState(CalculatorState.INPUT);
++        mEvaluator.clearMain();
++        mUnprocessedChars = null;
++        addChars(expression.replace(",", "").replace(".", KeyMaps.translateResult(".")), false);
++        equalsWhenReady(40);
++    }
++
++    /**
++     * Worked out once the result line knows its width: right after the start it does not
++     * yet, and the evaluator refuses to begin before.
++     */
++    private void equalsWhenReady(int tries) {
++        if (mResultText.getMaxChars() > 0 || tries <= 0) {
++            if (mResultText.getMaxChars() > 0) {
++                onEquals();
++            }
++            return;
++        }
++        mResultText.postDelayed(() -> equalsWhenReady(tries - 1), 50);
+     }
+ 
+     @Override

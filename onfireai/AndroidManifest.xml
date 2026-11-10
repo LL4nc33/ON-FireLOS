@@ -118,6 +118,14 @@
             android:name=".MemoryActivity"
             android:label="@string/memory_title"
             android:theme="@style/Theme.Page" />
+        <activity
+            android:name=".ManageActivity"
+            android:label="@string/manage_title"
+            android:theme="@style/Theme.Page" />
+        <activity
+            android:name=".SkillsActivity"
+            android:label="@string/skills_title"
+            android:theme="@style/Theme.Page" />
 
         <!-- The screen agent (off until turned on in ON-FireAI's settings). -->
         <service

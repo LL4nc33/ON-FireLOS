@@ -5,7 +5,9 @@ description: Fill in a form on a web page for the user (an order, a booking, a c
 
 # Filling in a form
 
-1. browser_read the page (what = elements). Find the form's fields, what is required
+1. Work where the page is: a form the user has open, in that tab; one you opened
+   yourself, in the invisible tab (tab = bg), unless the user wants to watch.
+   browser_read the page (what = elements). Find the form's fields, what is required
    (marked with *, "Pflichtfeld", "required") and the button that sends it.
 2. Fill what you know: from the user's request and from the notes about the user in the
    context (name, address). Use browser_act type for fields, select for lists, check for
@@ -22,3 +24,4 @@ description: Fill in a form on a web page for the user (an order, a booking, a c
 Rules:
 - Card numbers, one-time codes and passwords are typed by the user, not by you.
 - If the page asks for something unusual (an ID card, a bank login), stop and ask.
+- A cookie notice in the way: only what is needed ("Nur notwendige", "Ablehnen").

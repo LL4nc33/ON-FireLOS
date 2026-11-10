@@ -30,6 +30,17 @@ final class Prefs {
     static final String MODEL = "model";
     static final String SPEAK = "speak";
     static final String FOLLOW_UP = "follow_up";
+    /** Talking into an answer stops it and is heard, without the wake word. */
+    static final String BARGE_IN = "barge_in";
+    static final String SOUNDS = "sounds";
+    /** About the user: what to call them, and where home is (for the weather, "here"). */
+    static final String USER_NAME = "user_name";
+    static final String HOME_PLACE = "home_place";
+    /** Web pages the search reads first, and pages it leaves out (addresses, by commas). */
+    static final String SITES_PREFER = "sites_prefer";
+    static final String SITES_AVOID = "sites_avoid";
+    /** Skills turned off, by name, separated by commas. */
+    static final String SKILLS_OFF = "skills_off";
     static final String LISTEN_NOW = "listen_now";
     static final String SEARCH_URL = "search_url";
     static final String LEARN = "learn";
@@ -84,6 +95,11 @@ final class Prefs {
     static boolean flag(Context context, String key) {
         // Every switch is on until the user turns it off.
         return get(context).getBoolean(key, true);
+    }
+
+    /** Talking into an answer: off until the user turns it on (it may hear its own voice). */
+    static boolean bargeIn(Context context) {
+        return get(context).getBoolean(BARGE_IN, false);
     }
 
     static void put(Context context, String key, String value) {

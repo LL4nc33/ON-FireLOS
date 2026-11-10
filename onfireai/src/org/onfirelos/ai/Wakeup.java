@@ -174,7 +174,7 @@ public class Wakeup extends Service {
 
     // ---------------------------------------------------------------- the times
 
-    private static JSONArray all(Context context) {
+    static JSONArray all(Context context) {
         try {
             return new JSONArray(Prefs.get(context).getString(KEY, "[]"));
         } catch (JSONException e) {

@@ -37,7 +37,9 @@ final class Weather {
     }
 
     static Tools.Result forTool(Context context, String place, int days) {
-        final String where = place == null || place.trim().isEmpty() ? Tools.zoneCity()
+        final String home = Prefs.string(context, Prefs.HOME_PLACE);
+        final String where = place == null || place.trim().isEmpty()
+                ? (home.isEmpty() ? Tools.zoneCity() : home)
                 : place.trim();
         try {
             final double[] point = new double[2];
@@ -51,9 +53,10 @@ final class Weather {
             final JSONObject json = new JSONObject(get(String.format(Locale.ROOT,
                     "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
                             + "&current=temperature_2m,apparent_temperature,weather_code,"
-                            + "wind_speed_10m,relative_humidity_2m,is_day"
+                            + "wind_speed_10m,wind_gusts_10m,relative_humidity_2m,is_day"
                             + "&daily=weather_code,temperature_2m_max,temperature_2m_min,"
-                            + "precipitation_probability_max,precipitation_sum,sunrise,sunset"
+                            + "precipitation_probability_max,precipitation_sum,sunrise,sunset,"
+                            + "wind_gusts_10m_max"
                             + "&timezone=auto&forecast_days=%d", point[0], point[1], fetch)));
             final StringBuilder out = new StringBuilder(name).append(": ");
             final JSONObject now = json.optJSONObject("current");
@@ -61,13 +64,15 @@ final class Weather {
                 out.append("now ").append(round(now.optDouble("temperature_2m"))).append("°C (feels ")
                         .append(round(now.optDouble("apparent_temperature"))).append("°C), ")
                         .append(describe(now.optInt("weather_code"))).append(", wind ")
-                        .append(round(now.optDouble("wind_speed_10m"))).append(" km/h, humidity ")
+                        .append(round(now.optDouble("wind_speed_10m"))).append(" km/h (gusts ")
+                        .append(round(now.optDouble("wind_gusts_10m"))).append("), humidity ")
                         .append(now.optInt("relative_humidity_2m")).append("%.\n");
             }
             final JSONObject daily = json.optJSONObject("daily");
             if (daily != null) {
                 final JSONArray dates = daily.optJSONArray("time");
-                for (int i = 0; dates != null && i < Math.min(n, dates.length()); i++) {
+                // Today and tomorrow at least: "morgen" may come with days = 1.
+                for (int i = 0; dates != null && i < Math.min(Math.max(n, 2), dates.length()); i++) {
                     out.append(dates.optString(i)).append(i == 0 ? " (today)" : i == 1
                             ? " (tomorrow)" : "").append(": ")
                             .append(describe(daily.optJSONArray("weather_code").optInt(i)))
@@ -79,7 +84,9 @@ final class Weather {
                             .append(daily.optJSONArray("precipitation_probability_max").optInt(i))
                             .append("% (")
                             .append(daily.optJSONArray("precipitation_sum").optDouble(i))
-                            .append(" mm)");
+                            .append(" mm), gusts up to ")
+                            .append(round(daily.optJSONArray("wind_gusts_10m_max").optDouble(i)))
+                            .append(" km/h");
                     final String sunset = daily.optJSONArray("sunset").optString(i, "");
                     if (i == 0 && sunset.length() >= 16) {
                         out.append(", sunset ").append(sunset.substring(11, 16));
@@ -87,6 +94,41 @@ final class Weather {
                     out.append('\n');
                 }
             }
+            // The weather services' own warnings, where there is one for the place.
+            final String warnings = Warnings.at(point[0], point[1]);
+            // What is worth saying beyond the temperatures is decided here, not by the model:
+            // a small one reads out every number it gets ("Wind 4 km/h", "no warnings").
+            final StringBuilder notable = new StringBuilder();
+            if (now != null && now.optDouble("wind_gusts_10m") >= 50) {
+                notable.append("- now: strong wind, gusts of ")
+                        .append(round(now.optDouble("wind_gusts_10m"))).append(" km/h\n");
+            }
+            for (int i = 0; daily != null && i < 2; i++) {
+                final String day = i == 0 ? "today" : "tomorrow";
+                final JSONArray gusts = daily.optJSONArray("wind_gusts_10m_max");
+                final JSONArray rain = daily.optJSONArray("precipitation_probability_max");
+                if (gusts != null && gusts.optDouble(i) >= 50) {
+                    notable.append("- ").append(day).append(": strong wind, gusts up to ")
+                            .append(round(gusts.optDouble(i))).append(" km/h\n");
+                }
+                if (rain != null && rain.optInt(i) >= 40) {
+                    notable.append("- ").append(day).append(": it will probably rain\n");
+                }
+            }
+            if (!warnings.isEmpty()) {
+                out.append("OFFICIAL WARNING (say it first):\n").append(warnings);
+            }
+            if (notable.length() > 0) {
+                out.append("ALSO WORTH SAYING (plain weather, not a warning):\n").append(notable);
+            }
+            out.append(days < 4
+                    ? "To say, in at most two short sentences, all numbers in digits: now"
+                    + " (temperature and sky) and the day asked about with its high and low,"
+                    + " plus what is listed above for that day. Nothing else: no wind, humidity or"
+                    + " rain chance unless listed, and the word warning only for an OFFICIAL"
+                    + " WARNING.\n"
+                    : "To say: the days asked about, each with sky, high and low, in a few short"
+                    + " sentences; a warning first if there is one.\n");
             return new Tools.Result(out.toString(), context.getString(R.string.chip_weather, name),
                     card(name, now, daily));
         } catch (Exception e) {

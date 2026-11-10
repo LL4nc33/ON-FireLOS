@@ -32,12 +32,19 @@ final class Chime {
     private Chime() {
     }
 
+    /** Rising: listening (the wake word heard, a reminder about to be said). */
     static void play() {
-        new Thread(Chime::render, "ONFireAI-chime").start();
+        new Thread(() -> render(new float[][] { { 1046.5f, 0.11f }, { 1568.0f, 0.24f } },
+                0.22), "ONFireAI-chime").start();
     }
 
-    private static void render() {
-        final float[][] notes = { { 1046.5f, 0.11f }, { 1568.0f, 0.24f } };
+    /** Falling and softer: the microphone is closed again. */
+    static void close() {
+        new Thread(() -> render(new float[][] { { 1318.5f, 0.07f }, { 880.0f, 0.16f } },
+                0.12), "ONFireAI-chime").start();
+    }
+
+    private static void render(float[][] notes, double loudness) {
         int total = 0;
         for (float[] n : notes) {
             total += Math.round(n[1] * RATE);
@@ -52,7 +59,7 @@ final class Chime {
                 final double fade = Math.exp(-t * 9.0);
                 final double wave = Math.sin(2 * Math.PI * n[0] * t)
                         + 0.18 * Math.sin(4 * Math.PI * n[0] * t);
-                pcm[at + i] = (short) (wave * attack * fade * 0.22 * Short.MAX_VALUE);
+                pcm[at + i] = (short) (wave * attack * fade * loudness * Short.MAX_VALUE);
             }
             at += length;
         }

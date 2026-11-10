@@ -68,6 +68,8 @@ final class Cards {
                 case "checklist": return c.checklist(card);
                 case "media": return c.media();
                 case "videos": return c.videos(card);
+                case "images": return c.images(card);
+                case "calc": return c.calc(card);
                 default: return null;
             }
         } catch (JSONException e) {
@@ -336,6 +338,25 @@ final class Cards {
         return p;
     }
 
+    // ---------------------------------------------------------------- calculations
+
+    /** The calculation small, its result large; a tap shows it in the calculator app. */
+    private View calc(JSONObject card) {
+        final String result = card.optString("result");
+        if (result.isEmpty()) {
+            return null;
+        }
+        final LinearLayout p = panel();
+        p.addView(text(card.optString("shown"), 16, R.color.on_background_quiet));
+        final TextView big = text("= " + result, 34, R.color.on_background);
+        big.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        big.setTextIsSelectable(true);
+        p.addView(big);
+        final String expression = card.optString("expression");
+        p.setOnClickListener(v -> Calc.show(mContext, expression));
+        return p;
+    }
+
     // ---------------------------------------------------------------- reminders, appointments
 
     private View list(JSONObject card) throws JSONException {
@@ -451,6 +472,58 @@ final class Cards {
         return scroll;
     }
 
+    /** Pictures side by side to swipe through; a tap shows one large with its source. */
+    private View images(JSONObject card) throws JSONException {
+        final JSONArray images = card.optJSONArray("images");
+        if (images == null || images.length() == 0) {
+            return null;
+        }
+        final android.widget.HorizontalScrollView scroll =
+                new android.widget.HorizontalScrollView(mContext);
+        scroll.setHorizontalScrollBarEnabled(false);
+        final LinearLayout strip = new LinearLayout(mContext);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        final int height = dp(180);
+        for (int i = 0; i < images.length(); i++) {
+            final JSONObject im = images.getJSONObject(i);
+            final ImageView picture = new ImageView(mContext);
+            picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            picture.setBackgroundResource(R.drawable.card_tonal);
+            picture.setClipToOutline(true);
+            picture.setContentDescription(im.optString("title"));
+            final String full = im.optString("full");
+            final String title = im.optString("title");
+            final String source = im.optString("source");
+            picture.setOnClickListener(x -> showLarge(full, title, source));
+            final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(220), height);
+            if (i > 0) {
+                lp.setMarginStart(dp(10));
+            }
+            strip.addView(picture, lp);
+            loadPicture(picture, im.optString("thumb"));
+        }
+        scroll.addView(strip);
+        final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(10);
+        scroll.setLayoutParams(lp);
+        return scroll;
+    }
+
+    private void showLarge(String url, String title, String source) {
+        final ImageView view = new ImageView(mContext);
+        view.setAdjustViewBounds(true);
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        view.setMinimumHeight(dp(240));
+        loadPicture(view, url);
+        new android.app.AlertDialog.Builder(mContext)
+                .setTitle(title)
+                .setMessage(source)
+                .setView(view)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
     /** A picture from the web, in the background; kept for the next look. */
     private static final android.util.LruCache<String, Bitmap> PICTURES =
             new android.util.LruCache<>(24);
@@ -468,11 +541,17 @@ final class Cards {
                         new java.net.URL(address).openConnection();
                 c.setConnectTimeout(5000);
                 c.setReadTimeout(8000);
+                // Wikimedia turns away pictures fetched without a name.
+                c.setRequestProperty("User-Agent", Images.AGENT);
                 final Bitmap b;
                 try (java.io.InputStream in = c.getInputStream()) {
                     b = android.graphics.BitmapFactory.decodeStream(in);
                 } finally {
                     c.disconnect();
+                }
+                if (b == null) {
+                    android.util.Log.w("ONFireAI", "picture: not an image, HTTP "
+                            + c.getResponseCode());
                 }
                 if (b != null) {
                     PICTURES.put(address, b);
@@ -482,8 +561,9 @@ final class Cards {
                         }
                     });
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
                 // No picture: the tile keeps its dark ground and still plays.
+                android.util.Log.w("ONFireAI", "picture: " + e);
             }
         }, "ONFireAI-picture").start();
     }

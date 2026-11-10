@@ -55,14 +55,21 @@ final class Agent {
             "(?i)(senden|absenden|send|kaufen|kauf|buy|bestell|order|bezahl|pay|lösch|delete|"
                     + "entfern|remove|überweis|transfer|post|veröffentlich|publish|abonn|"
                     + "subscribe|install|deinstall|uninstall|zurücksetzen|reset|download|"
-                    + "herunterlad)");
+                    + "herunterlad|buch|book|reservier|reserve|bestätig|confirm|abschick|submit|"
+                    + "anfrag|bewerb|apply|teilen|share|spende|donat|zahlungspflichtig)");
     /** On a web page, signing in is asked about too (the user types passwords anyway). */
     private static final java.util.regex.Pattern LOGIN = java.util.regex.Pattern.compile(
             "(?i)(anmeld|einlogg|log ?in|sign ?in|registrier|register|sign ?up|konto erstell)");
     private static final int MAX_HISTORY = 24;
     /** The start of a tool call some models write as text when they have no tools. */
     private static final java.util.regex.Pattern TOOL_MARKUP = java.util.regex.Pattern.compile(
-            "<tool_call>|<function=|\\{\\s*\"name\"\\s*:\\s*\"[a-z_]+\"\\s*,\\s*\"arguments\"");
+            "<tool_call>|<function=|\\[TOOL_CALLS\\]|<\\|python_tag\\|>|```tool"
+                    + "|\\{\\s*\"(name|tool|function)\"\\s*:\\s*\"[a-z_]+\"\\s*,\\s*"
+                    + "\"(arguments|parameters|args)\"|\\{\\s*\"(arguments|parameters)\"\\s*:"
+                    // A small model sometimes repeats the context it was given.
+                    + "|\\[/?context\\]");
+    /** What may be the start of such markup: held back until it is clear. */
+    private static final String MAYBE_MARKUP = "{<[`";
     /** What the model hears when the user said no: plain enough that it cannot claim success. */
     private static final String DECLINED = "NOT DONE. The user said no, so nothing was done and"
             + " nothing changed. Tell the user in a few words that you left it as it is. Do not"
@@ -176,6 +183,8 @@ final class Agent {
     }
 
     private void run(Run run, String text) {
+        LlmClient.sDumpTo = Log.isLoggable(TAG, Log.VERBOSE)
+                ? new java.io.File(mContext.getCacheDir(), "last-request.json") : null;
         final LlmClient client = new LlmClient(Prefs.string(mContext, Prefs.URL),
                 Prefs.string(mContext, Prefs.API_KEY), Prefs.string(mContext, Prefs.MODEL));
         run.client = client;
@@ -194,6 +203,23 @@ final class Agent {
             final Tools tools = new Tools(mContext);
             final boolean unattended = text.startsWith(Routines.TIMED);
             final JSONArray toolDefs = Tools.available(mContext, locked, unattended);
+            // What may run at all: what was offered may be fewer (the router's choice).
+            final java.util.Set<String> allowed = names(toolDefs);
+            // Tools used in this conversation keep their group at hand for a follow-up.
+            final java.util.Set<String> used = new java.util.HashSet<>();
+            synchronized (sHistory) {
+                for (JSONObject m : history) {
+                    final JSONArray calls = m.optJSONArray("tool_calls");
+                    for (int i = 0; calls != null && i < calls.length(); i++) {
+                        final JSONObject f = calls.optJSONObject(i) == null ? null
+                                : calls.optJSONObject(i).optJSONObject("function");
+                        if (f != null) {
+                            used.add(f.optString("name"));
+                        }
+                    }
+                }
+            }
+            final JSONArray mcpDefs = new JSONArray();
             // The tools of the user's MCP servers join the built-in ones (not at the lock
             // screen, nor for a routine at its time: they may reach into the user's home
             // and accounts).
@@ -201,7 +227,7 @@ final class Agent {
             for (Mcp.Tool t : locked || unattended ? new ArrayList<Mcp.Tool>()
                     : Mcp.tools(mContext)) {
                 mcp.put(t.exposedName, t);
-                toolDefs.put(t.definition);
+                mcpDefs.put(t.definition);
             }
             final List<JSONObject> turn = new ArrayList<>();
             turn.add(new JSONObject().put("role", "user")
@@ -209,7 +235,16 @@ final class Agent {
             int limit = MAX_ROUNDS;
             // What was already done in this turn, by tool and arguments.
             final java.util.Set<String> doneCalls = new java.util.HashSet<>();
+            // A tool call written out as text, or the context repeated: once more, with a
+            // tool required.
+            boolean retried = false;
+            boolean retry = false;
+            final boolean needsTool = Router.needsTool(text);
             for (int round = 0; round < limit && !run.cancelled; round++) {
+                final JSONArray offered = Router.tools(toolDefs, text, used);
+                for (int i = 0; i < mcpDefs.length(); i++) {
+                    offered.put(mcpDefs.get(i));
+                }
                 final JSONArray messages = new JSONArray();
                 messages.put(new JSONObject().put("role", "system")
                         .put("content", systemPrompt(locked)));
@@ -236,22 +271,48 @@ final class Agent {
                 final Sentences sentences = new Sentences();
                 final boolean[] markup = {false};
                 final StringBuilder seen = new StringBuilder();
+                // Held back while the start may still turn out to be markup.
+                final StringBuilder held = new StringBuilder();
+                final boolean require = !last && offered.length() > 0
+                        && ((round == 0 && needsTool) || retry);
+                retry = false;
                 final LlmClient.Result result = client.chat(messages,
-                        last ? null : toolDefs, piece -> {
+                        last ? null : offered, require, piece -> {
                             seen.append(piece);
                             // A tool call written out as text is never shown nor said.
                             if (markup[0] || TOOL_MARKUP.matcher(seen).find()) {
                                 markup[0] = true;
                                 return;
                             }
-                            post(run, () -> mCallback.onText(piece));
-                            for (String s : sentences.add(piece)) {
+                            final String start = seen.toString().trim();
+                            if (start.length() < 40 && !start.isEmpty()
+                                    && MAYBE_MARKUP.indexOf(start.charAt(0)) >= 0) {
+                                held.append(piece);
+                                return;
+                            }
+                            final String out = held.append(piece).toString();
+                            held.setLength(0);
+                            post(run, () -> mCallback.onText(out));
+                            for (String s : sentences.add(out)) {
                                 post(run, () -> mCallback.onSentence(s));
                             }
                         });
+                if (!markup[0] && held.length() > 0) {
+                    final String out = held.toString();
+                    post(run, () -> mCallback.onText(out));
+                    for (String s : sentences.add(out)) {
+                        post(run, () -> mCallback.onSentence(s));
+                    }
+                }
                 final String rest = sentences.rest();
                 if (!rest.isEmpty() && !markup[0]) {
                     post(run, () -> mCallback.onSentence(rest));
+                }
+                if (markup[0] && !retried && !last && offered.length() > 0) {
+                    Log.w(TAG, "tool call written as text: asked again");
+                    retried = true;
+                    retry = true;
+                    continue;
                 }
                 if (markup[0]) {
                     Log.w(TAG, "tool call written as text: dropped");
@@ -280,6 +341,15 @@ final class Agent {
                             .put("content", result.text.toString()));
                     break;
                 }
+                if (result.toolCalls.length() > 0 && "length".equals(result.finishReason)) {
+                    Log.w(TAG, "tool call cut off at the length limit: not run");
+                    final String note = mContext.getString(R.string.not_finished);
+                    post(run, () -> mCallback.onText(note));
+                    post(run, () -> mCallback.onSentence(note));
+                    answer.append(note);
+                    turn.add(new JSONObject().put("role", "assistant").put("content", note));
+                    break;
+                }
                 if (result.toolCalls.length() == 0 || run.cancelled) {
                     turn.add(new JSONObject().put("role", "assistant")
                             .put("content", result.text.toString()));
@@ -295,9 +365,23 @@ final class Agent {
                         break;
                     }
                     final JSONObject tc = result.toolCalls.getJSONObject(i);
-                    final JSONObject fn = tc.getJSONObject("function");
+                    final JSONObject fn = tc.optJSONObject("function") != null
+                            ? tc.getJSONObject("function") : new JSONObject();
                     final String toolName = fn.optString("name");
-                    if (REPEAT_FREE.contains(toolName) && !doneCalls.add(callKey(fn))) {
+                    used.add(toolName);
+                    if (!allowed.contains(toolName) && !mcp.containsKey(toolName)) {
+                        // Made up, or not for now (locked, or a routine at its time).
+                        turn.add(new JSONObject().put("role", "tool")
+                                .put("tool_call_id", tc.optString("id"))
+                                .put("name", toolName)
+                                .put("content", "error: there is no tool " + toolName
+                                        + " now. The tools are: " + String.join(", ",
+                                        names(offered))));
+                        continue;
+                    }
+                    // Anything but looking at a changing screen or page is meant once: a
+                    // small model repeating set_timer would start the timer twice.
+                    if (!REPEATABLE.contains(toolName) && !doneCalls.add(callKey(fn))) {
                         // The same again: its result is above already.
                         turn.add(new JSONObject().put("role", "tool")
                                 .put("tool_call_id", tc.optString("id"))
@@ -329,8 +413,16 @@ final class Agent {
                             && !confirm(run, HomeAssistant.question(mContext,
                                     fn.optString("arguments")))) {
                         r = new Tools.Result(DECLINED, null);
+                    } else if (external == null && "alarm_control".equals(toolName)
+                            && !"on".equals(argument(fn.optString("arguments"), "action"))
+                            && !confirm(run, alarmQuestion(fn.optString("arguments")))) {
+                        r = new Tools.Result(DECLINED, null);
                     } else if (external == null && "create_routine".equals(toolName)
                             && !confirm(run, routineQuestion(fn.optString("arguments")))) {
+                        r = new Tools.Result(DECLINED, null);
+                    } else if (external == null && riskQuestion(toolName, fn.optString("arguments"))
+                            != null && !confirm(run, riskQuestion(toolName,
+                            fn.optString("arguments")))) {
                         r = new Tools.Result(DECLINED, null);
                     } else if (external == null) {
                         r = tools.run(toolName, fn.optString("arguments"));
@@ -365,6 +457,14 @@ final class Agent {
             // brings a fresh one.
             turn.set(0, new JSONObject().put("role", "user").put("content", text));
             synchronized (sHistory) {
+                for (JSONObject m : turn) {
+                    // A page or a screen read is kept short: the next questions need the
+                    // gist, a small model chokes on the rest.
+                    final String content = m.optString("content");
+                    if ("tool".equals(m.optString("role")) && content.length() > 1500) {
+                        m.put("content", content.substring(0, 1500) + " …");
+                    }
+                }
                 history.addAll(turn);
                 trim(history);
                 sLastActive = System.currentTimeMillis();
@@ -426,12 +526,72 @@ final class Agent {
         }
     }
 
+    /** Meant again with the same arguments: the screen, the page and playback move on. */
+    private static final java.util.Set<String> REPEATABLE = new java.util.HashSet<>(
+            java.util.Arrays.asList("screen_read", "screen_tap", "screen_type",
+                    "screen_scroll", "screen_key", "browser_read", "browser_act",
+                    "browser_tabs", "browser_media", "media", "set_volume", "now_playing"));
+
+    /** The names of tool definitions. */
+    private static java.util.Set<String> names(JSONArray defs) {
+        final java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        for (int i = 0; i < defs.length(); i++) {
+            final JSONObject t = defs.optJSONObject(i);
+            final JSONObject fn = t == null ? null : t.optJSONObject("function");
+            if (fn != null) {
+                out.add(fn.optString("name"));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The question before a step that loses something or cuts ON-FireAI off, or null. A
+     * misheard word must not empty a list or switch the network off on its own.
+     */
+    private String riskQuestion(String tool, String arguments) {
+        JSONObject a;
+        try {
+            a = new JSONObject(arguments == null || arguments.isEmpty() ? "{}" : arguments);
+        } catch (JSONException e) {
+            a = new JSONObject();
+        }
+        switch (tool) {
+            case "clear_list":
+                return a.optBoolean("all")
+                        ? mContext.getString(R.string.confirm_clear_list_all,
+                                a.optString("list", "").trim())
+                        : mContext.getString(R.string.confirm_clear_list_done,
+                                a.optString("list", "").trim());
+            case "delete_wakeup":
+                return mContext.getString(a.optInt("id", -1) < 0
+                        ? R.string.confirm_delete_wakeups : R.string.confirm_delete_wakeup);
+            case "delete_routine":
+                return mContext.getString(R.string.confirm_delete_routine,
+                        a.optString("name").trim());
+            case "cancel_reminder":
+                return mContext.getString(R.string.confirm_cancel_reminder);
+            case "forget":
+                return mContext.getString(R.string.confirm_forget);
+            case "save_skill":
+                return mContext.getString(R.string.confirm_save_skill,
+                        a.optString("name").trim());
+            case "set_wifi":
+                return a.has("on") && !a.optBoolean("on", true)
+                        ? mContext.getString(R.string.confirm_wifi_off) : null;
+            default:
+                return null;
+        }
+    }
+
     /**
      * Tools that only look something up: asked the same twice in one turn, the answer is
      * the same. Anything that acts or looks at a changing screen may well be meant twice.
      */
     private static final java.util.Set<String> REPEAT_FREE = new java.util.HashSet<>(
-            java.util.Arrays.asList("weather", "news", "web_search", "youtube_search",
+            java.util.Arrays.asList("weather", "news", "web_search", "calculate", "convert_currency",
+                    "show_images",
+                    "holidays", "youtube_search",
                     "calendar_events", "recall", "wakeups", "alarms", "list_reminders",
                     "show_list", "list_routines", "home_state", "notifications", "fetch_page"));
 
@@ -473,6 +633,29 @@ final class Agent {
      * A routine does things later, maybe when no one is there; what it will do is said
      * before it is kept (text from a web page or a message cannot slip one in).
      */
+    /** "Soll ich den Wecker um 07:30 ausschalten?": which one, so a yes means that one. */
+    private String alarmQuestion(String arguments) {
+        final boolean delete = "delete".equals(argument(arguments, "action"));
+        long id = -1;
+        try {
+            id = Long.parseLong(argument(arguments, "id"));
+        } catch (NumberFormatException ignored) {
+            // the question without a time then
+        }
+        final String time = id < 0 ? "" : Clock.alarmTime(mContext, id);
+        return time.isEmpty() ? mContext.getString(delete ? R.string.confirm_alarm_delete
+                : R.string.confirm_alarm_off) : mContext.getString(delete
+                ? R.string.confirm_alarm_delete_at : R.string.confirm_alarm_off_at, time);
+    }
+
+    private static String argument(String arguments, String name) {
+        try {
+            return new JSONObject(arguments).optString(name);
+        } catch (JSONException e) {
+            return "";
+        }
+    }
+
     private String routineQuestion(String arguments) {
         JSONObject a;
         try {
@@ -553,22 +736,33 @@ final class Agent {
         return "You are ON-FireAI, the voice assistant on a FireHD10 tablet running ON-FireLOS."
                 + " The user talks to you through speech recognition, which can mishear, and"
                 + " your answers are read aloud.\n"
-                + "- Answer in " + language + " unless the user speaks another language. Be"
+                + "- Answer in " + language + " unless the user speaks another language, every"
+                + " word of it (in German: du, never Sie; \"aus\", not \"off\"). Be"
                 + " brief and natural, as in a conversation: usually one to three sentences."
                 + " No lists, no markdown, no emoji, no links read out.\n"
                 + "- Do things with the tools instead of explaining how. After a tool, confirm"
                 + " in a few words.\n"
-                + "- For current facts you are unsure of, use web_search; for weather, weather;"
+                + "- Look facts up instead of answering from memory: anything that changes or"
+                + " that you could misremember (numbers, dates, prices, people, releases,"
+                + " results, opening hours, rules) comes from web_search first, then answer"
+                + " from what it found. From your own knowledge only what never changes:"
+                + " explanations, meanings, how something works.\n"
+                + "- Every calculation with calculate, never in your head.\n"
+                + "- For weather, weather;"
                 + " for music, play_music; for radio stations, play_radio; to be woken with"
                 + " a station, set_wakeup; for rain or sea sounds, play_sounds; to stop playing"
                 + " later, sleep_timer; for the news,"
                 + " news; for videos, youtube_search then youtube_play.\n"
-                + "- Weather, timers, alarms, reminders, appointments, lists and what is playing show"
-                + " as a card on the screen: then say only the gist in one sentence, not every"
-                + " number.\n"
-                + "- If a request is unclear, ask one short question back.\n"
+                + "- Timers, alarms, reminders, appointments, lists and what is playing show as a"
+                + " card on the screen: then say only the gist in one sentence, not every number."
+                + " The weather has a card too, but say what its tool result says to say.\n"
+                + "- If a request is unclear, ask one short question back. Otherwise never end"
+                + " with an offer or a question (\"Kann ich sonst noch helfen?\", \"Anything"
+                + " else?\"); to thanks a short \"Gern geschehen.\" or \"You're welcome.\", in"
+                + " the user's language, is all.\n"
                 + "- Write numbers, times and units in digits (14:30, 66%, 3 km); the voice"
-                + " reads them right.\n"
+                + " reads them right. Write as one speaks: a unit once for a range (2 bis 5°C),"
+                + " no brackets, no lists of sources.\n"
                 + "- Keep the thread of the conversation: the user may refer to earlier turns.\n"
                 + "- Each message starts with [context] about the tablet and notes about the"
                 + " user; use it when it helps, never read it out.\n"
@@ -597,6 +791,15 @@ final class Agent {
         final Date now = new Date();
         c.append("Now: ").append(new SimpleDateFormat("EEEE, d MMMM yyyy, HH:mm", Locale.ENGLISH)
                 .format(now)).append(" (").append(TimeZone.getDefault().getID()).append(")\n");
+        final String name = Prefs.string(mContext, Prefs.USER_NAME);
+        if (!name.isEmpty()) {
+            c.append("The user's name: ").append(name)
+                    .append(" (use it now and then, not in every answer)\n");
+        }
+        final String home = Prefs.string(mContext, Prefs.HOME_PLACE);
+        if (!home.isEmpty()) {
+            c.append("The user lives in: ").append(home).append(" (\"here\" means there)\n");
+        }
         final Intent battery = mContext.registerReceiver(null,
                 new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (battery != null) {
@@ -629,6 +832,14 @@ final class Agent {
             for (Store.Note note : notes) {
                 c.append("- ").append(note.text).append('\n');
             }
+        }
+        // Said right at the question, a small model takes the right tool (see Router).
+        c.append(Router.hints(question));
+        // The answer in the user's language: a small model keeps to the prompt's otherwise.
+        final boolean english = Router.english(question);
+        if (english != "en".equals(Locale.getDefault().getLanguage())) {
+            c.append(english ? "The user spoke English: answer in English.\n"
+                    : "The user spoke German: answer in German.\n");
         }
         return c.append("[/context]\n").toString();
     }
@@ -680,11 +891,12 @@ final class Agent {
 
     /** What a voice should not read: markdown, links, list marks. */
     static String speakable(String text) {
-        return text.replaceAll("https?://\\S+", "")
+        // Units, money, brackets and abbreviations the way one says them.
+        return Spoken.say(text.replaceAll("https?://\\S+", "")
                 .replaceAll("[*_#`>|]", "")
                 .replaceAll("(?m)^\\s*[-•]\\s+", "")
                 .replaceAll("\\s+", " ")
-                .trim();
+                .trim());
     }
 
     /** What the screen should not show: markdown marks. */

@@ -95,6 +95,32 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         Duck.set(mContext, state != State.IDLE || mSpeaker.speaking(), 180_000);
     }
 
+    /** Whether ON-FireAI is at an answer: thinking, writing or saying it. */
+    static boolean working() {
+        final Session s = sInstance;
+        return s != null && s.state != State.LISTENING && s.busy();
+    }
+
+    /** Whether ON-FireAI's voice is speaking right now. */
+    static boolean speaking() {
+        final Session s = sInstance;
+        return s != null && s.mSpeaker.speaking();
+    }
+
+    /** Any thread. Milliseconds since ON-FireAI's voice last stopped; 0 while it speaks. */
+    static long quietFor() {
+        final Session s = sInstance;
+        return s == null ? Long.MAX_VALUE : s.mSpeaker.quietFor();
+    }
+
+    /** Main thread. The word was heard: its voice stops at once, not once the sheet is up. */
+    static void hush() {
+        final Session s = sInstance;
+        if (s != null && s.mSpeaker.speaking()) {
+            s.mSpeaker.stop();
+        }
+    }
+
     /** Whether ON-FireAI is listening right now (the wake word leaves the microphone to it). */
     static boolean listening() {
         final Session s = sInstance;
@@ -125,6 +151,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     private boolean mVisible;
     private boolean mVoiceTurn;
     private boolean mFollowUp;
+    /** This recording began while ON-FireAI spoke (the word or a voice said into it). */
+    private boolean mOverVoice;
     private Item mLive;
 
     /** The words of a question still being spoken (shown paler until they are final). */
@@ -223,6 +251,10 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         final String text;
         switch (tool) {
             case "weather": text = mContext.getString(R.string.step_weather); break;
+            case "calculate": text = mContext.getString(R.string.step_calculate); break;
+            case "convert_currency": text = mContext.getString(R.string.step_currency); break;
+            case "holidays": text = mContext.getString(R.string.step_holidays); break;
+            case "show_images": text = mContext.getString(R.string.step_images); break;
             case "web_search": text = mContext.getString(R.string.step_search); break;
             case "youtube_search": text = mContext.getString(R.string.step_videos); break;
             case "recall": text = mContext.getString(R.string.step_recall); break;
@@ -436,13 +468,17 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     /** The caller has made sure of the microphone permission. */
     void startListening(boolean followUp) {
         trace("listen followUp=" + followUp + " visible=" + mVisible);
-        if (!mVisible) {
+        // With an app in front, the conversation goes on in the pill: only to go on with
+        // one, never to start one there.
+        if (!mVisible && !(followUp && ScreenAgent.get() != null)) {
             return;
         }
         // Listening for the answer to a question of the agent must not end its work.
         if (mPendingConfirm == null) {
             mAgent.cancel();
         }
+        // Begun into its own voice: the recording may hold some of it.
+        mOverVoice = mSpeaker.speaking() || WakeWord.overVoice();
         mSpeaker.stop();
         mFollowUp = followUp;
         mListening = useWhisper() ? mWhisper : mGoogle;
@@ -458,6 +494,50 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             chips.clear();
         }
         setState(State.LISTENING);
+        pill(mContext.getString(R.string.listening));
+    }
+
+    /** The conversation in the pill is over (nothing more was said): as with the sheet. */
+    private void endInPill() {
+        final ScreenAgent agent = ScreenAgent.get();
+        if (agent != null) {
+            agent.hidePillLater(1500);
+        }
+        WakeWord.setPaused(false);
+        if (mUi != null) {
+            mUi.onSessionClosed();
+        }
+    }
+
+    /** Music, a video or the radio playing (ON-FireAI's own voice aside). */
+    private boolean mediaPlaying() {
+        final android.media.AudioManager audio =
+                mContext.getSystemService(android.media.AudioManager.class);
+        if (audio == null || !audio.isMusicActive()) {
+            return false;
+        }
+        for (android.media.AudioPlaybackConfiguration c
+                : audio.getActivePlaybackConfigurations()) {
+            final int usage = c.getAudioAttributes().getUsage();
+            if (c.getPlayerState() == android.media.AudioPlaybackConfiguration.PLAYER_STATE_STARTED
+                    && (usage == android.media.AudioAttributes.USAGE_MEDIA
+                    || usage == android.media.AudioAttributes.USAGE_GAME
+                    || usage == android.media.AudioAttributes.USAGE_UNKNOWN)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether a follow-up may be listened for now: asked by voice, or a question is open. */
+    private boolean followUpNow() {
+        return (mVoiceTurn || mPendingConfirm != null)
+                && (state == State.IDLE || mPendingConfirm != null)
+                // Over music a follow-up would hear the music: then only by the wake word.
+                && (mPendingConfirm != null || !mediaPlaying())
+                && Prefs.flag(mContext, Prefs.FOLLOW_UP) && canListen()
+                && mContext.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
     void submitTyped(String text) {
@@ -483,6 +563,8 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         status = mContext.getString(R.string.thinking);
         state = State.THINKING;
         changed(true);
+        // Asked from the pill over an app: the screen tools are at hand ("scroll down").
+        Router.sAppInFront = !mVisible && ScreenAgent.get() != null;
         mAgent.ask(text);
     }
 
@@ -516,6 +598,10 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
 
     @Override
     public void onPartial(String text) {
+        if (!mVisible && !"…".equals(text)) {
+            // In the pill: the words as they come.
+            pill(text);
+        }
         if ("…".equals(text)) {
             // The recording is on its way to the Whisper server.
             status = mContext.getString(R.string.transcribing);
@@ -536,17 +622,44 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     }
 
     @Override
-    public void onFinal(String text) {
+    public void onFinal(String heard) {
         final Item live = mLive;
         mLive = null;
+        // Its own words, still in the room or under the user's, are not the user's: after an
+        // answer its last ones; begun while it spoke, any of them.
+        final String answer = mAnswerText.toString();
+        String text = mOverVoice ? withoutOwnWords(heard, answer, false)
+                : mFollowUp ? withoutOwnWords(heard, answer, true) : heard;
+        // A follow-up nobody may have meant: a few words that are no request, after an answer
+        // that asked nothing. Left alone, as a word from the room, rather than asked about.
+        if (mFollowUp && mPendingConfirm == null && !answer.trim().endsWith("?")
+                && Router.fragment(text.toLowerCase(java.util.Locale.ROOT))) {
+            Log.i("ONFireAI", "follow-up left alone: not meant, it seems");
+            text = "";
+        }
+        if (Prefs.flag(mContext, Prefs.SOUNDS)) {
+            Chime.close();
+        }
+        if (!text.equals(heard)) {
+            trace("own words left out of what was heard");
+            Log.i("ONFireAI", "own words left out: " + heard.length() + " characters heard, "
+                    + text.length() + " left");
+        }
         if (text.isEmpty()) {
             if (live != null) {
                 items.remove(live);
             }
-            status = mFollowUp ? "" : mContext.getString(R.string.not_understood);
+            status = mFollowUp || !heard.isEmpty() ? ""
+                    : mContext.getString(R.string.not_understood);
             state = State.IDLE;
             changed(true);
+            if (!mVisible) {
+                endInPill();
+            }
             return;
+        }
+        if (!mVisible) {
+            pill(text);
         }
         if (live != null) {
             live.text = text;
@@ -563,8 +676,17 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
     @Override
     public void onError(int error) {
         trace("listening error " + error);
+        if (Prefs.flag(mContext, Prefs.SOUNDS)) {
+            Chime.close();
+        }
         dropLive();
         state = State.IDLE;
+        if (!mVisible) {
+            // In the pill there is no place for a message: it simply ends.
+            changed(false);
+            endInPill();
+            return;
+        }
         int message = 0;
         switch (error) {
             case SpeechRecognizer.ERROR_NO_MATCH:
@@ -765,12 +887,15 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         if (t.isEmpty() || t.split(" ").length > 4) {
             return false;
         }
+        // Only a yes, maybe with "bitte" or "mach das": "bitte lösch alles" is no answer.
         if (t.matches(".*\\b(nicht|nein|nee|nö|kein\\w*|niemals|nie|ohne|später|warte|halt"
                 + "|abbrechen|stop|stopp|no|not|nope|never|don t|dont|cancel|wait)\\b.*")) {
             return false;
         }
-        return t.matches("(ja|jo|jep|jawohl|klar|ok|okay|mach|gerne|gern|bitte|passt|genau"
-                + "|los|yes|yeah|yep|sure|do it|go ahead)\\b.*");
+        return t.matches("((ja|jo|jep|jawohl|klar|ok|okay|gerne|gern|passt|genau|yes|yeah"
+                + "|yep|sure)( (ja|bitte|gerne|gern|klar|genau|passt|ok|okay|mach (das|es|ruhig)|mach|los"
+                + "|please|do it|go ahead))*|bitte|mach (das|es|ruhig)|mach|los|leg los"
+                + "|do it|go ahead)");
     }
 
     /** The answer has been said: the microphone opens for a follow-up, like a conversation. */
@@ -786,8 +911,12 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
             runAfterAnswer();
         }
         if (!mVisible) {
-            // Said while another app is in front: when the work is done too, the sheet has
-            // done its part.
+            // Said while another app is in front: the conversation goes on in the pill, so
+            // one can keep going by voice in the app ("scroll down", "the second one").
+            if (!started && followUpNow() && ScreenAgent.get() != null) {
+                listenAfterVoice();
+                return;
+            }
             if (state == State.IDLE && mPendingConfirm == null) {
                 WakeWord.setPaused(false);
                 if (mUi != null) {
@@ -799,12 +928,108 @@ final class Session implements Agent.Callback, Listening.Callback, Speaker.Callb
         if (started) {
             return;
         }
-        if ((mVoiceTurn || mPendingConfirm != null) && (state == State.IDLE
-                || mPendingConfirm != null) && Prefs.flag(mContext, Prefs.FOLLOW_UP)
-                && canListen()) {
+        // The same rule as in the pill: no follow-up over music, only with the microphone.
+        if (followUpNow()) {
             if (mUi instanceof AssistActivity && ((AssistActivity) mUi).haveMic()) {
-                startListening(true);
+                listenAfterVoice();
             }
         }
+    }
+
+    /**
+     * The follow-up once the voice is out of the speaker too: "spoken" comes as the last
+     * sound is handed over, and its last syllables would be heard as the user's.
+     */
+    private void listenAfterVoice() {
+        MAIN.postDelayed(() -> {
+            if (state == State.IDLE || mPendingConfirm != null) {
+                startListening(true);
+            }
+        }, 350);
+    }
+
+    /**
+     * What was heard, without ON-FireAI's own words it starts with. atEnd: only the answer's
+     * last words (still in the room as the microphone opened after it); otherwise any stretch
+     * of it, again and again (the microphone was open while it spoke). At least 2 words in a
+     * row, allowing for mishearing; "" when nothing else was said.
+     */
+    static String withoutOwnWords(String heard, String answer, boolean atEnd) {
+        final String[] a = words(answer);
+        final String[] tokens = heard.trim().split("\\s+");
+        // The heard words to compare, and which token each one is.
+        final java.util.List<String> h = new java.util.ArrayList<>();
+        final java.util.List<Integer> at = new java.util.ArrayList<>();
+        for (int i = 0; i < tokens.length; i++) {
+            final String[] w = words(tokens[i]);
+            if (w.length > 0) {
+                h.add(String.join("", w));
+                at.add(i);
+            }
+        }
+        int from = 0;
+        while (from < h.size()) {
+            final int k = ownRun(h, from, a, atEnd);
+            if (k == 0) {
+                break;
+            }
+            from += k;
+            if (atEnd) {
+                break;
+            }
+        }
+        if (from == 0) {
+            return heard;
+        }
+        final StringBuilder rest = new StringBuilder();
+        for (int i = from < h.size() ? at.get(from) : tokens.length; i < tokens.length; i++) {
+            rest.append(rest.length() == 0 ? "" : " ").append(tokens[i]);
+        }
+        return rest.toString().trim();
+    }
+
+    /** How many heard words from "from" on the answer says too, in a row (2 at least). */
+    private static int ownRun(java.util.List<String> h, int from, String[] a, boolean atEnd) {
+        int best = 0;
+        for (int s = 0; s < a.length; s++) {
+            int k = 0;
+            while (from + k < h.size() && s + k < a.length
+                    && similar(h.get(from + k), a[s + k])) {
+                k++;
+            }
+            // After the answer: only a stretch that ends it.
+            if (k >= 2 && (!atEnd || s + k == a.length) && k > best) {
+                best = k;
+            }
+        }
+        return best;
+    }
+
+    private static String[] words(String text) {
+        final String t = text.toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}\\s]", " ").trim();
+        return t.isEmpty() ? new String[0] : t.split("\\s+");
+    }
+
+    /** The same word, or misheard into nearly the same (one letter in four may differ). */
+    private static boolean similar(String x, String y) {
+        if (x.equals(y)) {
+            return true;
+        }
+        final int[] row = new int[y.length() + 1];
+        for (int j = 0; j <= y.length(); j++) {
+            row[j] = j;
+        }
+        for (int i = 1; i <= x.length(); i++) {
+            int prev = row[0];
+            row[0] = i;
+            for (int j = 1; j <= y.length(); j++) {
+                final int keep = row[j];
+                row[j] = Math.min(Math.min(row[j] + 1, row[j - 1] + 1),
+                        prev + (x.charAt(i - 1) == y.charAt(j - 1) ? 0 : 1));
+                prev = keep;
+            }
+        }
+        return row[y.length()] * 4 <= Math.max(x.length(), y.length());
     }
 }

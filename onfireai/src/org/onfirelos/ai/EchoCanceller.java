@@ -91,6 +91,7 @@ final class EchoCanceller {
     }
 
     private final AudioManager mAudio;
+    private final Context mContext;
     // The copy of what plays, as it comes in; mRefPos counts every sample read.
     private final short[] mRef = new short[REF_SIZE];
     private volatile long mRefPos;
@@ -108,12 +109,18 @@ final class EchoCanceller {
     private long mMusicLast;
     private long mCheckedAt;
     private boolean mCleaning;
+    // Someone talking over the echo: what is left after cleaning, against what the echo
+    // leaves when nobody talks (both in dB; the copy and the microphone have their own scale).
+    private double mGap = Double.NaN;
+    private double mRoom = Double.NaN;
+    private int mVoice;
     // For the log: how much quieter the cleaned microphone is.
     private double mInEnergy;
     private double mOutEnergy;
 
     EchoCanceller(Context context) {
         mAudio = context.getSystemService(AudioManager.class);
+        mContext = context.getApplicationContext();
     }
 
     /** Whether the last chunk came out cleaned (the wake word starts over when this changes). */
@@ -162,6 +169,7 @@ final class EchoCanceller {
         }
         nativeProcess(mHandle, mic, ref, out, n - n % FRAME);
         mCleaning = true;
+        listenOver(ref, out, n);
         for (int i = 0; i < n; i++) {
             mInEnergy += (double) mic[i] * mic[i];
             mOutEnergy += (double) out[i] * out[i];
@@ -169,8 +177,60 @@ final class EchoCanceller {
         return out;
     }
 
+    /**
+     * How many chunks in a row someone has been talking over what plays (ON-FireAI's own
+     * voice above all): more is left after cleaning than the echo leaves on its own, by
+     * 16 dB, and above the room's noise by 15 dB.
+     */
+    int voice() {
+        return mCleaning ? mVoice : 0;
+    }
+
+    private void listenOver(short[] ref, short[] out, int n) {
+        final double refDb = db(ref, n);
+        final double outDb = db(out, n);
+        final boolean echo = refDb > 15;
+        if (Double.isNaN(mRoom)) {
+            mRoom = outDb;
+        }
+        final boolean talking = outDb > 40 && outDb > mRoom + 15
+                && (!echo || (!Double.isNaN(mGap) && outDb > refDb - mGap + 16));
+        mVoice = talking ? mVoice + 1 : 0;
+        if (Log.isLoggable(TAG, Log.DEBUG) && Session.speaking()) {
+            Log.d(TAG, "over echo: left " + Math.round(outDb) + " dB, copy " + Math.round(refDb)
+                    + ", gap " + Math.round(mGap) + ", room " + Math.round(mRoom)
+                    + (talking ? " TALK" : ""));
+        }
+        if (!talking) {
+            // What the echo leaves, learned while nobody talks; the room, while nothing plays.
+            if (echo) {
+                mGap = Double.isNaN(mGap) ? refDb - outDb : mGap * 0.95 + (refDb - outDb) * 0.05;
+            } else {
+                mRoom = mRoom * 0.9 + outDb * 0.1;
+            }
+        }
+    }
+
+    private static double db(short[] pcm, int n) {
+        double sum = 0;
+        for (int i = 0; i < n; i++) {
+            sum += (double) pcm[i] * pcm[i];
+        }
+        return 10 * Math.log10(sum / Math.max(1, n) + 1);
+    }
+
     /** Media playing (not ON-FireAI's own voice): the copy on; quiet for a while: off. */
     private void follow(long now) {
+        // At an answer the copy starts at once, before the voice: started under it, the
+        // move of the playing sound would cut its first words. The wake word then listens
+        // without ON-FireAI's own voice and does not take it for the word.
+        if (Session.working()) {
+            mMusicLast = now;
+            if (mRecord == null) {
+                start();
+            }
+            return;
+        }
         if (mRecord != null && Log.isLoggable(TAG, Log.DEBUG)) {
             long level = 0;
             for (int i = 1; i <= 1600 && i <= mRefPos; i++) {

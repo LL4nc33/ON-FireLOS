@@ -47,9 +47,20 @@ final class WhisperInput implements Listening {
     private static final int FRAME = 320;            // 20 ms
     private static final int SPEECH_FRAMES = 4;      // 80 ms above the noise to count as speech
     private static final int END_SILENCE = 40;       // 800 ms of quiet ends it
+    /** More quiet allowed after a word a sentence does not end on ("und", "auf"). */
+    private static final int THINKING = 40;          // 800 ms more
+    /** Words a sentence goes on after: a pause there is for thinking, not the end. */
+    private static final java.util.regex.Pattern OPEN_END = java.util.regex.Pattern.compile(
+            "(?iu)\\b(und|oder|aber|auf|in|im|mit|für|von|vom|zu|zum|zur|nach|bei|am|um"
+            + "|der|die|das|den|dem|des|ein|eine|einen|einem|dass|weil|wenn|ob|wie|also|bis"
+            + "|and|or|but|to|for|of|with|the|a|at|in)[\\s.,…]*$");
+    /** What has been read of the recording so far (live), for the end above. */
+    private volatile String mSoFar = "";
     private static final int MAX_FRAMES = 15 * 50;  // 15 s at most
     private static final int PARTIAL_EVERY = 60;     // a live transcript every 1.2 s
     private static final long PARTIAL_TOO_SLOW = 2500;
+    /** After ON-FireAI's voice stops: the sound still under way and in the room. */
+    private static final long OWN_VOICE_MS = 500;
     /** The chime after the wake word: 0.35 s, a little more for its echo. */
     private static final int CHIME_FRAMES = 35;
     /** Less than this much voice (0.3 s) before a pause is a click or an echo, not a question. */
@@ -237,7 +248,8 @@ final class WhisperInput implements Listening {
             return;
         }
         // Before the word and while the chime sounds, loudness is no sign of a question.
-        final int ignoreUntil = handoff == null ? 0 : handoff.prerollFrames + CHIME_FRAMES;
+        final int ignoreUntil = handoff == null || handoff.overVoice ? 0
+                : handoff.prerollFrames + CHIME_FRAMES;
         final ByteArrayOutputStream pcm = new ByteArrayOutputStream(RATE * 2 * 6);
         final short[] frame = new short[FRAME];
         final byte[] bytes = new byte[FRAME * 2];
@@ -255,6 +267,7 @@ final class WhisperInput implements Listening {
         int nextPartial = 0;
         final Segments segments = local(mContext) ? new Segments(g) : null;
         mFromWake = handoff != null;
+        mSoFar = "";
         // In a follow-up a short "ja" or "nein" is an answer, not a click.
         final int minVoiced = quietLimit < 8 * 50 ? 6 : MIN_VOICED;
         mLiveFor = g;
@@ -267,6 +280,13 @@ final class WhisperInput implements Listening {
                 if (n <= 0) {
                     fail(g, SpeechRecognizer.ERROR_AUDIO);
                     return;
+                }
+                // Begun over ON-FireAI's own voice: everything until it has died away is
+                // left out (misheard, its words would be taken for the user's). The chunks
+                // waiting are older than that, so this goes by the clock.
+                if (fromWake != null && handoff.overVoice && Session.quietFor() < OWN_VOICE_MS
+                        && android.os.SystemClock.elapsedRealtime() - handoff.since < 4000) {
+                    continue;
                 }
                 frames++;
                 double sum = 0;
@@ -302,14 +322,20 @@ final class WhisperInput implements Listening {
                 }
                 if (speech && quiet >= END_SILENCE) {
                     if (voiced >= minVoiced) {
-                        break;
+                        // "Stell den Wecker auf …": a breath there is no end yet.
+                        if (quiet >= END_SILENCE + THINKING
+                                || !OPEN_END.matcher(mSoFar).find()) {
+                            break;
+                        }
+                    } else {
+                        // Only a blip (the chime's echo, a click): still waiting for the
+                        // question.
+                        speech = false;
+                        voiced = 0;
+                        quiet = 0;
+                        loud = 0;
+                        blips++;
                     }
-                    // Only a blip (the chime's echo, a click): still waiting for the question.
-                    speech = false;
-                    voiced = 0;
-                    quiet = 0;
-                    loud = 0;
-                    blips++;
                 }
                 if (segments != null) {
                     // The tablet reads each stretch between short pauses once, while one
@@ -439,6 +465,7 @@ final class WhisperInput implements Listening {
                         mTexts.add(text);
                     }
                     final String shown = clean(join(""));
+                    mSoFar = shown;
                     mMain.post(() -> {
                         if (mLiveFor == mFor && current(mFor)) {
                             mCallback.onPartial(shown);
@@ -561,6 +588,7 @@ final class WhisperInput implements Listening {
             final long started = android.os.SystemClock.elapsedRealtime();
             try {
                 final String text = clean(transcribePcm(pcm));
+                mSoFar = text;
                 final long took = android.os.SystemClock.elapsedRealtime() - started;
                 Log.d(TAG, "live transcript: " + took + " ms for " + pcm.length / 32
                         + " ms of speech");

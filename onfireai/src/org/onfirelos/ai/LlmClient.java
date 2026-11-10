@@ -164,23 +164,45 @@ final class LlmClient {
         }
     }
 
+    /** Where the last request is kept for measuring, or null (the usual). */
+    static volatile java.io.File sDumpTo;
+
     /** One round: the answer streams into the listener; tool calls come back whole. */
     Result chat(JSONArray messages, JSONArray tools, Listener listener) throws IOException {
+        return chat(messages, tools, false, listener);
+    }
+
+    /**
+     * required: a tool must be called (the server picks none of the words then). With tools
+     * the model is held steadier: a small one mixes up tools and arguments at 0.6.
+     */
+    Result chat(JSONArray messages, JSONArray tools, boolean required, Listener listener)
+            throws IOException {
         final JSONObject body = new JSONObject();
+        final boolean withTools = tools != null && tools.length() > 0;
         try {
             body.put("model", model());
             body.put("messages", messages);
             body.put("stream", true);
-            body.put("temperature", 0.6);
+            body.put("temperature", withTools ? 0.3 : 0.6);
             body.put("max_tokens", 900);
             // Qwen and others think aloud unless told not to; spoken answers want none of it.
             body.put("chat_template_kwargs", new JSONObject().put("enable_thinking", false));
-            if (tools != null && tools.length() > 0) {
+            if (withTools) {
                 body.put("tools", tools);
-                body.put("tool_choice", "auto");
+                body.put("tool_choice", required ? "required" : "auto");
             }
         } catch (JSONException e) {
             throw new IOException(e.getMessage());
+        }
+        // For measuring how a model copes (adb shell setprop log.tag.ONFireAI VERBOSE): the
+        // request as sent, to be played to a server again from outside.
+        if (sDumpTo != null) {
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(sDumpTo)) {
+                out.write(body.toString().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                // only for measuring
+            }
         }
         final HttpURLConnection c = send(endpoint(mBase, "/chat/completions"), body.toString());
         try {

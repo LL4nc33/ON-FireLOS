@@ -45,6 +45,11 @@ public class SettingsActivity extends Activity {
     private TextView mModel;
     private TextView mTest;
     private TextView mSearch;
+    private TextView mName;
+    private TextView mHome;
+    private TextView mPrefer;
+    private TextView mAvoid;
+    private TextView mNews;
     private TextView mBlocked;
     private TextView mEmbed;
     private TextView mWakeWord;
@@ -90,11 +95,34 @@ public class SettingsActivity extends Activity {
         mModel = mPage.row(getString(R.string.pref_model), "", true, v -> pickModel());
         mTest = mPage.row(getString(R.string.test_connection), "", false, v -> test());
 
+        mPage.section(R.string.section_about);
+        mName = mPage.row(getString(R.string.pref_name), "", true, v -> ask(R.string.pref_name,
+                getString(R.string.pref_name_help), Prefs.string(this, Prefs.USER_NAME),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PERSON_NAME
+                        | InputType.TYPE_TEXT_FLAG_CAP_WORDS, text -> {
+                    Prefs.put(this, Prefs.USER_NAME, text);
+                    refresh();
+                }));
+        mHome = mPage.row(getString(R.string.pref_home), "", true, v -> ask(R.string.pref_home,
+                getString(R.string.pref_home_help), Prefs.string(this, Prefs.HOME_PLACE),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS, text -> {
+                    Prefs.put(this, Prefs.HOME_PLACE, text);
+                    refresh();
+                }));
+        mPage.row(getString(R.string.pref_manage), getString(R.string.pref_manage_summary), false,
+                v -> startActivity(new Intent(this, ManageActivity.class)));
+        mPage.row(getString(R.string.pref_skills), getString(R.string.pref_skills_summary),
+                false, v -> startActivity(new Intent(this, SkillsActivity.class)));
+
         mPage.section(R.string.section_voice);
         mPage.toggle(getString(R.string.pref_speak), getString(R.string.pref_speak_summary),
                 Prefs.flag(this, Prefs.SPEAK), (b, on) -> Prefs.put(this, Prefs.SPEAK, on));
         mPage.toggle(getString(R.string.pref_followup), getString(R.string.pref_followup_summary),
                 Prefs.flag(this, Prefs.FOLLOW_UP), (b, on) -> Prefs.put(this, Prefs.FOLLOW_UP, on));
+        mPage.toggle(getString(R.string.pref_barge_in), getString(R.string.pref_barge_in_summary),
+                Prefs.bargeIn(this), (b, on) -> Prefs.put(this, Prefs.BARGE_IN, on));
+        mPage.toggle(getString(R.string.pref_sounds), getString(R.string.pref_sounds_summary),
+                Prefs.flag(this, Prefs.SOUNDS), (b, on) -> Prefs.put(this, Prefs.SOUNDS, on));
         mPage.toggle(getString(R.string.pref_listen_now),
                 getString(R.string.pref_listen_now_summary), Prefs.flag(this, Prefs.LISTEN_NOW),
                 (b, on) -> Prefs.put(this, Prefs.LISTEN_NOW, on));
@@ -201,6 +229,26 @@ public class SettingsActivity extends Activity {
 
         mPage.section(R.string.section_tools);
         mSearch = mPage.row(getString(R.string.pref_search), "", true, v -> editSearch());
+        mPrefer = mPage.row(getString(R.string.pref_sites_prefer), "", true, v -> ask(
+                R.string.pref_sites_prefer, getString(R.string.pref_sites_prefer_help),
+                Prefs.string(this, Prefs.SITES_PREFER),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, text -> {
+                    Prefs.put(this, Prefs.SITES_PREFER, text);
+                    refresh();
+                }));
+        mAvoid = mPage.row(getString(R.string.pref_sites_avoid), "", true, v -> ask(
+                R.string.pref_sites_avoid, getString(R.string.pref_sites_avoid_help),
+                Prefs.string(this, Prefs.SITES_AVOID),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, text -> {
+                    Prefs.put(this, Prefs.SITES_AVOID, text);
+                    refresh();
+                }));
+        mNews = mPage.row(getString(R.string.pref_news), "", true, v -> ask(R.string.pref_news,
+                getString(R.string.pref_news_help), Prefs.string(this, Prefs.NEWS_URL),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, text -> {
+                    Prefs.put(this, Prefs.NEWS_URL, text);
+                    refresh();
+                }));
 
         mPage.section(R.string.section_memory);
         mMemory = mPage.row(getString(R.string.pref_memory), "", false,
@@ -365,6 +413,17 @@ public class SettingsActivity extends Activity {
     }
 
     private void refresh() {
+        final String name = Prefs.string(this, Prefs.USER_NAME);
+        Page.setSummary(mName, name.isEmpty() ? getString(R.string.pref_name_empty) : name);
+        final String home = Prefs.string(this, Prefs.HOME_PLACE);
+        Page.setSummary(mHome, home.isEmpty() ? getString(R.string.pref_home_empty,
+                Tools.zoneCity()) : home);
+        final String prefer = Prefs.string(this, Prefs.SITES_PREFER);
+        Page.setSummary(mPrefer, prefer.isEmpty() ? getString(R.string.pref_sites_none) : prefer);
+        final String avoid = Prefs.string(this, Prefs.SITES_AVOID);
+        Page.setSummary(mAvoid, avoid.isEmpty() ? getString(R.string.pref_sites_none) : avoid);
+        final String news = Prefs.string(this, Prefs.NEWS_URL);
+        Page.setSummary(mNews, news.isEmpty() ? getString(R.string.pref_news_empty) : news);
         final String url = Prefs.string(this, Prefs.URL);
         Page.setSummary(mUrl, url.isEmpty() ? getString(R.string.pref_url_empty) : url);
         Page.setSummary(mKey, getString(Prefs.string(this, Prefs.API_KEY).isEmpty()

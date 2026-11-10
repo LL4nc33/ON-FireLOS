@@ -151,9 +151,13 @@ final class Tools {
                                     .put("items", integer("1=Sunday ... 7=Saturday"))
                                     .put("description", "Weekdays to repeat on; empty for once")),
                     "hour", "minute"));
-            tools.put(tool("media", "Control what is playing (any app).",
+            tools.put(tool("media", "Control what is playing (any app, the radio, a video in"
+                            + " the browser): play, pause, next, previous; forward or back by"
+                            + " seconds (\"spul 30 Sekunden vor\"); restart from the beginning.",
                     props().put("action", enumeration(
-                            "play, pause, next or previous", "play", "pause", "next", "previous")),
+                            "what to do", "play", "pause", "next", "previous", "forward", "back",
+                            "restart"))
+                            .put("seconds", integer("For forward and back; 30 if left out")),
                     "action"));
             tools.put(tool("now_playing", "What is playing right now.", props()));
             tools.put(tool("play_music", "Play music by search: a song, artist, album, playlist"
@@ -176,9 +180,32 @@ final class Tools {
                     props().put("name", string("App name")), "name"));
             tools.put(tool("open_url", "Open a web page in the browser.",
                     props().put("url", string("Full address")), "url"));
-            tools.put(tool("web_search", "Search the web. Returns results to answer from, or"
-                            + " opens the browser.",
-                    props().put("query", string("Search words")), "query"));
+            tools.put(tool("calculate", "Work out a calculation exactly. Use it for every"
+                            + " calculation instead of counting yourself, also for prices,"
+                            + " percentages and conversions you can write as arithmetic."
+                            + " Examples: 1299*0.8, (12+8)/3, 100+19%, 2^10, sqrt(2), 5!,"
+                            + " sin(30) (degrees).",
+                    props().put("expression", string("The calculation, with . for decimals"))
+                            .put("show", bool("true: also open it in the calculator app,"
+                                    + " when the user wants to see it there")),
+                    "expression"));
+            tools.put(tool("show_images", "Show pictures of something as a row to swipe"
+                            + " through (\"zeig mir Bilder von ...\", \"wie sieht ... aus\")."
+                            + " Free pictures from Wikipedia and Wikimedia Commons.",
+                    props().put("query", string("What to show, in a few words")), "query"));
+            tools.put(tool("convert_currency", "Convert an amount of money into another"
+                            + " currency at today's rate of the European Central Bank.",
+                    props().put("amount", new JSONObject().put("type", "number"))
+                            .put("from", string("Currency code or name, e.g. USD, Dollar"))
+                            .put("to", string("Currency code or name; EUR if left out")),
+                    "amount", "from"));
+            tools.put(tool("holidays", "The next public holidays, with their dates.",
+                    props().put("country", string("Two-letter code; here if left out"))
+                            .put("count", integer("How many, default 3"))));
+            tools.put(tool("web_search", "Search the web. Returns the results and what the"
+                            + " best pages say about the question, to answer from.",
+                    props().put("query", string("Search words only: the thing and what about"
+                            + " it, no dates and no 'heute'")), "query"));
             tools.put(tool("youtube_search", "Find YouTube videos: they show in the chat"
                             + " as pictures the user can tap to watch. For 'zeig mir Videos"
                             + " über ...', suggestions, or when unsure which one; then say in"
@@ -204,7 +231,8 @@ final class Tools {
                                     .put("enum", new JSONArray().put("pause").put("resume")
                                             .put("add_minute").put("stop").put("delete"))),
                     "action"));
-            tools.put(tool("alarms", "The clock's alarms, on and off, with ids.", props()));
+            tools.put(tool("alarms", "The alarm clocks (\"Wecker\") of the clock app, on and"
+                    + " off, with ids. Asked which alarms there are: this one.", props()));
             tools.put(tool("alarm_control", "Turn an alarm on or off, or delete it.",
                     props().put("id", integer("Alarm id from alarms"))
                             .put("action", new JSONObject().put("type", "string")
@@ -240,7 +268,8 @@ final class Tools {
                             .put("days", new JSONObject().put("type", "array")
                                     .put("items", integer("1=Sunday ... 7=Saturday; once if"
                                             + " left out"))), "time"));
-            tools.put(tool("wakeups", "The wake-ups set with set_wakeup, with ids.", props()));
+            tools.put(tool("wakeups", "Only the radio wake-ups set with set_wakeup, with ids."
+                    + " The alarm clocks (\"Wecker\") are in alarms.", props()));
             tools.put(tool("delete_wakeup", "Delete a wake-up.",
                     props().put("id", integer("Id from wakeups; -1 for all")), "id"));
             tools.put(tool("wakeup_control", "While a wake-up rings: snooze it (9 minutes) or"
@@ -364,9 +393,11 @@ final class Tools {
                         props().put("action", enumeration("what", "list", "switch", "close"))
                                 .put("tab", string("Tab id from the list")), "action"));
                 tools.put(tool("browser_open", "Open a page in the browser and wait until it"
-                                + " has loaded. background = true: in an invisible tab, to look"
-                                + " something up while the user does something else; only for"
-                                + " reading, never for acting on a page.",
+                                + " has loaded. background = true: in the invisible tab, for"
+                                + " anything the user need not watch (looking up, filling in,"
+                                + " clicking through); then act on it with tab = bg. Open"
+                                + " visibly only to show the user something or when they want"
+                                + " to watch.",
                         props().put("url", string("Address, or words to search for"))
                                 .put("background", bool("Invisible, for looking up"))
                                 .put("new_tab", bool("In a new visible tab")), "url"));
@@ -424,6 +455,50 @@ final class Tools {
         return new JSONObject();
     }
 
+    private Result calculate(String expression, boolean show) {
+        final java.math.BigDecimal value;
+        try {
+            value = Calc.evaluate(expression);
+        } catch (IllegalArgumentException e) {
+            return new Result("error: " + e.getMessage() + ". Write it as plain arithmetic.",
+                    null);
+        }
+        final boolean shown = show && Calc.show(mContext, expression);
+        JSONObject card = null;
+        try {
+            card = new JSONObject().put("type", "calc").put("expression", expression)
+                    .put("shown", Calc.pretty(expression)).put("result", Calc.shown(value));
+        } catch (JSONException e) {
+            // no card then
+        }
+        return new Result(expression + " = " + Calc.plain(value)
+                + (shown ? " (shown in the calculator)" : "")
+                + ". Say the result in digits.", s(R.string.chip_calc), card);
+    }
+
+    /** The first required argument the call lacks, or null. */
+    private static String missing(Context context, String name, JSONObject args) {
+        final JSONArray defs = definitions(context);
+        for (int i = 0; i < defs.length(); i++) {
+            final JSONObject fn = defs.optJSONObject(i) == null ? null
+                    : defs.optJSONObject(i).optJSONObject("function");
+            if (fn == null || !name.equals(fn.optString("name"))) {
+                continue;
+            }
+            final JSONArray required = fn.optJSONObject("parameters") == null ? null
+                    : fn.optJSONObject("parameters").optJSONArray("required");
+            for (int k = 0; required != null && k < required.length(); k++) {
+                final String key = required.optString(k);
+                final Object v = args.opt(key);
+                if (v == null || v == JSONObject.NULL || String.valueOf(v).trim().isEmpty()) {
+                    return key;
+                }
+            }
+            return null;
+        }
+        return null;
+    }
+
     private static JSONObject string(String description) throws JSONException {
         return new JSONObject().put("type", "string").put("description", description);
     }
@@ -457,11 +532,22 @@ final class Tools {
         } catch (JSONException e) {
             return new Result("error: arguments are not valid JSON", null);
         }
+        // What the definition requires must be there: a default (7:00, 60 seconds, wifi on)
+        // would act on a guess.
+        final String missing = missing(mContext, name, args);
+        if (missing != null) {
+            return new Result("error: " + missing + " is missing. Ask the user for it, do not"
+                    + " guess.", null);
+        }
         try {
             switch (name) {
                 case "set_timer": return setTimer(args);
                 case "set_alarm": return setAlarm(args);
-                case "media": return media(args.optString("action"));
+                case "media": return "forward".equals(args.optString("action"))
+                        || "back".equals(args.optString("action"))
+                        || "restart".equals(args.optString("action"))
+                        ? seek(args.optString("action"), args.optInt("seconds", 30))
+                        : media(args.optString("action"));
                 case "now_playing": return nowPlaying();
                 case "play_music": return playMusic(args.optString("query"));
                 case "set_volume": return setVolume(args);
@@ -472,6 +558,13 @@ final class Tools {
                 case "set_do_not_disturb": return setDnd(args.optBoolean("on", true));
                 case "open_app": return openApp(args.optString("name"));
                 case "open_url": return openUrl(args.optString("url"));
+                case "calculate": return calculate(args.optString("expression"),
+                        args.optBoolean("show"));
+                case "show_images": return Images.search(mContext, args.optString("query"));
+                case "convert_currency": return Facts.convert(args.optDouble("amount", 1),
+                        args.optString("from"), args.optString("to"));
+                case "holidays": return Facts.holidays(args.optString("country"),
+                        args.optInt("count", 3));
                 case "web_search": return webSearch(args.optString("query"));
                 case "youtube_search": return youtubeSearch(args.optString("query"));
                 case "youtube_play": return youtubePlay(args);
@@ -634,6 +727,34 @@ final class Tools {
         return best;
     }
 
+    /** Forward or back by seconds, or from the beginning, in what plays now. */
+    private Result seek(String action, int seconds) {
+        final MediaController c = activeController();
+        final PlaybackState state = c == null ? null : c.getPlaybackState();
+        if (state == null || (state.getActions() & PlaybackState.ACTION_SEEK_TO) == 0) {
+            return new Result("error: what plays cannot jump" + (c == null ? " (nothing plays)"
+                    : " (" + appName(c.getPackageName()) + ")") + "; say so", null);
+        }
+        // Where it is now: the last known place plus the time since, at its speed.
+        final long since = android.os.SystemClock.elapsedRealtime() - state.getLastPositionUpdateTime();
+        long at = state.getPosition() + (state.getState() == PlaybackState.STATE_PLAYING
+                ? (long) (since * state.getPlaybackSpeed()) : 0);
+        final long length = c.getMetadata() == null ? -1
+                : c.getMetadata().getLong(MediaMetadata.METADATA_KEY_DURATION);
+        final long to = "restart".equals(action) ? 0 : Math.max(0, at + ("back".equals(action)
+                ? -1000L : 1000L) * Math.max(1, Math.abs(seconds)));
+        c.getTransportControls().seekTo(length > 0 ? Math.min(to, length - 1000) : to);
+        return new Result("done: now at " + clock(to) + (length > 0 ? " of " + clock(length) : "")
+                + " (" + appName(c.getPackageName()) + ")", null);
+    }
+
+    /** 83000 ms as "1:23", an hour and more as "1:02:03". */
+    private static String clock(long ms) {
+        final long s = Math.max(0, ms / 1000);
+        return s >= 3600 ? String.format(Locale.ROOT, "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60)
+                : String.format(Locale.ROOT, "%d:%02d", s / 60, s % 60);
+    }
+
     private Result media(String action) {
         final MediaController c = activeController();
         final String chip;
@@ -651,9 +772,18 @@ final class Tools {
                 key = KeyEvent.KEYCODE_MEDIA_PREVIOUS;
                 chip = s(R.string.chip_previous);
                 break;
-            default:
+            case "play":
+            case "resume":
                 key = KeyEvent.KEYCODE_MEDIA_PLAY;
                 chip = s(R.string.chip_resumed);
+                break;
+            case "stop":
+                key = KeyEvent.KEYCODE_MEDIA_PAUSE;
+                chip = s(R.string.chip_paused);
+                break;
+            default:
+                // Not guessed: "stop_music" must not start the music.
+                return new Result("error: action is one of play, pause, next, previous", null);
         }
         if (c != null) {
             final MediaController.TransportControls t = c.getTransportControls();
@@ -685,10 +815,13 @@ final class Tools {
         final MediaMetadata m = c.getMetadata();
         final PlaybackState state = c.getPlaybackState();
         final boolean playing = state != null && state.getState() == PlaybackState.STATE_PLAYING;
+        final long length = m.getLong(MediaMetadata.METADATA_KEY_DURATION);
+        final String where = state == null || length <= 0 ? ""
+                : ", at " + clock(state.getPosition()) + " of " + clock(length);
         return withMedia(new Result((playing ? "playing" : "paused") + ": "
                 + nonNull(m.getString(MediaMetadata.METADATA_KEY_TITLE)) + " - "
                 + nonNull(m.getString(MediaMetadata.METADATA_KEY_ARTIST))
-                + " (" + appName(c.getPackageName()) + ")", null));
+                + " (" + appName(c.getPackageName()) + ")" + where, null));
     }
 
     static String describePlaying(Context context) {
@@ -978,18 +1111,68 @@ final class Tools {
         }
     }
 
-    private Result webSearch(String query) {
+    private Result webSearch(String asked) {
+        // Dates and "heute" find calendars and markets, not the thing asked about.
+        final String query = WebSearch.clean(asked).isEmpty() ? asked : WebSearch.clean(asked);
+        final String chip = s(R.string.chip_search, query);
+        java.util.List<WebSearch.Hit> hits = new java.util.ArrayList<>();
         if (!searx().isEmpty()) {
             try {
-                return new Result(searxResults(query, "", 6), s(R.string.chip_search, query));
+                hits = WebSearch.searx(searx(), query);
             } catch (Exception e) {
                 Log.w(TAG, "search", e);
             }
         }
+        if (hits.isEmpty()) {
+            hits = WebSearch.duckDuckGo(query);
+        }
+        if (hits.isEmpty()) {
+            // Turned away as a robot now and then: the browser's invisible tab asks instead.
+            Log.i(TAG, "search: none directly, in the browser");
+            hits = browserHits(query);
+        }
+        hits = WebSearch.bySources(hits, Prefs.string(mContext, Prefs.SITES_PREFER),
+                Prefs.string(mContext, Prefs.SITES_AVOID));
+        Log.i(TAG, "search: " + hits.size() + " results");
+        if (!hits.isEmpty()) {
+            return new Result(WebSearch.answer(query, hits), chip);
+        }
         final boolean opened = start(new Intent(Intent.ACTION_WEB_SEARCH)
                 .putExtra(SearchManager.QUERY, query));
         return opened ? new Result("the browser shows the results; there are none to read here",
-                s(R.string.chip_search, query)) : new Result("error: no browser", null);
+                chip) : new Result("error: the search found nothing right now; say so, do not"
+                + " answer from memory", null);
+    }
+
+    /** The results' links, from the search page loaded in the browser's invisible tab. */
+    private java.util.List<WebSearch.Hit> browserHits(String query) {
+        final java.util.List<WebSearch.Hit> hits = new java.util.ArrayList<>();
+        if (!Browser.available(mContext)) {
+            return hits;
+        }
+        try {
+            final JSONObject opened = Browser.call(mContext, new JSONObject()
+                    .put("cmd", "open").put("background", true)
+                    .put("url", "https://html.duckduckgo.com/html/?q=" + Uri.encode(query)));
+            if (!opened.optBoolean("ok")) {
+                return hits;
+            }
+            final JSONArray elements = Browser.call(mContext, new JSONObject().put("cmd", "read")
+                    .put("tab", "bg").put("what", "elements")).optJSONArray("elements");
+            final java.util.Set<String> seen = new java.util.HashSet<>();
+            for (int i = 0; elements != null && i < elements.length() && hits.size() < 10; i++) {
+                final JSONObject e = elements.optJSONObject(i);
+                final String href = e == null ? "" : e.optString("href");
+                final String label = e == null ? "" : e.optString("label").trim();
+                if (href.startsWith("http") && !href.contains("duckduckgo.")
+                        && label.length() > 8 && seen.add(href)) {
+                    hits.add(new WebSearch.Hit(label, href, ""));
+                }
+            }
+        } catch (JSONException e) {
+            Log.w(TAG, "search in the browser", e);
+        }
+        return hits;
     }
 
     private Result youtubeSearch(String query) {
@@ -1318,13 +1501,6 @@ final class Tools {
 
     private Result browserAct(JSONObject args) throws JSONException {
         final String action = args.optString("action");
-        // The invisible tab is for looking things up only: what acts on a page happens where
-        // the user can see it.
-        if ("bg".equals(args.optString("tab")) && !"scroll".equals(action)
-                && !"find".equals(action)) {
-            return new Result("error: the invisible tab is only for reading. To act on this"
-                    + " page, open it visibly with browser_open (background = false).", null);
-        }
         final JSONObject r;
         switch (action) {
             case "back":

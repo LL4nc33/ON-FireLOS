@@ -44,7 +44,9 @@ final class Speaker {
     private TextToSpeech mTts;
     private boolean mReady;
     private boolean mFailed;
-    private int mOutstanding;
+    private volatile int mOutstanding;
+    /** When the voice last fell quiet (elapsedRealtime). */
+    private volatile long mQuietSince;
     private int mCount;
     private boolean mAnswerDone;
 
@@ -123,8 +125,16 @@ final class Speaker {
         return mOutstanding > 0;
     }
 
+    /** Any thread. Milliseconds since the voice last stopped; 0 while it speaks. */
+    long quietFor() {
+        return speaking() ? 0 : android.os.SystemClock.elapsedRealtime() - mQuietSince;
+    }
+
     /** Main thread. Silence now; does not report the answer as spoken. */
     void stop() {
+        if (mOutstanding > 0) {
+            mQuietSince = android.os.SystemClock.elapsedRealtime();
+        }
         mAnswerDone = false;
         mWaiting.clear();
         mOutstanding = 0;
@@ -141,6 +151,9 @@ final class Speaker {
     private void finishedOne() {
         if (mOutstanding > 0) {
             mOutstanding--;
+            if (mOutstanding == 0) {
+                mQuietSince = android.os.SystemClock.elapsedRealtime();
+            }
         }
         checkDone();
     }

@@ -335,6 +335,8 @@ public class WakeWord extends Service {
         /** How much at the start is from before the word was recognised (frames of 20 ms). */
         final int prerollFrames;
         final long since = android.os.SystemClock.elapsedRealtime();
+        /** Heard while ON-FireAI spoke: until its voice is gone, the chunks hold it too. */
+        final boolean overVoice = Session.speaking();
         volatile boolean claimed;
         volatile boolean done;
 
@@ -416,7 +418,9 @@ public class WakeWord extends Service {
     private boolean mayListen() {
         // Paused only while ON-FireAI itself listens: while it speaks, the word interrupts it.
         return !sPaused && !Session.listening() && (mCharging
-                || !Prefs.get(this).getBoolean(Prefs.WAKE_CHARGING_ONLY, true));
+                || !Prefs.get(this).getBoolean(Prefs.WAKE_CHARGING_ONLY, true)
+                // Off the charger too while ON-FireAI answers: talking into it is heard.
+                || (Session.working() && Prefs.bargeIn(this)));
     }
 
     private void run() {
@@ -477,6 +481,7 @@ public class WakeWord extends Service {
         final float[] samples = new float[pcm.length];
         final float[] delayed = new float[LATE + pcm.length];
         long heardAt = 0;
+        long speakingSince = 0;
         final short[][] recent = new short[PREROLL_CHUNKS][];
         final float[] levels = new float[AMBIENT_CHUNKS];
         int count = 0;
@@ -584,14 +589,23 @@ public class WakeWord extends Service {
                 System.arraycopy(delayed, n, delayed, 0, LATE);
                 final String first = decode(spotter, stream);
                 final String second = decode(spotter, late);
-                final String keyword = first != null ? first : second;
                 final long now = android.os.SystemClock.elapsedRealtime();
+                // Talking into ON-FireAI's answer, without the word: 600 ms of a voice over
+                // its own, once the canceller has had more than a second with it.
+                final boolean speaking = Session.speaking();
+                speakingSince = speaking ? (speakingSince == 0 ? now : speakingSince) : 0;
+                final boolean bargeIn = speaking && echo != null && test == null
+                        && now - speakingSince > 1500 && echo.voice() >= 6
+                        && Prefs.bargeIn(this);
+                final String keyword = first != null ? first : second != null ? second
+                        : bargeIn ? "VOICE" : null;
                 if (keyword != null && now - heardAt > AGAIN_AFTER) {
                     heardAt = now;
                     spotter.reset(stream);
                     spotter.reset(late);
-                    Log.i(TAG, "wake word heard: " + keyword
-                            + (first == null ? " (late listener)" : ""));
+                    Log.i(TAG, bargeIn && first == null && second == null
+                            ? "talked into the answer"
+                            : "wake word heard: " + keyword + (first == null ? " (late listener)" : ""));
                     // The room before the word: the quietest of the seconds before it.
                     float ambient = Float.MAX_VALUE;
                     for (int k = WORD_CHUNKS; k < Math.min(count, AMBIENT_CHUNKS); k++) {
@@ -624,8 +638,16 @@ public class WakeWord extends Service {
         }
     }
 
+    /** Whether the hand-over waiting to be taken up began over ON-FireAI's own voice. */
+    static boolean overVoice() {
+        final Handoff h = sHandoff;
+        return h != null && !h.done && h.overVoice;
+    }
+
     /** The word was heard: a short sound, and the sheet comes up listening. */
     private void wake() {
+        // Its own voice would be heard as the question: it stops now.
+        Session.hush();
         // The pause set on hearing it ends once the sheet listens (which pauses anyway).
         mMain.postDelayed(() -> sPaused = false, 3000);
         // Down at once, before the sheet is even there; the sheet keeps it so.

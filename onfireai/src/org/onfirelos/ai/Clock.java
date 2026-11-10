@@ -216,6 +216,19 @@ final class Clock {
                 alarmsCard(out));
     }
 
+    /** The time of the clock's alarm with this id ("07:30"), or "" when there is none. */
+    static String alarmTime(Context context, long id) {
+        final Bundle out = call(context, "alarms", null, "");
+        final ArrayList<Bundle> list = out.getParcelableArrayList("alarms");
+        for (int i = 0; list != null && i < list.size(); i++) {
+            if (list.get(i).getLong("id") == id) {
+                return String.format(Locale.ROOT, "%02d:%02d", list.get(i).getInt("hour"),
+                        list.get(i).getInt("minute"));
+            }
+        }
+        return "";
+    }
+
     private static String describeAlarms(Bundle out) {
         final ArrayList<Bundle> list = out.getParcelableArrayList("alarms");
         if (list == null || list.isEmpty()) {
@@ -226,7 +239,7 @@ final class Clock {
             s.append('[').append(a.getLong("id")).append("] ")
                     .append(String.format(Locale.ROOT, "%02d:%02d", a.getInt("hour"),
                             a.getInt("minute")))
-                    .append(a.getBoolean("on") ? " on" : " off");
+                    .append(a.getBoolean("on") ? " (switched on)" : " (switched off)");
             final ArrayList<Integer> days = a.getIntegerArrayList("days");
             if (days != null && !days.isEmpty()) {
                 s.append(", ");
